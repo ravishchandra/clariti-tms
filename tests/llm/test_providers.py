@@ -8,7 +8,7 @@ import pytest
 from app.llm.providers.anthropic import AnthropicProvider
 from app.llm.providers.ollama import OllamaProvider
 from app.llm.providers.openai import OpenAIProvider
-from app.llm.registry import LLMRegistry, select_provider
+from app.llm.registry import LLMRegistry, select_fallback_provider, select_provider
 
 # ---------------------------------------------------------------------------
 # select_provider routing
@@ -56,6 +56,30 @@ class TestSelectProvider:
             deepl_locales=["fr-FR", "de-DE"],
         )
         assert result == "anthropic"
+
+
+# ---------------------------------------------------------------------------
+# select_fallback_provider (M2 — docs/05:52)
+# ---------------------------------------------------------------------------
+
+class TestSelectFallbackProvider:
+    def test_anthropic_primary_falls_back_to_openai(self) -> None:
+        assert select_fallback_provider("anthropic") == "openai"
+
+    def test_openai_primary_falls_back_to_ollama(self) -> None:
+        assert select_fallback_provider("openai") == "ollama"
+
+    def test_last_in_chain_returns_none(self) -> None:
+        assert select_fallback_provider("ollama") is None
+
+    def test_unknown_primary_returns_none(self) -> None:
+        # Community providers — we don't guess.
+        assert select_fallback_provider("openrouter") is None
+        assert select_fallback_provider("totally-made-up") is None
+
+    def test_deepl_not_in_fallback_chain(self) -> None:
+        # DeepL is a peer for plain-text locales, not a fallback target.
+        assert select_fallback_provider("deepl") is None
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +228,7 @@ class TestOpenRouterProvider:
         assert p.model_id == "openai/gpt-4o"
 
     def test_client_base_url_is_openrouter(self) -> None:
-        from app.llm.providers.openrouter import OpenRouterProvider, _BASE_URL
+        from app.llm.providers.openrouter import _BASE_URL, OpenRouterProvider
+
         p = OpenRouterProvider(api_key="or-test")
         assert str(p._client.base_url).rstrip("/") == _BASE_URL.rstrip("/")

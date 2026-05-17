@@ -34,3 +34,27 @@ def select_provider(
         return "deepl"
 
     return config_provider
+
+
+# Ordered fallback chain — primary providers that can run the full structured
+# translate-then-evaluate flow. Intentionally excludes "deepl": DeepL is a peer
+# selection (plain-text-only locales) rather than a fallback target because it
+# cannot run QA evaluation or structural-tag preservation.
+# See docs/05-llm-translation-pipeline.md:52.
+_FALLBACK_CHAIN: tuple[str, ...] = ("anthropic", "openai", "ollama")
+
+
+def select_fallback_provider(primary_name: str) -> str | None:
+    """Return the next provider in the configured fallback chain.
+
+    Skips ``primary_name`` and any provider before it in the chain, then
+    returns the first remaining one. Returns ``None`` when the primary is the
+    last entry (no further fallback) or when the primary is not in the chain
+    at all (e.g. a community provider — we conservatively refuse to guess).
+    """
+    if primary_name not in _FALLBACK_CHAIN:
+        return None
+    idx = _FALLBACK_CHAIN.index(primary_name)
+    if idx + 1 >= len(_FALLBACK_CHAIN):
+        return None
+    return _FALLBACK_CHAIN[idx + 1]

@@ -57,6 +57,7 @@ async def retrieve_tm_neighbors(
 async def store_tm_entry(
     db: AsyncSession,
     project_id: str,
+    repository_id: str,
     locale: str,
     source_key_id: str,
     source_text: str,
@@ -64,6 +65,13 @@ async def store_tm_entry(
     platform: str,
     embedding: list[float],
 ) -> None:
+    """Insert or update a translation_memory row for (project, key, locale).
+
+    M6 fix (2026-05): `repository_id` is now required so TM rows are linked
+    back to their originating repository — see docs/04-data-model.md:302
+    ("where this TM entry originated"). Existing rows whose repository_id is
+    NULL are upgraded on the next update.
+    """
     from app.models import TranslationMemory
 
     existing = await db.scalar(
@@ -76,9 +84,12 @@ async def store_tm_entry(
     if existing:
         existing.target_text = target_text
         existing.source_embedding = embedding
+        # Backfill repository_id on existing rows (was previously never set).
+        existing.repository_id = uuid.UUID(repository_id)
     else:
         tm = TranslationMemory(
             project_id=uuid.UUID(project_id),
+            repository_id=uuid.UUID(repository_id),
             locale=locale,
             source_key_id=uuid.UUID(source_key_id),
             source_text=source_text,

@@ -390,6 +390,50 @@ async def _translate(project_slug: str, locale: str | None, provider_name: str, 
 
 
 # ---------------------------------------------------------------------------
+# loc api-key
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="api-key")
+def api_key(
+    name: str = typer.Option("default", "--name", help="Human label for this key"),
+    org: str = typer.Option(None, "--org", help="Organization slug (defaults to first org)"),
+) -> None:
+    """Generate an API key and print it. Store it — it is shown only once."""
+    asyncio.run(_api_key(name, org))
+
+
+async def _api_key(name: str, org_slug: str | None) -> None:
+    import hashlib
+    import secrets
+
+    from app.core.database import AsyncSessionLocal
+    from app.models import ApiKey, Organization
+
+    async with AsyncSessionLocal() as db:
+        if org_slug:
+            organization = await db.scalar(select(Organization).where(Organization.slug == org_slug))
+            if organization is None:
+                err.print(f"[red]Organization '{org_slug}' not found.[/red]")
+                raise typer.Exit(1)
+        else:
+            organization = await db.scalar(select(Organization))
+            if organization is None:
+                err.print("[red]No organizations found. Run `loc init` first.[/red]")
+                raise typer.Exit(1)
+
+        raw_key = secrets.token_hex(32)
+        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+        api_key_obj = ApiKey(key_hash=key_hash, name=name, organization_id=organization.id)
+        db.add(api_key_obj)
+        await db.commit()
+
+    console.print(f"\n[bold green]API key created[/bold green] ({name} / {organization.slug})")
+    console.print(f"\n  [bold]{raw_key}[/bold]\n")
+    console.print("[dim]This is shown once. Add it to your .env as API_KEY= or pass via X-API-Key header.[/dim]\n")
+
+
+# ---------------------------------------------------------------------------
 # loc status (stub)
 # ---------------------------------------------------------------------------
 

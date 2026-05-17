@@ -10,7 +10,11 @@ from sqlalchemy import func, select
 from app.api.deps import DB, CurrentKey
 from app.api.v1.schemas.translations import TranslationRead, TranslationUpdate
 from app.models import Key, Translation, TranslationStatus
-from app.mt.transitions import IllegalTransitionError, apply_transition
+from app.mt.transitions import (
+    IllegalTransitionError,
+    InvalidReviewerActionError,
+    apply_transition,
+)
 
 router = APIRouter()
 
@@ -102,11 +106,25 @@ async def update_translation(
             )
         except IllegalTransitionError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from None
+        except InvalidReviewerActionError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from None
     else:
         # No status change, but the caller may still be setting reviewer
-        # fields (leaving a note before approving, etc.).
+        # fields (leaving a note before approving, etc.). Validate the
+        # reviewer_action whitelist here too — same check apply_transition
+        # would apply.
         translation.updated_at = datetime.now(tz=UTC)
         if reviewer_action is not None:
+            from app.mt.transitions import ALLOWED_REVIEWER_ACTIONS
+
+            if reviewer_action not in ALLOWED_REVIEWER_ACTIONS:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"reviewer_action={reviewer_action!r} is not allowed. "
+                        f"Valid: {sorted(ALLOWED_REVIEWER_ACTIONS)}"
+                    ),
+                )
             translation.reviewer_action = reviewer_action
         if reviewer_notes is not None:
             translation.reviewer_notes = reviewer_notes

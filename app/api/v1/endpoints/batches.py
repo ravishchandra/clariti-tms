@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -10,6 +11,8 @@ from app.api.deps import DB, CurrentKey
 from app.api.v1.schemas.batches import BatchRead, BatchTrigger
 from app.models import BatchStatus, Translation, TranslationBatch, TranslationStatus
 from app.mt.transitions import IllegalTransitionError, apply_transition
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -117,19 +120,34 @@ async def approve_batch(
     translations = rows.scalars().all()
 
     approved_count = 0
+    skipped_count = 0
     for t in translations:
         try:
             apply_transition(t, TranslationStatus.approved, reviewer_action="accept")
             approved_count += 1
-        except IllegalTransitionError:
-            # Translation moved out of needs_review between our select and the
-            # transition (race with API caller). Skip rather than abort the batch.
-            continue
+        except IllegalTransitionError as exc:
+            # Pre-filtered by status == needs_review, so an IllegalTransition
+            # here means the row changed between SELECT and the transition
+            # (concurrent write). Log loudly and continue — better partial
+            # success than a 500 that loses the rest of the batch.
+            skipped_count += 1
+            logger.warning(
+                "batch.approve.skipped_illegal_transition",
+                extra={
+                    "translation_id": str(t.id),
+                    "batch_id": str(batch_id),
+                    "transition_error": str(exc),
+                },
+            )
 
     batch.status = BatchStatus.approved
     await db.commit()
 
-    return {"batch_id": str(batch_id), "approved": approved_count}
+    return {
+        "batch_id": str(batch_id),
+        "approved": approved_count,
+        "skipped": skipped_count,
+    }
 
 
 @router.post("/{batch_id}/reject")
@@ -152,16 +170,29 @@ async def reject_batch(
     translations = rows.scalars().all()
 
     rejected_count = 0
+    skipped_count = 0
     for t in translations:
         try:
             apply_transition(t, TranslationStatus.rejected, reviewer_action="reject")
             rejected_count += 1
-        except IllegalTransitionError:
-            continue
+        except IllegalTransitionError as exc:
+            skipped_count += 1
+            logger.warning(
+                "batch.reject.skipped_illegal_transition",
+                extra={
+                    "translation_id": str(t.id),
+                    "batch_id": str(batch_id),
+                    "transition_error": str(exc),
+                },
+            )
 
     # BatchStatus has no explicit "rejected" value; revert to pending so the batch
     # can be re-triggered after the reviewer rejects its translations.
     batch.status = BatchStatus.pending
     await db.commit()
 
-    return {"batch_id": str(batch_id), "rejected": rejected_count}
+    return {
+        "batch_id": str(batch_id),
+        "rejected": rejected_count,
+        "skipped": skipped_count,
+    }

@@ -46,10 +46,16 @@ LEGAL_TRANSITIONS: Final[frozenset[tuple[str, str]]] = frozenset(
         (_S.needs_more_context.value, _S.needs_review.value),
         # Publication
         (_S.approved.value, _S.published.value),
-        # Source-change re-translation
+        # Source-change re-translation (ingestion writes this when source_hash
+        # of a published or approved key changes). Routes both through
+        # needs_review so the new MT output is reviewed.
         (_S.published.value, _S.needs_review.value),
-        # Re-MT after rejection
-        (_S.rejected.value, _S.mt_proposed.value),
+        (_S.approved.value, _S.needs_review.value),
+        # Re-MT after rejection. Goes back to `draft` so the MT worker
+        # (which selects `draft` rows in app/mt/service.py) picks it up.
+        # The prior `rejected -> mt_proposed` was wrong: it would have left
+        # the row stranded outside the worker's claim filter.
+        (_S.rejected.value, _S.draft.value),
     }
 )
 
@@ -60,6 +66,23 @@ _REVIEW_EDGES: Final[frozenset[tuple[str, str]]] = frozenset(
         (_S.needs_review.value, _S.rejected.value),
         (_S.needs_review.value, _S.needs_more_context.value),
     }
+)
+
+# Transitions that should clear stale reviewer state. When a rejected
+# translation goes back through MT, its prior reviewer decision is no
+# longer current — keep the row clean so the next reviewer sees a fresh
+# slate.
+_REVIEWER_CLEAR_EDGES: Final[frozenset[tuple[str, str]]] = frozenset(
+    {
+        (_S.rejected.value, _S.draft.value),
+    }
+)
+
+# reviewer_action is a closed set per docs/04-data-model.md:236.
+# Excel import (docs/07) uses a slightly different alphabet (yes/no/edit/
+# needs_more_context) that gets mapped to this canonical set at import time.
+ALLOWED_REVIEWER_ACTIONS: Final[frozenset[str]] = frozenset(
+    {"accept", "edit", "reject", "needs_more_context"}
 )
 
 
@@ -74,6 +97,17 @@ class IllegalTransitionError(Exception):
         )
         self.from_status = from_status
         self.to_status = to_status
+
+
+class InvalidReviewerActionError(Exception):
+    """Raised when reviewer_action is not in ALLOWED_REVIEWER_ACTIONS."""
+
+    def __init__(self, action: str) -> None:
+        super().__init__(
+            f"reviewer_action={action!r} is not allowed. Valid values: "
+            f"{sorted(ALLOWED_REVIEWER_ACTIONS)}. See docs/04-data-model.md:236."
+        )
+        self.action = action
 
 
 def _coerce(status: object) -> str:
@@ -94,23 +128,38 @@ def apply_transition(
     """Apply a status transition, validating the edge.
 
     Raises `IllegalTransitionError` if the (current, new) pair is not in
-    `LEGAL_TRANSITIONS`. Otherwise updates `status`, `updated_at`, and any
-    audit fields appropriate for the transition.
+    `LEGAL_TRANSITIONS`. Raises `InvalidReviewerActionError` if
+    `reviewer_action` is provided and not in `ALLOWED_REVIEWER_ACTIONS`.
+    Otherwise updates `status`, `updated_at`, and any audit fields
+    appropriate for the transition.
 
-    Self-transitions (current == new) are a no-op + bump `updated_at`. They
-    don't appear in `LEGAL_TRANSITIONS` but are permitted as idempotent.
+    Self-transitions (current == new) are a true no-op — `updated_at` is not
+    touched, so the Postgres history trigger doesn't fire for a phantom
+    change. Callers wanting to bump `updated_at` without a status change
+    should do so themselves and pass `new_status=current` is not needed.
+
+    Note on coverage gap: this helper is only invoked from API endpoints
+    today. System paths (MT service, ingestion source-change writer,
+    publication's bulk publish via `mt.api.mark_translations_published`)
+    write `translation.status` more directly. Each system path's writes
+    correspond to an edge in `LEGAL_TRANSITIONS`, but they don't run through
+    the validator. Pulling them into `apply_transition` is a follow-up
+    (would coordinate with the MT-service-hardening branch).
     """
+    if reviewer_action is not None and reviewer_action not in ALLOWED_REVIEWER_ACTIONS:
+        raise InvalidReviewerActionError(reviewer_action)
+
     target = _coerce(new_status)
     current = _coerce(translation.status)
-    now = datetime.now(tz=UTC)
 
     if current == target:
-        translation.updated_at = now
+        # True no-op: no field write, no history row.
         return
 
     if (current, target) not in LEGAL_TRANSITIONS:
         raise IllegalTransitionError(current, target)
 
+    now = datetime.now(tz=UTC)
     translation.status = target
     translation.updated_at = now
 
@@ -123,8 +172,21 @@ def apply_transition(
             translation.reviewer_notes = reviewer_notes
         translation.reviewed_at = now
 
+    if (current, target) in _REVIEWER_CLEAR_EDGES:
+        # Re-MT after rejection: clear stale reviewer state so the next
+        # reviewer sees a fresh slate. reviewer_id stays for audit trail.
+        translation.reviewer_action = None
+        translation.reviewer_notes = None
+        translation.reviewed_at = None
+
     if (current, target) == (_S.approved.value, _S.published.value):
         translation.published_at = now
 
 
-__all__ = ["apply_transition", "IllegalTransitionError", "LEGAL_TRANSITIONS"]
+__all__ = [
+    "ALLOWED_REVIEWER_ACTIONS",
+    "IllegalTransitionError",
+    "InvalidReviewerActionError",
+    "LEGAL_TRANSITIONS",
+    "apply_transition",
+]

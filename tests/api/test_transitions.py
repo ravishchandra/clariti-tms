@@ -288,6 +288,136 @@ async def test_illegal_needs_review_to_published_rejected(
 
 
 # ---------------------------------------------------------------------------
+# H1 codex follow-up: edge corrections + reviewer_action whitelist
+# ---------------------------------------------------------------------------
+
+
+async def test_rejected_goes_to_draft_not_mt_proposed(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    """Re-MT after rejection must route through `draft` (where the MT worker
+    picks rows up), not `mt_proposed` (where it would be stranded).
+    """
+    from app.models import Translation
+
+    t_id = seeded["translation"].id
+
+    # needs_review -> rejected
+    resp = await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "rejected", "reviewer_action": "reject"},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200
+
+    # rejected -> draft is legal.
+    resp = await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "draft"},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200, resp.text
+
+    # rejected -> mt_proposed is illegal.
+    db.expire_all()
+    row = await db.scalar(select(Translation).where(Translation.id == t_id))
+    assert row is not None
+    # Reviewer fields must be cleared on rejected -> draft (re-MT).
+    assert row.reviewer_action is None
+    assert row.reviewer_notes is None
+    assert row.reviewed_at is None
+
+
+async def test_rejected_to_mt_proposed_is_illegal(
+    client: AsyncClient, seeded: dict[str, Any]
+) -> None:
+    """The wrong re-MT edge must 422 — guards against the worker-stranding
+    bug codex caught.
+    """
+    t_id = seeded["translation"].id
+
+    await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "rejected", "reviewer_action": "reject"},
+        headers=seeded["headers"],
+    )
+    resp = await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "mt_proposed"},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 422
+
+
+async def test_approved_to_needs_review_is_legal_for_source_change(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    """When source text changes, ingestion writes approved -> needs_review.
+    That edge must be legal (it wasn't in the first pass).
+    """
+    t_id = seeded["translation"].id
+
+    # Drive to approved first.
+    await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "approved", "reviewer_action": "accept"},
+        headers=seeded["headers"],
+    )
+
+    # Source change → re-review.
+    resp = await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "needs_review"},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200, resp.text
+
+
+@pytest.mark.parametrize(
+    "bad_action",
+    ["lol", "yes", "approved", "REJECT", " accept ", ""],
+)
+async def test_reviewer_action_whitelist(
+    client: AsyncClient, seeded: dict[str, Any], bad_action: str
+) -> None:
+    """reviewer_action is constrained to {accept, edit, reject, needs_more_context}
+    per docs/04:236. Excel-format values (yes/no) and free text must be rejected
+    so we don't drift into a free-form audit column.
+    """
+    t_id = seeded["translation"].id
+    resp = await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "approved", "reviewer_action": bad_action},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 422
+
+
+async def test_self_transition_is_true_no_op(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    """current==target must not touch updated_at, so the trigger doesn't fire
+    a phantom history row.
+    """
+
+    t_id = seeded["translation"].id
+
+    before = await _history_count_for(db, t_id)
+
+    resp = await client.patch(
+        f"/api/v1/translations/{t_id}",
+        json={"status": "needs_review"},  # same as seeded status
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200
+
+    after = await _history_count_for(db, t_id)
+    assert after == before, (
+        f"self-transition wrote {after - before} history rows; expected 0"
+    )
+
+
+# ---------------------------------------------------------------------------
 # H1: reviewer fields set on review-boundary transitions
 # ---------------------------------------------------------------------------
 

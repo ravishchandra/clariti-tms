@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import DB, CurrentKey
 from app.api.v1.schemas.batches import BatchRead, BatchTrigger
 from app.models import BatchStatus, Translation, TranslationBatch, TranslationStatus
+from app.mt.transitions import IllegalTransitionError, apply_transition
 
 router = APIRouter()
 
@@ -18,8 +19,8 @@ async def list_batches(
     db: DB,
     _auth: CurrentKey,
     project_id: uuid.UUID = Query(...),
-    locale: Optional[str] = Query(None),
-    status: Optional[BatchStatus] = Query(None),
+    locale: str | None = Query(None),
+    status: BatchStatus | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> dict[str, Any]:
@@ -115,13 +116,20 @@ async def approve_batch(
     )
     translations = rows.scalars().all()
 
+    approved_count = 0
     for t in translations:
-        t.status = TranslationStatus.approved
+        try:
+            apply_transition(t, TranslationStatus.approved, reviewer_action="accept")
+            approved_count += 1
+        except IllegalTransitionError:
+            # Translation moved out of needs_review between our select and the
+            # transition (race with API caller). Skip rather than abort the batch.
+            continue
 
     batch.status = BatchStatus.approved
     await db.commit()
 
-    return {"batch_id": str(batch_id), "approved": len(translations)}
+    return {"batch_id": str(batch_id), "approved": approved_count}
 
 
 @router.post("/{batch_id}/reject")
@@ -143,12 +151,17 @@ async def reject_batch(
     )
     translations = rows.scalars().all()
 
+    rejected_count = 0
     for t in translations:
-        t.status = TranslationStatus.rejected
+        try:
+            apply_transition(t, TranslationStatus.rejected, reviewer_action="reject")
+            rejected_count += 1
+        except IllegalTransitionError:
+            continue
 
     # BatchStatus has no explicit "rejected" value; revert to pending so the batch
     # can be re-triggered after the reviewer rejects its translations.
     batch.status = BatchStatus.pending
     await db.commit()
 
-    return {"batch_id": str(batch_id), "rejected": len(translations)}
+    return {"batch_id": str(batch_id), "rejected": rejected_count}

@@ -47,26 +47,33 @@ class TestPublicationDoesNotQueryOtherModulesTables:
     Translation directly. It must go through app.ingestion.api / app.mt.api.
     """
 
-    def test_no_direct_select_key(self):
-        proc = subprocess.run(
-            ["grep", "-rn", "select(Key)", str(PUBLICATION_DIR)],
-            capture_output=True,
-            text=True,
-        )
-        assert proc.stdout == "", (
-            "publication/ contains forbidden direct `select(Key)` calls:\n" + proc.stdout
-        )
+    # We grep for the union of CRUD verbs against Key / Translation. Anything
+    # that escapes these patterns (e.g. `import app.models as m; select(m.Key)`)
+    # is out of reach for a static check — codex flagged this. The real
+    # enforcement is the planned `no-cross-module-db-access` lint rule
+    # (CLAUDE.md:19). These grep tests are a backstop, not a perimeter.
+    _FORBIDDEN_PATTERNS = (
+        r"select\s*\(\s*Key\b",
+        r"select\s*\(\s*Translation\b",
+        r"update\s*\(\s*Key\b",
+        r"update\s*\(\s*Translation\b",
+        r"delete\s*\(\s*Key\b",
+        r"delete\s*\(\s*Translation\b",
+        r"\.get\s*\(\s*Key\b",
+        r"\.get\s*\(\s*Translation\b",
+    )
 
-    def test_no_direct_select_translation(self):
-        proc = subprocess.run(
-            ["grep", "-rn", "select(Translation)", str(PUBLICATION_DIR)],
-            capture_output=True,
-            text=True,
-        )
-        assert proc.stdout == "", (
-            "publication/ contains forbidden direct `select(Translation)` calls:\n"
-            + proc.stdout
-        )
+    def test_no_direct_orm_access_to_other_modules_tables(self):
+        for pattern in self._FORBIDDEN_PATTERNS:
+            proc = subprocess.run(
+                ["grep", "-rEn", pattern, str(PUBLICATION_DIR)],
+                capture_output=True,
+                text=True,
+            )
+            assert proc.stdout == "", (
+                f"publication/ contains forbidden cross-module access matching "
+                f"{pattern!r}:\n{proc.stdout}"
+            )
 
     def test_no_key_or_translation_imports(self):
         """Publication should not even import Key or Translation models —
@@ -298,6 +305,12 @@ class TestH6PublishRepositoryRespectsBoundary:
     ):
         from app.publication import service as publication_service
 
+        # Per codex follow-up: prove the adapter is NOT INSTANTIATED, not just
+        # that publish_translations isn't called. A FakeAdapter that records
+        # __init__ catches a regression where the no-op path still pays the
+        # cost of building a GitHub client.
+        adapter_constructed = {"flag": False}
+
         # Fresh repo with no translations at all.
         suffix = uuid.uuid4().hex[:8]
         org = Organization(name=f"empty-{suffix}", slug=f"empty-{suffix}")
@@ -326,7 +339,7 @@ class TestH6PublishRepositoryRespectsBoundary:
 
         class FakeAdapter:
             def __init__(self, token: str) -> None:
-                pass
+                adapter_constructed["flag"] = True
 
             async def publish_translations(self, *args, **kwargs):
                 called["called"] = True
@@ -342,6 +355,10 @@ class TestH6PublishRepositoryRespectsBoundary:
         )
         assert result is None
         assert called["called"] is False
+        assert adapter_constructed["flag"] is False, (
+            "publish_repository should not even construct GitHubAdapter when "
+            "there are no approved translations"
+        )
 
 
 # ---------------------------------------------------------------------------

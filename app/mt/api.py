@@ -55,6 +55,7 @@ async def list_approved_translations(
         .join(Key, Translation.key_id == Key.id)
         .where(
             Key.repository_id == repository_id,
+            Key.is_active.is_(True),
             Translation.status == TranslationStatus.approved,
             Translation.value.is_not(None),
         )
@@ -89,9 +90,16 @@ async def mark_translations_published(
     """
     if not translation_ids:
         return
+    # State-machine guard: only `approved` translations may move to `published`.
+    # `approved -> published` is one of the legal edges in the state machine
+    # (docs/04-data-model.md). When the dedicated transitions module from H1
+    # lands on main, this UPDATE should delegate to `apply_transition()` for
+    # each row so the rule lives in exactly one place. For now we replicate
+    # the guard inline.
     await db.execute(
         update(Translation)
         .where(Translation.id.in_(translation_ids))
+        .where(Translation.status == TranslationStatus.approved)
         .values(
             status=TranslationStatus.published,
             published_at=published_at,

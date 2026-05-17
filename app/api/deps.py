@@ -126,10 +126,17 @@ async def scoped_key(
     db: DB,
     current_key: CurrentKey,
 ) -> Key:
-    """Return the key iff its (denormalized) project belongs to the caller's org."""
+    """Return the key iff its containment chain belongs to the caller's org.
+
+    Walks Key -> Repository -> Project (not Key.project_id directly). Key
+    has a denormalized project_id for query speed; the authoritative owner
+    is repository_id. Using the containment edge means a stale denormalized
+    project_id cannot misroute an authorization check.
+    """
     result = await db.execute(
         select(Key)
-        .join(Project, Key.project_id == Project.id)
+        .join(Repository, Key.repository_id == Repository.id)
+        .join(Project, Repository.project_id == Project.id)
         .where(
             Key.id == key_id,
             Project.organization_id == current_key.organization_id,
@@ -146,11 +153,16 @@ async def scoped_translation(
     db: DB,
     current_key: CurrentKey,
 ) -> Translation:
-    """Return the translation iff its key's project belongs to the caller's org."""
+    """Return the translation iff its containment chain belongs to caller's org.
+
+    Walks Translation -> Key -> Repository -> Project, not the denormalized
+    Key.project_id, for the same defense-in-depth reason as scoped_key().
+    """
     result = await db.execute(
         select(Translation)
         .join(Key, Translation.key_id == Key.id)
-        .join(Project, Key.project_id == Project.id)
+        .join(Repository, Key.repository_id == Repository.id)
+        .join(Project, Repository.project_id == Project.id)
         .where(
             Translation.id == translation_id,
             Project.organization_id == current_key.organization_id,
@@ -167,10 +179,15 @@ async def scoped_batch(
     db: DB,
     current_key: CurrentKey,
 ) -> TranslationBatch:
-    """Return the batch iff its project belongs to the caller's org."""
+    """Return the batch iff its containment chain belongs to caller's org.
+
+    Walks TranslationBatch -> Repository -> Project (not the denormalized
+    TranslationBatch.project_id) for the same reason as scoped_key().
+    """
     result = await db.execute(
         select(TranslationBatch)
-        .join(Project, TranslationBatch.project_id == Project.id)
+        .join(Repository, TranslationBatch.repository_id == Repository.id)
+        .join(Project, Repository.project_id == Project.id)
         .where(
             TranslationBatch.id == batch_id,
             Project.organization_id == current_key.organization_id,

@@ -321,11 +321,67 @@ async def _ingest_direct(result, repo_name: str, key_count: int) -> None:
 
 @app.command()
 def translate(
-    project: str = typer.Option(..., "--project"),
-    locale: str = typer.Option(..., "--locale"),
+    project: str = typer.Option(..., "--project", help="Project slug"),
+    locale: str = typer.Option(..., "--locale", help="Target locale (e.g. fr-FR)"),
+    provider: str = typer.Option("anthropic", "--provider", help="LLM provider"),
+    max_batches: int = typer.Option(None, "--max-batches", help="Stop after N batches"),
 ) -> None:
-    """Trigger MT on all draft strings for a project/locale. (Phase 2)"""
-    console.print("[dim]loc translate — Phase 2[/dim]")
+    """Run MT on all pending batches for a project/locale."""
+    asyncio.run(_translate(project, locale, provider, max_batches))
+
+
+async def _translate(project_slug: str, locale: str, provider_name: str, max_batches: int | None) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.core.settings import get_settings
+    from app.llm.providers.anthropic import AnthropicProvider
+    from app.llm.providers.openai import OpenAIProvider
+    from app.models import BatchStatus, Project, TranslationBatch
+    from app.mt.worker import run_worker
+
+    settings = get_settings()
+
+    providers: dict = {}
+    if settings.ANTHROPIC_API_KEY:
+        providers["anthropic"] = AnthropicProvider(api_key=settings.ANTHROPIC_API_KEY)
+    if settings.OPENAI_API_KEY:
+        providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
+
+    if not providers:
+        err.print("[red]No API keys configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.[/red]")
+        raise typer.Exit(1)
+
+    if provider_name not in providers:
+        err.print(f"[red]Provider '{provider_name}' not available — missing API key.[/red]")
+        raise typer.Exit(1)
+
+    # Count pending batches
+    async with AsyncSessionLocal() as db:
+        project = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+        batches = await db.scalars(
+            select(TranslationBatch).where(
+                TranslationBatch.project_id == project.id,
+                TranslationBatch.locale == locale,
+                TranslationBatch.status == BatchStatus.pending,
+            )
+        )
+        batch_list = list(batches)
+
+    if not batch_list:
+        console.print(f"[dim]No pending batches for {project_slug} / {locale}.[/dim]")
+        return
+
+    console.print(f"\nRunning MT on [bold]{len(batch_list)}[/bold] batch(es) — {project_slug} / {locale}\n")
+
+    await run_worker(
+        providers=providers,
+        max_batches=max_batches or len(batch_list),
+        config_provider=provider_name,
+        embed_provider="openai" if "openai" in providers else provider_name,
+    )
+    console.print(f"\n[green]✓[/green] MT complete for {locale}")
 
 
 # ---------------------------------------------------------------------------
@@ -363,6 +419,119 @@ def import_file(
 ) -> None:
     """Import translations from Excel. (Phase 5)"""
     console.print("[dim]loc import — Phase 5[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# loc eval
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def eval(
+    reference: str = typer.Option(..., "--reference", help="Path to reference JSON"),
+    prompt: str = typer.Option("translate_v1", "--prompt", help="Prompt version label"),
+    provider: str = typer.Option("anthropic", "--provider"),
+    output: str = typer.Option(None, "--output", help="Save results to JSON file"),
+) -> None:
+    """Run eval harness against a reference translation set."""
+    asyncio.run(_eval(reference, prompt, provider, output))
+
+
+async def _eval(reference: str, prompt_version: str, provider_name: str, output: str | None) -> None:
+    from app.core.settings import get_settings
+    from app.llm.providers.anthropic import AnthropicProvider
+    from app.llm.providers.openai import OpenAIProvider
+    from app.mt.eval import run_eval
+
+    settings = get_settings()
+    providers: dict = {}
+    if settings.ANTHROPIC_API_KEY:
+        providers["anthropic"] = AnthropicProvider(api_key=settings.ANTHROPIC_API_KEY)
+    if settings.OPENAI_API_KEY:
+        providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
+
+    if provider_name not in providers:
+        err.print(f"[red]Provider '{provider_name}' not available.[/red]")
+        raise typer.Exit(1)
+
+    prov = providers[provider_name]
+    embed_prov = providers.get("openai", prov)
+
+    ref_path = Path(reference).resolve()
+    if not ref_path.exists():
+        err.print(f"[red]Reference file not found: {reference}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\nRunning eval: [bold]{prompt_version}[/bold] vs {ref_path.name}\n")
+    results = await run_eval(ref_path, prompt_version, prov.translate, embed_prov.embed)
+
+    console.print(f"  Strings:    {results['string_count']}")
+    console.print(f"  Avg BLEU:   {results['avg_bleu']:.4f}")
+    console.print(f"  Avg SemSim: {results['avg_semantic_similarity']:.4f}")
+
+    if output:
+        import json as _json
+        Path(output).write_text(_json.dumps(results, indent=2, ensure_ascii=False))
+        console.print(f"\n[green]✓[/green] Results saved to {output}")
+
+
+# ---------------------------------------------------------------------------
+# loc export-tm / loc import-tm
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="export-tm")
+def export_tm(
+    project: str = typer.Option(..., "--project"),
+    locale: str = typer.Option(..., "--locale"),
+    output: str = typer.Option(None, "--output", help="Output .tmx file (default: <project>-<locale>.tmx)"),
+) -> None:
+    """Export translation memory to TMX."""
+    asyncio.run(_export_tm(project, locale, output))
+
+
+async def _export_tm(project_slug: str, locale: str, output: str | None) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models import Project
+    from app.mt.tmx import export_tmx
+
+    out_path = Path(output) if output else Path(f"{project_slug}-{locale}.tmx")
+    async with AsyncSessionLocal() as db:
+        project = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+        count = await export_tmx(db, str(project.id), locale, out_path)
+    console.print(f"[green]✓[/green] Exported {count} TM entries to {out_path}")
+
+
+@app.command(name="import-tm")
+def import_tm(
+    file: str = typer.Argument(..., help="Path to .tmx file"),
+    project: str = typer.Option(..., "--project"),
+    platform: str = typer.Option("web", "--platform"),
+) -> None:
+    """Import translation memory from TMX."""
+    asyncio.run(_import_tm(file, project, platform))
+
+
+async def _import_tm(tmx_path: str, project_slug: str, platform: str) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models import Project
+    from app.mt.tmx import import_tmx
+
+    path = Path(tmx_path).resolve()
+    if not path.exists():
+        err.print(f"[red]File not found: {tmx_path}[/red]")
+        raise typer.Exit(1)
+
+    async with AsyncSessionLocal() as db:
+        project = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+        summary = await import_tmx(db, str(project.id), path, platform)
+    console.print(f"[green]✓[/green] Imported {summary['imported']} TM entries ({summary['skipped']} skipped)")
 
 
 if __name__ == "__main__":

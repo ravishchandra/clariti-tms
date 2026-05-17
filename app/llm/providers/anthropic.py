@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+import anthropic
+
+from app.llm.protocol import LLMProviderBase
+
+
+class AnthropicProvider(LLMProviderBase):
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6") -> None:
+        self._model = model
+        self._client = anthropic.AsyncAnthropic(api_key=api_key)
+
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> str:
+        if cache_system:
+            system_arg: list[dict] | str = [
+                {
+                    "type": "text",
+                    "text": system,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]
+        else:
+            system_arg = system
+
+        response = await self._client.messages.create(
+            model=self._model,
+            max_tokens=4096,
+            system=system_arg,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.content[0].text
+
+    async def evaluate(self, prompt: str) -> str:
+        response = await self._client.messages.create(
+            model=self._model,
+            max_tokens=512,
+            system="",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.content[0].text
+
+    async def embed(self, text: str) -> list[float]:
+        raise NotImplementedError(
+            "Anthropic does not support embeddings — use OpenAIProvider for TM retrieval"
+        )
+
+    @property
+    def model_id(self) -> str:
+        return self._model
+
+    @property
+    def provider_name(self) -> str:
+        return "anthropic"

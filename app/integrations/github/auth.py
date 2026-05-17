@@ -195,14 +195,26 @@ async def _exchange_jwt_for_installation_token(
 
 
 def _parse_github_timestamp(ts: str) -> float:
-    """Parse a GitHub-style ISO-8601 UTC timestamp into a unix-seconds float."""
-    # datetime.fromisoformat accepts "...+00:00" in 3.11+ and the Z suffix
-    # in 3.12+, but be defensive across patch versions.
+    """Parse a GitHub-style ISO-8601 UTC timestamp into a unix-seconds float.
+
+    GitHub's `/app/installations/{id}/access_tokens` response returns
+    `expires_at` with a `Z` suffix in current docs, but defensively handle:
+      - `Z` suffix (rewritten to `+00:00` for older Python parsers)
+      - explicit non-UTC offsets like `+02:00` — converted to UTC, not
+        relabelled (the prior `.replace(tzinfo=utc)` mis-relabelled them
+        and would have produced a time 2h skewed for non-UTC responses)
+      - naive timestamps (no tz at all) — treated as UTC by GitHub convention
+    """
     from datetime import datetime, timezone
 
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
-    return datetime.fromisoformat(ts).replace(tzinfo=timezone.utc).timestamp()
+    dt = datetime.fromisoformat(ts)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.timestamp()
 
 
 # ---------------------------------------------------------------------------

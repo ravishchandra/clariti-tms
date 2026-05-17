@@ -305,3 +305,21 @@ class TestParseGithubTimestamp:
         parsed = gh_auth._parse_github_timestamp(ts)
         expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=timezone.utc).timestamp()
         assert parsed == pytest.approx(expected, abs=1.0)
+
+    def test_non_utc_offset_is_converted_not_relabelled(self) -> None:
+        """Codex follow-up: prior code did .replace(tzinfo=utc), which
+        wrongly relabelled non-UTC timestamps and produced a wall-clock-skewed
+        result. e.g. '2026-05-17T18:30:00+02:00' is actually 16:30Z.
+        """
+        ts = "2026-05-17T18:30:00+02:00"
+        parsed = gh_auth._parse_github_timestamp(ts)
+        # The right answer is 16:30:00 UTC, not 18:30:00 UTC.
+        expected = datetime(2026, 5, 17, 16, 30, 0, tzinfo=timezone.utc).timestamp()
+        assert parsed == pytest.approx(expected, abs=1.0)
+
+    def test_handles_naive_timestamp_as_utc(self) -> None:
+        """Naive (no-tz) timestamps treated as UTC, matching GitHub's docs."""
+        ts = "2026-05-17T18:30:00"
+        parsed = gh_auth._parse_github_timestamp(ts)
+        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=timezone.utc).timestamp()
+        assert parsed == pytest.approx(expected, abs=1.0)

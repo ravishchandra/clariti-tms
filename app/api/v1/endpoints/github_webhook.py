@@ -5,6 +5,7 @@ import logging
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB
 from app.integrations.github.webhook import handle_github_push, verify_github_signature
@@ -32,7 +33,11 @@ async def receive_github_webhook(
     if not full_name:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing repository.full_name")
 
-    result = await db.execute(select(Repository).where(Repository.github_repo == full_name))
+    result = await db.execute(
+        select(Repository)
+        .where(Repository.github_repo == full_name)
+        .options(selectinload(Repository.project))
+    )
     repository = result.scalar_one_or_none()
     if repository is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not registered")

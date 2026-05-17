@@ -40,14 +40,39 @@ def test_production_empty_secret_key_raises() -> None:
     assert "secrets.token_urlsafe" in message
 
 
-def test_production_placeholder_secret_key_raises() -> None:
-    """Historical placeholder must be rejected when DEBUG=False."""
+@pytest.mark.parametrize(
+    "placeholder",
+    [
+        "dev-secret-change-in-production",  # the old code default
+        "change-me-in-production",  # the old .env.example value (C4 codex find)
+    ],
+)
+def test_production_placeholder_secret_key_raises(placeholder: str) -> None:
+    """Every known historical placeholder must be rejected when DEBUG=False."""
     with pytest.raises(ValueError) as exc_info:
-        _make_settings(
-            DEBUG=False, SECRET_KEY="dev-secret-change-in-production"
-        )
+        _make_settings(DEBUG=False, SECRET_KEY=placeholder)
 
-    assert "SECRET_KEY" in str(exc_info.value)
+    msg = str(exc_info.value)
+    assert "SECRET_KEY" in msg
+    assert placeholder in msg
+
+
+@pytest.mark.parametrize(
+    "trivial",
+    [
+        "x",
+        "password",
+        "12345",
+        "short-key",  # 9 chars
+        "a" * 31,  # just below the floor
+        "   ",  # whitespace only — stripped to ""
+        "\t",
+    ],
+)
+def test_production_trivial_secret_key_raises(trivial: str) -> None:
+    """Short / blank-looking secrets must not pass production validation."""
+    with pytest.raises(ValueError):
+        _make_settings(DEBUG=False, SECRET_KEY=trivial)
 
 
 def test_production_real_secret_key_succeeds() -> None:
@@ -56,6 +81,13 @@ def test_production_real_secret_key_succeeds() -> None:
     settings = _make_settings(DEBUG=False, SECRET_KEY=real_key)
     assert settings.SECRET_KEY == real_key
     assert settings.DEBUG is False
+
+
+def test_production_min_length_secret_key_succeeds() -> None:
+    """Exactly _MIN_SECRET_KEY_LENGTH (32) chars must pass the floor."""
+    key = "a" * 32
+    settings = _make_settings(DEBUG=False, SECRET_KEY=key)
+    assert settings.SECRET_KEY == key
 
 
 def test_debug_empty_secret_key_synthesized() -> None:
@@ -101,3 +133,38 @@ def test_default_no_env_and_no_secret_key_raises() -> None:
     """
     with pytest.raises(ValueError):
         _make_settings()
+
+
+def test_get_settings_rejects_env_backed_bad_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The cached `get_settings()` entrypoint must run the validator too.
+
+    Previously the test suite only exercised `Settings()` directly, leaving open
+    the question of whether env-backed loads (the real production path) honor
+    the validator. This proves they do.
+    """
+    monkeypatch.setenv("DEBUG", "false")
+    monkeypatch.setenv("SECRET_KEY", "change-me-in-production")
+    # Avoid the repo's .env file leaking values into env-backed construction
+    monkeypatch.chdir("/")
+    with pytest.raises(ValueError):
+        get_settings()
+    # Failed construction must not poison the cache: a later good call succeeds.
+    get_settings.cache_clear()
+    monkeypatch.setenv("SECRET_KEY", "a" * 64)
+    settings = get_settings()
+    assert settings.SECRET_KEY == "a" * 64
+    assert settings.DEBUG is False
+
+
+def test_get_settings_accepts_env_backed_dev(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`get_settings()` in DEBUG=true with an empty key must synthesize one."""
+    monkeypatch.setenv("DEBUG", "true")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.chdir("/")
+    settings = get_settings()
+    assert settings.DEBUG is True
+    assert len(settings.SECRET_KEY) >= 32

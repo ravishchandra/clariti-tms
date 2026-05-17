@@ -12,8 +12,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
-# Historical placeholder we must reject in production — old leaks shouldn't slip through.
-_FORBIDDEN_SECRET_KEY = "dev-secret-change-in-production"
+# Historical placeholders we must reject in production — old leaks shouldn't slip through.
+# Anything that ever shipped as a default or example value in this repo goes here.
+_FORBIDDEN_SECRET_KEYS: frozenset[str] = frozenset(
+    {
+        "dev-secret-change-in-production",
+        "change-me-in-production",
+    }
+)
+
+# Minimum entropy for a production secret. token_urlsafe(32) produces ~43 chars;
+# 32 is a conservative floor that still catches "password", "x", "12345", etc.
+_MIN_SECRET_KEY_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -53,24 +63,41 @@ class Settings(BaseSettings):
     def _validate_secret_key(self) -> Self:
         """Enforce SECRET_KEY policy based on DEBUG mode.
 
-        - DEBUG=False (production): SECRET_KEY must be set to a real value. Empty
-          string or the historical placeholder raise immediately.
+        - DEBUG=False (production): SECRET_KEY must be non-empty, not a known
+          historical placeholder, and at least _MIN_SECRET_KEY_LENGTH chars
+          (after stripping whitespace).
         - DEBUG=True (dev): empty SECRET_KEY is auto-filled with a per-process
-          random value and a warning is logged. The historical placeholder is
+          random value and a warning is logged. Historical placeholders are
           tolerated in dev for backwards compatibility but still warned.
         """
+        generate_hint = (
+            'Generate one with: python -c "import secrets; '
+            'print(secrets.token_urlsafe(32))"'
+        )
+        stripped = self.SECRET_KEY.strip()
+
         if not self.DEBUG:
-            if not self.SECRET_KEY or self.SECRET_KEY == _FORBIDDEN_SECRET_KEY:
+            if not stripped:
                 raise ValueError(
-                    "SECRET_KEY is not set (or is the insecure default placeholder) "
-                    "while DEBUG=False. Set SECRET_KEY in .env (or your secret manager). "
-                    'Generate one with: python -c "import secrets; '
-                    'print(secrets.token_urlsafe(32))"'
+                    "SECRET_KEY is empty (or whitespace) while DEBUG=False. "
+                    f"Set SECRET_KEY in .env (or your secret manager). {generate_hint}"
+                )
+            if stripped in _FORBIDDEN_SECRET_KEYS:
+                raise ValueError(
+                    f"SECRET_KEY is set to a known insecure placeholder "
+                    f"({stripped!r}) while DEBUG=False. Replace it with a real "
+                    f"secret. {generate_hint}"
+                )
+            if len(stripped) < _MIN_SECRET_KEY_LENGTH:
+                raise ValueError(
+                    f"SECRET_KEY must be at least {_MIN_SECRET_KEY_LENGTH} "
+                    f"characters when DEBUG=False (got {len(stripped)}). "
+                    f"{generate_hint}"
                 )
             return self
 
         # DEBUG=True
-        if not self.SECRET_KEY:
+        if not stripped:
             generated = secrets.token_urlsafe(32)
             # Bypass validation re-trigger by writing through __dict__.
             object.__setattr__(self, "SECRET_KEY", generated)
@@ -79,11 +106,12 @@ class Settings(BaseSettings):
                 "random key. Set SECRET_KEY in .env to make it stable across "
                 "restarts."
             )
-        elif self.SECRET_KEY == _FORBIDDEN_SECRET_KEY:
+        elif stripped in _FORBIDDEN_SECRET_KEYS:
             logger.warning(
-                "SECRET_KEY is set to the historical placeholder "
-                "'dev-secret-change-in-production'. This is tolerated in DEBUG "
-                "mode but will be rejected when DEBUG=False. Replace it."
+                "SECRET_KEY is set to a known historical placeholder %r. "
+                "Tolerated in DEBUG mode but will be rejected when DEBUG=False. "
+                "Replace it.",
+                stripped,
             )
         return self
 

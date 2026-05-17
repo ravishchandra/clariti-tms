@@ -2,26 +2,28 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
 
 class ProjectCreate(BaseModel):
+    # NB: `organization_id` is taken from the URL path, not the body. Any value
+    # in the body would have been ignored by the original endpoint — the field
+    # was misleading and is removed to prevent confusion with `POST /api-keys`,
+    # where org_id from the body is now also ignored.
     name: str
     slug: str
-    organization_id: uuid.UUID
     source_locale: str = "en-US"
     target_locales: list[str] = []
-    style_guide: Optional[str] = None
+    style_guide: str | None = None
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    slug: Optional[str] = None
-    source_locale: Optional[str] = None
-    target_locales: Optional[list[str]] = None
-    style_guide: Optional[str] = None
+    name: str | None = None
+    slug: str | None = None
+    source_locale: str | None = None
+    target_locales: list[str] | None = None
+    style_guide: str | None = None
 
 
 class ProjectRead(BaseModel):
@@ -33,5 +35,5 @@ class ProjectRead(BaseModel):
     slug: str
     source_locale: str
     target_locales: list[str]
-    style_guide: Optional[str]
+    style_guide: str | None
     created_at: datetime

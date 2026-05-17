@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import DB, CurrentKey, ScopedBatch, assert_project_in_org
 from app.api.v1.schemas.batches import BatchRead, BatchTrigger
 from app.models import BatchStatus, Translation, TranslationBatch, TranslationStatus
 
@@ -16,13 +16,16 @@ router = APIRouter()
 @router.get("")
 async def list_batches(
     db: DB,
-    _auth: CurrentKey,
+    current_key: CurrentKey,
     project_id: uuid.UUID = Query(...),
-    locale: Optional[str] = Query(None),
-    status: Optional[BatchStatus] = Query(None),
+    locale: str | None = Query(None),
+    status: BatchStatus | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> dict[str, Any]:
+    # Org-scope by the project filter — a cross-tenant project returns 404.
+    await assert_project_in_org(project_id, db, current_key)
+
     q = select(TranslationBatch).where(TranslationBatch.project_id == project_id)
 
     if locale is not None:
@@ -41,19 +44,10 @@ async def list_batches(
 
 
 @router.get("/{batch_id}")
-async def get_batch(
-    batch_id: uuid.UUID,
-    db: DB,
-    _auth: CurrentKey,
-) -> dict[str, Any]:
-    result = await db.execute(select(TranslationBatch).where(TranslationBatch.id == batch_id))
-    batch = result.scalar_one_or_none()
-    if batch is None:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
+async def get_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     stats_result = await db.execute(
         select(Translation.status, func.count(Translation.id))
-        .where(Translation.batch_id == batch_id)
+        .where(Translation.batch_id == batch.id)
         .group_by(Translation.status)
     )
     status_counts: dict[str, int] = {row[0]: row[1] for row in stats_result.all()}
@@ -76,16 +70,10 @@ async def get_batch(
 
 @router.post("/{batch_id}/trigger-mt")
 async def trigger_mt(
-    batch_id: uuid.UUID,
     body: BatchTrigger,
     db: DB,
-    _auth: CurrentKey,
+    batch: ScopedBatch,
 ) -> dict[str, Any]:
-    result = await db.execute(select(TranslationBatch).where(TranslationBatch.id == batch_id))
-    batch = result.scalar_one_or_none()
-    if batch is None:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
     if batch.status == BatchStatus.mt_running:
         raise HTTPException(status_code=409, detail="MT is already running for this batch")
 
@@ -97,19 +85,10 @@ async def trigger_mt(
 
 
 @router.post("/{batch_id}/approve")
-async def approve_batch(
-    batch_id: uuid.UUID,
-    db: DB,
-    _auth: CurrentKey,
-) -> dict[str, Any]:
-    result = await db.execute(select(TranslationBatch).where(TranslationBatch.id == batch_id))
-    batch = result.scalar_one_or_none()
-    if batch is None:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
+async def approve_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     rows = await db.execute(
         select(Translation).where(
-            Translation.batch_id == batch_id,
+            Translation.batch_id == batch.id,
             Translation.status == TranslationStatus.needs_review,
         )
     )
@@ -121,23 +100,14 @@ async def approve_batch(
     batch.status = BatchStatus.approved
     await db.commit()
 
-    return {"batch_id": str(batch_id), "approved": len(translations)}
+    return {"batch_id": str(batch.id), "approved": len(translations)}
 
 
 @router.post("/{batch_id}/reject")
-async def reject_batch(
-    batch_id: uuid.UUID,
-    db: DB,
-    _auth: CurrentKey,
-) -> dict[str, Any]:
-    result = await db.execute(select(TranslationBatch).where(TranslationBatch.id == batch_id))
-    batch = result.scalar_one_or_none()
-    if batch is None:
-        raise HTTPException(status_code=404, detail="Batch not found")
-
+async def reject_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     rows = await db.execute(
         select(Translation).where(
-            Translation.batch_id == batch_id,
+            Translation.batch_id == batch.id,
             Translation.status == TranslationStatus.needs_review,
         )
     )
@@ -151,4 +121,4 @@ async def reject_batch(
     batch.status = BatchStatus.pending
     await db.commit()
 
-    return {"batch_id": str(batch_id), "rejected": len(translations)}
+    return {"batch_id": str(batch.id), "rejected": len(translations)}

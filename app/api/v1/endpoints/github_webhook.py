@@ -37,6 +37,16 @@ async def receive_github_webhook(
     if repository is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not registered")
 
+    # Sanity: the resolved repository must have a project FK. NOT NULL enforces this
+    # at the DB level, but assert here so any drift surfaces as a 500, not as
+    # silently-misrouted writes against a foreign tenant.
+    if repository.project_id is None:
+        logger.error("github.webhook.repository_missing_project_id", extra={"repo_id": str(repository.id)})
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Repository state inconsistent",
+        )
+
     # TODO: decrypt webhook_secret_encrypted with Fernet before comparing
     secret = repository.webhook_secret_encrypted or ""
     if secret and not verify_github_signature(payload_bytes, x_hub_signature_256 or "", secret):

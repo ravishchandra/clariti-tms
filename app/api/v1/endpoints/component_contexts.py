@@ -1,20 +1,23 @@
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import DB, ScopedComponentContext, ScopedRepository
 from app.api.v1.schemas.component_contexts import (
     ComponentContextCreate,
     ComponentContextRead,
     ComponentContextUpdate,
 )
-from app.models import ComponentContext, Repository
+from app.models import ComponentContext
 
 router = APIRouter()
+
+
+def _assert_ctx_in_repo(ctx: ComponentContext, repo) -> None:
+    if ctx.repository_id != repo.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Component context not found")
 
 
 @router.post(
@@ -23,13 +26,10 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
 )
 async def create_component_context(
-    repo_id: uuid.UUID, body: ComponentContextCreate, db: DB, _: CurrentKey
+    body: ComponentContextCreate, db: DB, repo: ScopedRepository
 ) -> ComponentContextRead:
-    repo_result = await db.execute(select(Repository).where(Repository.id == repo_id))
-    if repo_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found")
     ctx = ComponentContext(
-        repository_id=repo_id,
+        repository_id=repo.id,
         component=body.component,
         screen=body.screen,
         description=body.description,
@@ -51,17 +51,14 @@ async def create_component_context(
 
 
 @router.get("/{repo_id}/component-contexts", response_model=dict)
-async def list_component_contexts(repo_id: uuid.UUID, db: DB, _: CurrentKey) -> dict:
-    repo_result = await db.execute(select(Repository).where(Repository.id == repo_id))
-    if repo_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found")
+async def list_component_contexts(db: DB, repo: ScopedRepository) -> dict:
     total_result = await db.execute(
-        select(func.count()).select_from(ComponentContext).where(ComponentContext.repository_id == repo_id)
+        select(func.count()).select_from(ComponentContext).where(ComponentContext.repository_id == repo.id)
     )
     total = total_result.scalar_one()
     result = await db.execute(
         select(ComponentContext)
-        .where(ComponentContext.repository_id == repo_id)
+        .where(ComponentContext.repository_id == repo.id)
         .order_by(ComponentContext.component, ComponentContext.screen)
     )
     contexts = result.scalars().all()
@@ -70,31 +67,17 @@ async def list_component_contexts(repo_id: uuid.UUID, db: DB, _: CurrentKey) -> 
 
 @router.get("/{repo_id}/component-contexts/{ctx_id}", response_model=ComponentContextRead)
 async def get_component_context(
-    repo_id: uuid.UUID, ctx_id: uuid.UUID, db: DB, _: CurrentKey
+    repo: ScopedRepository, ctx: ScopedComponentContext
 ) -> ComponentContextRead:
-    result = await db.execute(
-        select(ComponentContext).where(
-            ComponentContext.id == ctx_id, ComponentContext.repository_id == repo_id
-        )
-    )
-    ctx = result.scalar_one_or_none()
-    if ctx is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Component context not found")
+    _assert_ctx_in_repo(ctx, repo)
     return ComponentContextRead.model_validate(ctx)
 
 
 @router.patch("/{repo_id}/component-contexts/{ctx_id}", response_model=ComponentContextRead)
 async def update_component_context(
-    repo_id: uuid.UUID, ctx_id: uuid.UUID, body: ComponentContextUpdate, db: DB, _: CurrentKey
+    body: ComponentContextUpdate, db: DB, repo: ScopedRepository, ctx: ScopedComponentContext
 ) -> ComponentContextRead:
-    result = await db.execute(
-        select(ComponentContext).where(
-            ComponentContext.id == ctx_id, ComponentContext.repository_id == repo_id
-        )
-    )
-    ctx = result.scalar_one_or_none()
-    if ctx is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Component context not found")
+    _assert_ctx_in_repo(ctx, repo)
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(ctx, field, value)
     try:
@@ -111,15 +94,8 @@ async def update_component_context(
 
 @router.delete("/{repo_id}/component-contexts/{ctx_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_component_context(
-    repo_id: uuid.UUID, ctx_id: uuid.UUID, db: DB, _: CurrentKey
+    db: DB, repo: ScopedRepository, ctx: ScopedComponentContext
 ) -> None:
-    result = await db.execute(
-        select(ComponentContext).where(
-            ComponentContext.id == ctx_id, ComponentContext.repository_id == repo_id
-        )
-    )
-    ctx = result.scalar_one_or_none()
-    if ctx is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Component context not found")
+    _assert_ctx_in_repo(ctx, repo)
     await db.delete(ctx)
     await db.flush()

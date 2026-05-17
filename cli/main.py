@@ -407,6 +407,8 @@ async def _api_key(name: str, org_slug: str | None) -> None:
     import hashlib
     import secrets
 
+    from sqlalchemy import func as sa_func
+
     from app.core.database import AsyncSessionLocal
     from app.models import ApiKey, Organization
 
@@ -422,13 +424,25 @@ async def _api_key(name: str, org_slug: str | None) -> None:
                 err.print("[red]No organizations found. Run `loc init` first.[/red]")
                 raise typer.Exit(1)
 
+        # The first key in an empty database is an org-admin (allowed to create
+        # and delete organizations via the API). Subsequent CLI-minted keys are
+        # ordinary tenant keys.
+        existing_count = await db.scalar(select(sa_func.count()).select_from(ApiKey))
+        is_admin = (existing_count or 0) == 0
+
         raw_key = secrets.token_hex(32)
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
-        api_key_obj = ApiKey(key_hash=key_hash, name=name, organization_id=organization.id)
+        api_key_obj = ApiKey(
+            key_hash=key_hash,
+            name=name,
+            organization_id=organization.id,
+            is_org_admin=is_admin,
+        )
         db.add(api_key_obj)
         await db.commit()
 
-    console.print(f"\n[bold green]API key created[/bold green] ({name} / {organization.slug})")
+    role = "org-admin" if is_admin else "tenant"
+    console.print(f"\n[bold green]API key created[/bold green] ({name} / {organization.slug}) [{role}]")
     console.print(f"\n  [bold]{raw_key}[/bold]\n")
     console.print("[dim]This is shown once. Add it to your .env as API_KEY= or pass via X-API-Key header.[/dim]\n")
 
@@ -448,10 +462,10 @@ def status(
 
 
 async def _status(project_slug: str, locale_filter: str | None) -> None:
+    from sqlalchemy import func as sa_func
+
     from app.core.database import AsyncSessionLocal
     from app.models import Key, Project, Translation, TranslationStatus
-
-    from sqlalchemy import func as sa_func
 
     async with AsyncSessionLocal() as db:
         project = await db.scalar(select(Project).where(Project.slug == project_slug))

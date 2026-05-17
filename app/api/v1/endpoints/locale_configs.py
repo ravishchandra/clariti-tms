@@ -1,27 +1,27 @@
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import DB, ScopedLocaleConfig, ScopedProject
 from app.api.v1.schemas.locale_configs import LocaleConfigCreate, LocaleConfigRead, LocaleConfigUpdate
-from app.models import LocaleConfig, Project
+from app.models import LocaleConfig
 
 router = APIRouter()
 
 
+def _assert_config_in_project(lc: LocaleConfig, project) -> None:
+    if lc.project_id != project.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Locale config not found")
+
+
 @router.post("/{project_id}/locale-configs", response_model=LocaleConfigRead, status_code=status.HTTP_201_CREATED)
 async def create_locale_config(
-    project_id: uuid.UUID, body: LocaleConfigCreate, db: DB, _: CurrentKey
+    body: LocaleConfigCreate, db: DB, project: ScopedProject
 ) -> LocaleConfigRead:
-    proj_result = await db.execute(select(Project).where(Project.id == project_id))
-    if proj_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     lc = LocaleConfig(
-        project_id=project_id,
+        project_id=project.id,
         locale=body.locale,
         formality=body.formality,
         register=body.register,
@@ -39,16 +39,13 @@ async def create_locale_config(
 
 
 @router.get("/{project_id}/locale-configs", response_model=dict)
-async def list_locale_configs(project_id: uuid.UUID, db: DB, _: CurrentKey) -> dict:
-    proj_result = await db.execute(select(Project).where(Project.id == project_id))
-    if proj_result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+async def list_locale_configs(db: DB, project: ScopedProject) -> dict:
     total_result = await db.execute(
-        select(func.count()).select_from(LocaleConfig).where(LocaleConfig.project_id == project_id)
+        select(func.count()).select_from(LocaleConfig).where(LocaleConfig.project_id == project.id)
     )
     total = total_result.scalar_one()
     result = await db.execute(
-        select(LocaleConfig).where(LocaleConfig.project_id == project_id).order_by(LocaleConfig.locale)
+        select(LocaleConfig).where(LocaleConfig.project_id == project.id).order_by(LocaleConfig.locale)
     )
     configs = result.scalars().all()
     return {"items": [LocaleConfigRead.model_validate(lc) for lc in configs], "total": total}
@@ -56,27 +53,17 @@ async def list_locale_configs(project_id: uuid.UUID, db: DB, _: CurrentKey) -> d
 
 @router.get("/{project_id}/locale-configs/{config_id}", response_model=LocaleConfigRead)
 async def get_locale_config(
-    project_id: uuid.UUID, config_id: uuid.UUID, db: DB, _: CurrentKey
+    project: ScopedProject, lc: ScopedLocaleConfig
 ) -> LocaleConfigRead:
-    result = await db.execute(
-        select(LocaleConfig).where(LocaleConfig.id == config_id, LocaleConfig.project_id == project_id)
-    )
-    lc = result.scalar_one_or_none()
-    if lc is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Locale config not found")
+    _assert_config_in_project(lc, project)
     return LocaleConfigRead.model_validate(lc)
 
 
 @router.patch("/{project_id}/locale-configs/{config_id}", response_model=LocaleConfigRead)
 async def update_locale_config(
-    project_id: uuid.UUID, config_id: uuid.UUID, body: LocaleConfigUpdate, db: DB, _: CurrentKey
+    body: LocaleConfigUpdate, db: DB, project: ScopedProject, lc: ScopedLocaleConfig
 ) -> LocaleConfigRead:
-    result = await db.execute(
-        select(LocaleConfig).where(LocaleConfig.id == config_id, LocaleConfig.project_id == project_id)
-    )
-    lc = result.scalar_one_or_none()
-    if lc is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Locale config not found")
+    _assert_config_in_project(lc, project)
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(lc, field, value)
     await db.flush()
@@ -86,13 +73,8 @@ async def update_locale_config(
 
 @router.delete("/{project_id}/locale-configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_locale_config(
-    project_id: uuid.UUID, config_id: uuid.UUID, db: DB, _: CurrentKey
+    db: DB, project: ScopedProject, lc: ScopedLocaleConfig
 ) -> None:
-    result = await db.execute(
-        select(LocaleConfig).where(LocaleConfig.id == config_id, LocaleConfig.project_id == project_id)
-    )
-    lc = result.scalar_one_or_none()
-    if lc is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Locale config not found")
+    _assert_config_in_project(lc, project)
     await db.delete(lc)
     await db.flush()

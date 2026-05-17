@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import DB, CurrentKey, ScopedTranslation, assert_project_in_org
 from app.api.v1.schemas.translations import TranslationRead, TranslationUpdate
 from app.models import Key, Translation, TranslationHistory, TranslationStatus
 
@@ -17,14 +17,18 @@ router = APIRouter()
 @router.get("")
 async def list_translations(
     db: DB,
-    _auth: CurrentKey,
+    current_key: CurrentKey,
     project_id: uuid.UUID = Query(...),
-    locale: Optional[str] = Query(None),
-    status: Optional[TranslationStatus] = Query(None),
-    key_id: Optional[uuid.UUID] = Query(None),
+    locale: str | None = Query(None),
+    status: TranslationStatus | None = Query(None),
+    key_id: uuid.UUID | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> dict[str, Any]:
+    # Org-scope by the project filter: a project belonging to a different org
+    # returns 404 (same as a non-existent project).
+    await assert_project_in_org(project_id, db, current_key)
+
     q = (
         select(Translation)
         .join(Key, Key.id == Translation.key_id)
@@ -49,30 +53,16 @@ async def list_translations(
 
 
 @router.get("/{translation_id}", response_model=TranslationRead)
-async def get_translation(
-    translation_id: uuid.UUID,
-    db: DB,
-    _auth: CurrentKey,
-) -> TranslationRead:
-    result = await db.execute(select(Translation).where(Translation.id == translation_id))
-    translation = result.scalar_one_or_none()
-    if translation is None:
-        raise HTTPException(status_code=404, detail="Translation not found")
+async def get_translation(translation: ScopedTranslation) -> TranslationRead:
     return TranslationRead.model_validate(translation)
 
 
 @router.patch("/{translation_id}", response_model=TranslationRead)
 async def update_translation(
-    translation_id: uuid.UUID,
     body: TranslationUpdate,
     db: DB,
-    _auth: CurrentKey,
+    translation: ScopedTranslation,
 ) -> TranslationRead:
-    result = await db.execute(select(Translation).where(Translation.id == translation_id))
-    translation = result.scalar_one_or_none()
-    if translation is None:
-        raise HTTPException(status_code=404, detail="Translation not found")
-
     patch = body.model_dump(exclude_unset=True)
     if not patch:
         return TranslationRead.model_validate(translation)
@@ -83,7 +73,7 @@ async def update_translation(
     for field, value in patch.items():
         setattr(translation, field, value if not hasattr(value, "value") else value.value)
 
-    translation.updated_at = datetime.now(tz=timezone.utc)
+    translation.updated_at = datetime.now(tz=UTC)
 
     history = TranslationHistory(
         translation_id=translation.id,

@@ -747,6 +747,11 @@ class ApiKey(Base):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    # When true, this key may create / delete organizations (not just operate within one).
+    # The first key created by `loc api-key` / seed_dev gets this flag; ordinary keys do not.
+    is_org_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

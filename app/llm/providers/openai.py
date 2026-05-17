@@ -11,10 +11,14 @@ class OpenAIProvider(LLMProviderBase):
         api_key: str,
         model: str = "gpt-4o",
         embedding_model: str = "text-embedding-3-small",
+        base_url: str | None = None,
     ) -> None:
         self._model = model
         self._embedding_model = embedding_model
-        self._client = openai.AsyncOpenAI(api_key=api_key)
+        self._client = openai.AsyncOpenAI(
+            api_key=api_key,
+            **({"base_url": base_url} if base_url else {}),
+        )
 
     async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> str:
         response = await self._client.chat.completions.create(

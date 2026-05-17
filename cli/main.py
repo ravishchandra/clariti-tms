@@ -335,6 +335,7 @@ async def _translate(project_slug: str, locale: str, provider_name: str, max_bat
     from app.core.settings import get_settings
     from app.llm.providers.anthropic import AnthropicProvider
     from app.llm.providers.openai import OpenAIProvider
+    from app.llm.providers.openrouter import OpenRouterProvider
     from app.models import BatchStatus, Project, TranslationBatch
     from app.mt.worker import run_worker
 
@@ -345,6 +346,8 @@ async def _translate(project_slug: str, locale: str, provider_name: str, max_bat
         providers["anthropic"] = AnthropicProvider(api_key=settings.ANTHROPIC_API_KEY)
     if settings.OPENAI_API_KEY:
         providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
+    if settings.OPENROUTER_API_KEY:
+        providers["openrouter"] = OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY)
 
     if not providers:
         err.print("[red]No API keys configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.[/red]")
@@ -441,6 +444,7 @@ async def _eval(reference: str, prompt_version: str, provider_name: str, output:
     from app.core.settings import get_settings
     from app.llm.providers.anthropic import AnthropicProvider
     from app.llm.providers.openai import OpenAIProvider
+    from app.llm.providers.openrouter import OpenRouterProvider
     from app.mt.eval import run_eval
 
     settings = get_settings()
@@ -449,6 +453,8 @@ async def _eval(reference: str, prompt_version: str, provider_name: str, output:
         providers["anthropic"] = AnthropicProvider(api_key=settings.ANTHROPIC_API_KEY)
     if settings.OPENAI_API_KEY:
         providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
+    if settings.OPENROUTER_API_KEY:
+        providers["openrouter"] = OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY)
 
     if provider_name not in providers:
         err.print(f"[red]Provider '{provider_name}' not available.[/red]")

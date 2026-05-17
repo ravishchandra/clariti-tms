@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     # LLM providers
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
     DEEPL_API_KEY: str = ""
 
     # GitHub App

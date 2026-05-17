@@ -181,3 +181,29 @@ class TestLLMRegistry:
         mock_provider = MagicMock()
         reg.register("mock", mock_provider)
         assert reg.get("mock") is mock_provider
+
+
+# ---------------------------------------------------------------------------
+# OpenRouterProvider
+# ---------------------------------------------------------------------------
+
+class TestOpenRouterProvider:
+    def test_provider_name(self) -> None:
+        from app.llm.providers.openrouter import OpenRouterProvider
+        p = OpenRouterProvider(api_key="or-test")
+        assert p.provider_name == "openrouter"
+
+    def test_default_model_uses_openrouter_namespace(self) -> None:
+        from app.llm.providers.openrouter import OpenRouterProvider
+        p = OpenRouterProvider(api_key="or-test")
+        assert p.model_id == "anthropic/claude-sonnet-4-6"
+
+    def test_custom_model(self) -> None:
+        from app.llm.providers.openrouter import OpenRouterProvider
+        p = OpenRouterProvider(api_key="or-test", model="openai/gpt-4o")
+        assert p.model_id == "openai/gpt-4o"
+
+    def test_client_base_url_is_openrouter(self) -> None:
+        from app.llm.providers.openrouter import OpenRouterProvider, _BASE_URL
+        p = OpenRouterProvider(api_key="or-test")
+        assert str(p._client.base_url).rstrip("/") == _BASE_URL.rstrip("/")

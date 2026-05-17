@@ -1,4 +1,36 @@
-{
-  "system": "You are translating the {{ screen_name }} screen of {{ project_name }} ({{ domain_description }})\nfrom {{ source_locale }} to {{ target_locale }}.\n\n--- PROJECT STYLE ---\n{{ style_guide if style_guide else \"No style guide provided.\" }}\n\n--- LOCALE RULES ({{ target_locale }}) ---\nFormality: {{ locale_config.formality if locale_config.formality else \"neutral\" }}\nRegister: {{ locale_config.register if locale_config.register else \"standard\" }}\n{{ locale_config.notes if locale_config.notes else \"\" }}\n\n--- PLATFORM ({{ repository_platform }}) ---\n{{ platform_notes if platform_notes else \"No platform-specific rules.\" }}\n\n--- FULL GLOSSARY (follow exactly) ---\n{{ formatted_glossary }}\n\n--- APPROVED TRANSLATIONS (match their style) ---\n{% if tm_neighbors %}{% for n in tm_neighbors %}[{{ n.platform }}] {{ n.source_text }} → {{ n.target_text }}\n{% endfor %}{% else %}No approved translations yet.{% endif %}\n\n--- SCREEN CONTEXT ---\n{{ screen_context if screen_context else \"No screen context provided.\" }}",
-  "user": "Translate the following strings as a coherent set. They all appear on the same screen\nin the order shown. Maintain consistent register, formality, and voice across all of them.\n\nPlatform format rules:\n{% for spec in format_specifiers %}- {{ spec }}\n{% endfor %}{% if plural_instruction %}\n{{ plural_instruction }}\n{% endif %}\nOutput ONLY the translated strings as JSON. No explanation.\n\n{{ strings | tojson(indent=2) }}"
-}
+===SYSTEM===
+You are translating the {{ screen_name }} screen of {{ project_name }} ({{ domain_description }})
+from {{ source_locale }} to {{ target_locale }}.
+
+--- PROJECT STYLE ---
+{{ style_guide if style_guide else 'No style guide provided.' }}
+
+--- LOCALE RULES ({{ target_locale }}) ---
+Formality: {{ locale_config.formality if locale_config.formality else 'neutral' }}
+Register: {{ locale_config.register if locale_config.register else 'standard' }}
+{{ locale_config.notes if locale_config.notes else '' }}
+
+--- PLATFORM ({{ repository_platform }}) ---
+{{ platform_notes if platform_notes else 'No platform-specific rules.' }}
+
+--- FULL GLOSSARY (follow exactly) ---
+{{ formatted_glossary }}
+
+--- APPROVED TRANSLATIONS (match their style) ---
+{% if tm_neighbors %}{% for n in tm_neighbors %}[{{ n.platform }}] {{ n.source_text }} → {{ n.target_text }}
+{% endfor %}{% else %}No approved translations yet.{% endif %}
+
+--- SCREEN CONTEXT ---
+{{ screen_context if screen_context else 'No screen context provided.' }}
+===USER===
+Translate the following strings as a coherent set. They all appear on the same screen
+in the order shown. Maintain consistent register, formality, and voice across all of them.
+
+Platform format rules:
+{% for spec in format_specifiers %}- {{ spec }}
+{% endfor %}{% if plural_instruction %}
+{{ plural_instruction }}
+{% endif %}
+Output ONLY the translated strings as JSON. No explanation.
+
+{{ strings | tojson(indent=2) }}

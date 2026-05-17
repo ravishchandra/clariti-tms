@@ -16,29 +16,32 @@ async def retrieve_tm_neighbors(
     k: int = 10,
     min_similarity: float = 0.65,
 ) -> list[dict]:
-    embedding_str = "[" + ",".join(str(x) for x in batch_embedding) + "]"
+    # Interpolate embedding and exclude list as SQL literals — asyncpg does not
+    # support ::type casts on named parameters, and array params need special handling.
+    # Both values originate from our own code (never user input), so this is safe.
+    vec_literal = "'[" + ",".join(str(x) for x in batch_embedding) + "]'"
+    if exclude_key_ids:
+        exclude_clause = "AND source_key_id != ALL(ARRAY[{}]::uuid[])".format(
+            ",".join(f"'{eid}'" for eid in exclude_key_ids)
+        )
+    else:
+        exclude_clause = ""
+
+    sql = text(f"""
+        SELECT source_text, target_text, platform,
+               1 - (source_embedding <=> {vec_literal}::vector) AS similarity
+        FROM translation_memory
+        WHERE project_id = :project_id
+          AND locale = :locale
+          {exclude_clause}
+          AND 1 - (source_embedding <=> {vec_literal}::vector) >= :min_sim
+        ORDER BY (source_embedding <=> {vec_literal}::vector)
+               - CASE WHEN platform = :platform THEN 0.15 ELSE 0 END
+        LIMIT :k
+    """)
     rows = await db.execute(
-        text("""
-            SELECT source_text, target_text, platform,
-                   1 - (source_embedding <=> :embedding::vector) AS similarity
-            FROM translation_memory
-            WHERE project_id = :project_id
-              AND locale = :locale
-              AND source_key_id != ALL(:exclude_ids::uuid[])
-              AND 1 - (source_embedding <=> :embedding::vector) >= :min_sim
-            ORDER BY (source_embedding <=> :embedding::vector)
-                   - CASE WHEN platform = :platform THEN 0.15 ELSE 0 END
-            LIMIT :k
-        """),
-        {
-            "project_id": project_id,
-            "locale": locale,
-            "embedding": embedding_str,
-            "exclude_ids": exclude_key_ids,
-            "platform": platform,
-            "min_sim": min_similarity,
-            "k": k,
-        },
+        sql,
+        {"project_id": project_id, "locale": locale, "platform": platform, "min_sim": min_similarity, "k": k},
     )
     return [
         {

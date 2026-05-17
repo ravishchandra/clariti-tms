@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from pathlib import Path
@@ -158,27 +157,26 @@ async def translate_batch(
 
     # Render prompt
     template = _JINJA_ENV.get_template("translate_v1.j2")
-    rendered = json.loads(
-        template.render(
-            screen_name=batch.screen or batch.component,
-            project_name=project.name,
-            domain_description=project.style_guide or "A professional application.",
-            source_locale="en-US",
-            target_locale=batch.locale,
-            style_guide=project.style_guide,
-            locale_config=locale_cfg,
-            repository_platform=repo.platform,
-            platform_notes=repo.context_notes,
-            formatted_glossary=format_glossary_for_prompt(glossary),
-            tm_neighbors=tm_neighbors,
-            screen_context=(ctx.description if ctx else None),
-            strings=pre.processed_strings,
-            format_specifiers=_platform_format_specifiers(repo.platform),
-            plural_instruction=plural_instr,
-        )
+    rendered = template.render(
+        screen_name=batch.screen or batch.component,
+        project_name=project.name,
+        domain_description=project.style_guide or "A professional application.",
+        source_locale="en-US",
+        target_locale=batch.locale,
+        style_guide=project.style_guide,
+        locale_config=locale_cfg,
+        repository_platform=repo.platform,
+        platform_notes=repo.context_notes,
+        formatted_glossary=format_glossary_for_prompt(glossary),
+        tm_neighbors=tm_neighbors,
+        screen_context=(ctx.description if ctx else None),
+        strings=pre.processed_strings,
+        format_specifiers=_platform_format_specifiers(repo.platform),
+        plural_instruction=plural_instr,
     )
-    system_prompt = rendered["system"]
-    user_prompt = rendered["user"]
+    parts = rendered.split("===USER===", 1)
+    system_prompt = parts[0].replace("===SYSTEM===", "").strip()
+    user_prompt = parts[1].strip() if len(parts) > 1 else rendered.strip()
 
     # LLM call
     try:

@@ -383,6 +383,8 @@ async def _translate(project_slug: str, locale: str, provider_name: str, max_bat
         max_batches=max_batches or len(batch_list),
         config_provider=provider_name,
         embed_provider="openai" if "openai" in providers else provider_name,
+        project_id=str(project.id),
+        locale=locale,
     )
     console.print(f"\n[green]✓[/green] MT complete for {locale}")
 

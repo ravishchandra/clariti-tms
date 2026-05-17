@@ -4,7 +4,24 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+
+def _reject_blank_secret(v: str | None) -> str | None:
+    """Reject empty / whitespace-only secrets but allow None (no-op).
+
+    Empty strings would encrypt to a valid ciphertext that decrypts to "" and
+    silently skip HMAC validation (the `if secret:` guard in the webhook
+    handlers). Treat empty as a client mistake, not "clear the secret".
+    """
+    if v is None:
+        return None
+    if not v.strip():
+        raise ValueError(
+            "secret cannot be empty or whitespace-only; omit the field to "
+            "leave it unchanged"
+        )
+    return v
 
 
 class RepositoryCreate(BaseModel):
@@ -26,6 +43,10 @@ class RepositoryCreate(BaseModel):
     contentful_token: str | None = None
     contentful_webhook_secret: str | None = None
 
+    _strip_blank_secrets = field_validator(
+        "webhook_secret", "contentful_token", "contentful_webhook_secret"
+    )(_reject_blank_secret)
+
 
 class RepositoryUpdate(BaseModel):
     name: str | None = None
@@ -45,6 +66,10 @@ class RepositoryUpdate(BaseModel):
     webhook_secret: str | None = None
     contentful_token: str | None = None
     contentful_webhook_secret: str | None = None
+
+    _strip_blank_secrets = field_validator(
+        "webhook_secret", "contentful_token", "contentful_webhook_secret"
+    )(_reject_blank_secret)
 
 
 class RepositoryRead(BaseModel):

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from sqlalchemy import select
 
 from app.api.deps import DB
-from app.core.crypto import decrypt
+from app.core.crypto import InvalidToken, decrypt
 from app.integrations.github.webhook import handle_github_push, verify_github_signature
 from app.models import Repository
 
@@ -39,7 +39,21 @@ async def receive_github_webhook(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not registered")
 
     # C3: decrypt the at-rest Fernet ciphertext before HMAC comparison.
-    secret = decrypt(repository.webhook_secret_encrypted) or ""
+    # If the column holds a legacy plaintext or was encrypted with a different
+    # FERNET_KEY, decrypt raises InvalidToken. Treat that as 401 (same as a
+    # mismatched signature) so GitHub won't retry forever; log loudly so the
+    # operator can fix FERNET_KEY or re-rotate the secret.
+    try:
+        secret = decrypt(repository.webhook_secret_encrypted) or ""
+    except InvalidToken:
+        logger.error(
+            "github.webhook.secret_decrypt_failed",
+            extra={"repository_id": str(repository.id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Webhook secret unreadable on server; check FERNET_KEY",
+        ) from None
     if secret and not verify_github_signature(payload_bytes, x_hub_signature_256 or "", secret):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
 

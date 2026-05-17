@@ -44,13 +44,9 @@ try:
 except ImportError:
     pass
 
-try:
-    from app.api.v1.endpoints.webhooks import router as webhooks_router  # type: ignore[import]
-
-    router.include_router(webhooks_router, prefix="/webhooks", tags=["Webhooks"])
-except ImportError:
-    pass
-
+# C3: the legacy `webhooks.py` stub (Phase 3 placeholder) shadowed the real
+# /webhooks/github and /webhooks/contentful endpoints because FastAPI uses
+# first-match route resolution. Stub removed; real routers mount directly.
 try:
     from app.api.v1.endpoints.github_webhook import router as github_webhook_router
     from app.api.v1.endpoints.publication import router as publication_router

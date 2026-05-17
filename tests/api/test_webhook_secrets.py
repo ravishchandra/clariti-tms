@@ -379,7 +379,103 @@ async def test_crypto_none_roundtrip() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 6. Teardown: clean rows created by these tests so reruns are deterministic.
+# 6. Codex follow-ups: empty-string rejection + decrypt-error -> 401.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "blank_value",
+    ["", " ", "\t", "   \n  "],
+)
+async def test_create_rejects_blank_webhook_secret(
+    client: AsyncClient, seeded: dict[str, Any], blank_value: str
+) -> None:
+    """Empty / whitespace-only secrets must be rejected, not silently stored.
+
+    Without this guard, encrypt("") produces a valid ciphertext whose decrypted
+    plaintext is "" — and the webhook handlers' `if secret:` guard then skips
+    HMAC validation entirely. That would be a silent "auth disabled" trapdoor.
+    """
+    body = {
+        "name": "ios-app",
+        "platform": "ios",
+        "file_format": "ios-strings",
+        "github_repo": "acme/ios-app",
+        "default_branch": "main",
+        "webhook_secret": blank_value,
+    }
+    resp = await client.post(
+        f"/api/v1/projects/{seeded['project'].id}/repositories",
+        json=body,
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 422, resp.text
+    assert "empty" in resp.text.lower() or "whitespace" in resp.text.lower()
+
+
+async def test_github_webhook_undecryptable_secret_returns_401(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    """If the at-rest ciphertext can't be decrypted (legacy plaintext, wrong
+    FERNET_KEY, corruption), the webhook returns 401 — not 500. GitHub will
+    stop retrying, the operator sees a stuck webhook + a structured log, and
+    can re-rotate the secret or fix FERNET_KEY.
+    """
+    from app.models import Repository
+
+    # Bypass the API and write a garbage value directly into the encrypted
+    # column to simulate a key-rotation / migration mishap.
+    create_body = {
+        "name": "ios-app",
+        "platform": "ios",
+        "file_format": "ios-strings",
+        "github_repo": "acme/ios-app",
+        "default_branch": "main",
+    }
+    resp = await client.post(
+        f"/api/v1/projects/{seeded['project'].id}/repositories",
+        json=create_body,
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 201, resp.text
+    repo_id = uuid.UUID(resp.json()["id"])
+
+    await db.execute(
+        text(
+            "UPDATE repositories SET webhook_secret_encrypted = "
+            "'not-actually-fernet-ciphertext' WHERE id = :rid"
+        ),
+        {"rid": repo_id},
+    )
+    await db.commit()
+
+    payload_obj = {
+        "ref": "refs/heads/main",
+        "after": "abcdef",
+        "repository": {"full_name": "acme/ios-app"},
+        "commits": [],
+    }
+    payload_bytes = json.dumps(payload_obj).encode()
+    bogus_sig = "sha256=" + hmac.new(
+        b"any-key", payload_bytes, hashlib.sha256
+    ).hexdigest()
+    resp = await client.post(
+        "/api/v1/webhooks/github",
+        content=payload_bytes,
+        headers={
+            "Content-Type": "application/json",
+            "X-Hub-Signature-256": bogus_sig,
+        },
+    )
+    assert resp.status_code == 401, resp.text
+    # The response must NOT leak the ciphertext or include the literal Fernet
+    # token; the operator gets the diagnostic from the server logs, not from
+    # the response body.
+    assert "not-actually-fernet-ciphertext" not in resp.text
+
+
+# ---------------------------------------------------------------------------
+# 7. Teardown: clean rows created by these tests so reruns are deterministic.
 # ---------------------------------------------------------------------------
 
 

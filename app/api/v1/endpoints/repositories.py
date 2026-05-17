@@ -28,6 +28,7 @@ async def create_repository(
         plural_convention=body.plural_convention,
         github_repo=body.github_repo,
         github_path=body.github_path,
+        github_installation_id=body.github_installation_id,
         source_file=body.source_file,
         context_notes=body.context_notes,
         contentful_space_id=body.contentful_space_id,

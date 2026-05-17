@@ -20,6 +20,7 @@ dependencies = [
     "typer>=0.13",
     "rich>=13.9",
     "python-multipart>=0.0.18",
+    "pyjwt[crypto]>=2.10",
 ]
 
 [project.optional-dependencies]

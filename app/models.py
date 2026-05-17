@@ -263,6 +263,9 @@ class Repository(Base):
     )
     github_repo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     github_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    github_installation_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, nullable=True
+    )
     source_file: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     context_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     contentful_space_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

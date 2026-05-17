@@ -23,8 +23,19 @@ class Settings(BaseSettings):
     DEEPL_API_KEY: str = ""
 
     # GitHub App
+    # Two ways to supply the App's private key, in order of precedence:
+    #   1. GITHUB_APP_PRIVATE_KEY — the PEM content itself (multi-line). Use
+    #      this when injecting via Vault / Kubernetes secrets / `.env`.
+    #   2. GITHUB_APP_PRIVATE_KEY_PATH — filesystem path to the PEM. Used
+    #      when (1) is empty.
+    # NOTE: storing the PEM in plaintext is a known gap; encrypting it at rest
+    # with Fernet is a planned follow-up. See app/integrations/github/auth.py.
     GITHUB_APP_ID: str = ""
+    GITHUB_APP_PRIVATE_KEY: str = ""
     GITHUB_APP_PRIVATE_KEY_PATH: str = "./secrets/github-app.pem"
+    # NOTE: GITHUB_WEBHOOK_SECRET is for HMAC payload verification only — it
+    # MUST NOT be used as a GitHub API bearer token. Use installation tokens
+    # minted via app/integrations/github/auth.py for API calls.
     GITHUB_WEBHOOK_SECRET: str = ""
 
     # Contentful

@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import AsyncGenerator
+from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -22,6 +23,25 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+)
+
+
+def _mask_db_host(url: str) -> str:
+    """Return just the host (no creds) for safe logging."""
+    try:
+        return urlparse(url).hostname or "<unknown>"
+    except Exception:
+        return "<unknown>"
+
+
+logger.info(
+    "db.engine_init",
+    extra={
+        "event": "db.engine_init",
+        "url_host": _mask_db_host(settings.DATABASE_URL),
+        "pool_size": 10,
+        "max_overflow": 20,
+    },
 )
 
 AsyncSessionLocal = async_sessionmaker(

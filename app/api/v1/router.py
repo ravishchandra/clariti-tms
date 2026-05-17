@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from app.api.v1.endpoints.api_keys import router as api_keys_router
+from app.api.v1.endpoints.component_contexts import router as component_contexts_router
+from app.api.v1.endpoints.glossary import router as glossary_router
+from app.api.v1.endpoints.locale_configs import router as locale_configs_router
+from app.api.v1.endpoints.orgs import router as orgs_router
+from app.api.v1.endpoints.projects import router as projects_router
+from app.api.v1.endpoints.repositories import router as repositories_router
+
+router = APIRouter()
+
+router.include_router(api_keys_router, prefix="/api-keys", tags=["API Keys"])
+router.include_router(orgs_router, prefix="/organizations", tags=["Organizations"])
+# Projects, repositories, locale-configs, and glossary are nested under their parents,
+# so they mount at their parent prefix and carry sub-paths within the router.
+router.include_router(projects_router, prefix="/organizations", tags=["Projects"])
+router.include_router(repositories_router, prefix="/projects", tags=["Repositories"])
+router.include_router(locale_configs_router, prefix="/projects", tags=["Locale Configs"])
+router.include_router(component_contexts_router, prefix="/repositories", tags=["Component Contexts"])
+router.include_router(glossary_router, prefix="/projects", tags=["Glossary"])
+
+# Parallel agent routers — optional imports so the app starts without them.
+try:
+    from app.api.v1.endpoints.keys import router as keys_router  # type: ignore[import]
+
+    router.include_router(keys_router, prefix="/keys", tags=["Keys"])
+except ImportError:
+    pass
+
+try:
+    from app.api.v1.endpoints.translations import router as translations_router  # type: ignore[import]
+
+    router.include_router(translations_router, prefix="/translations", tags=["Translations"])
+except ImportError:
+    pass
+
+try:
+    from app.api.v1.endpoints.batches import router as batches_router  # type: ignore[import]
+
+    router.include_router(batches_router, prefix="/batches", tags=["Batches"])
+except ImportError:
+    pass
+
+try:
+    from app.api.v1.endpoints.webhooks import router as webhooks_router  # type: ignore[import]
+
+    router.include_router(webhooks_router, prefix="/webhooks", tags=["Webhooks"])
+except ImportError:
+    pass

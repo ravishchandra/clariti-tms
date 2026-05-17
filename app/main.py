@@ -4,6 +4,7 @@ import logging
 
 from fastapi import FastAPI
 
+from app.api.v1.router import router as api_v1_router
 from app.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,9 @@ async def on_startup() -> None:
             "debug": settings.DEBUG,
         },
     )
+
+
+app.include_router(api_v1_router, prefix="/api/v1")
 
 
 @app.get("/health")

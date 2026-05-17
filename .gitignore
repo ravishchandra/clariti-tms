@@ -46,3 +46,7 @@ Thumbs.db
 .vscode/settings.json
 .idea/
 *.swp
+
+# Generated SDKs (regenerate with make sdks)
+sdks/typescript/
+sdks/python/

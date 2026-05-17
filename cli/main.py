@@ -322,15 +322,15 @@ async def _ingest_direct(result, repo_name: str, key_count: int) -> None:
 @app.command()
 def translate(
     project: str = typer.Option(..., "--project", help="Project slug"),
-    locale: str = typer.Option(..., "--locale", help="Target locale (e.g. fr-FR)"),
+    locale: str = typer.Option(None, "--locale", help="Target locale (e.g. fr-FR); omit to run all locales"),
     provider: str = typer.Option("anthropic", "--provider", help="LLM provider"),
     max_batches: int = typer.Option(None, "--max-batches", help="Stop after N batches"),
 ) -> None:
-    """Run MT on all pending batches for a project/locale."""
+    """Run MT on all pending batches for a project (optionally filtered to one locale)."""
     asyncio.run(_translate(project, locale, provider, max_batches))
 
 
-async def _translate(project_slug: str, locale: str, provider_name: str, max_batches: int | None) -> None:
+async def _translate(project_slug: str, locale: str | None, provider_name: str, max_batches: int | None) -> None:
     from app.core.database import AsyncSessionLocal
     from app.core.settings import get_settings
     from app.llm.providers.anthropic import AnthropicProvider
@@ -357,26 +357,26 @@ async def _translate(project_slug: str, locale: str, provider_name: str, max_bat
         err.print(f"[red]Provider '{provider_name}' not available — missing API key.[/red]")
         raise typer.Exit(1)
 
-    # Count pending batches
     async with AsyncSessionLocal() as db:
         project = await db.scalar(select(Project).where(Project.slug == project_slug))
         if project is None:
             err.print(f"[red]Project '{project_slug}' not found.[/red]")
             raise typer.Exit(1)
-        batches = await db.scalars(
-            select(TranslationBatch).where(
-                TranslationBatch.project_id == project.id,
-                TranslationBatch.locale == locale,
-                TranslationBatch.status == BatchStatus.pending,
-            )
+        q = select(TranslationBatch).where(
+            TranslationBatch.project_id == project.id,
+            TranslationBatch.status == BatchStatus.pending,
         )
-        batch_list = list(batches)
+        if locale:
+            q = q.where(TranslationBatch.locale == locale)
+        batch_list = list(await db.scalars(q))
 
     if not batch_list:
-        console.print(f"[dim]No pending batches for {project_slug} / {locale}.[/dim]")
+        label = f"{project_slug} / {locale}" if locale else project_slug
+        console.print(f"[dim]No pending batches for {label}.[/dim]")
         return
 
-    console.print(f"\nRunning MT on [bold]{len(batch_list)}[/bold] batch(es) — {project_slug} / {locale}\n")
+    locales_label = locale or "all locales"
+    console.print(f"\nRunning MT on [bold]{len(batch_list)}[/bold] batch(es) — {project_slug} / {locales_label}\n")
 
     await run_worker(
         providers=providers,
@@ -386,7 +386,7 @@ async def _translate(project_slug: str, locale: str, provider_name: str, max_bat
         project_id=str(project.id),
         locale=locale,
     )
-    console.print(f"\n[green]✓[/green] MT complete for {locale}")
+    console.print(f"\n[green]✓[/green] MT complete for {locales_label}")
 
 
 # ---------------------------------------------------------------------------

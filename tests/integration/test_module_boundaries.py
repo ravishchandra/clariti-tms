@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -96,15 +96,28 @@ def _have_db() -> bool:
 
 @pytest_asyncio.fixture
 async def db_session():
-    """Yield a fresh AsyncSession bound to the configured DB."""
+    """Yield a fresh AsyncSession bound to a per-test engine.
+
+    pytest-asyncio creates a new event loop per function-scoped test, so a
+    module-level engine (like `app.core.database.AsyncSessionLocal`) accumulates
+    asyncpg connections bound to dead loops and eventually raises
+    `Event loop is closed` or `MissingGreenlet`. A fresh engine per test sidesteps
+    that and matches the pattern used in tests/api/test_webhook_secrets.py.
+    """
     if not _have_db():
         pytest.skip("No DATABASE_URL configured")
 
-    from app.core.database import AsyncSessionLocal
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-    async with AsyncSessionLocal() as session:
-        yield session
-        await session.rollback()
+    url = os.environ["DATABASE_URL"]
+    engine = create_async_engine(url, echo=False, future=True)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture
@@ -180,54 +193,45 @@ class TestH3GithubWebhookEagerLoad:
 
     @pytest.mark.asyncio
     async def test_repository_project_is_eagerly_loaded(self, db_session, seeded_repo):
-        repo = seeded_repo["repo"]
-
-        # Expire all state so the upcoming SELECT actually re-hydrates from
-        # the DB instead of reusing identity-map state populated by the
-        # seeded_repo fixture.
+        """With selectinload, accessing .project.target_locales after the
+        await must NOT raise — the relationship is already populated.
+        """
+        # Capture the lookup key BEFORE expiring; reading repo.github_repo
+        # after expire_all() would itself trigger a lazy refresh.
+        github_repo = seeded_repo["repo"].github_repo
         db_session.expire_all()
 
         # Same SELECT shape as app/api/v1/endpoints/github_webhook.py
         result = await db_session.execute(
             select(Repository)
-            .where(Repository.github_repo == repo.github_repo)
+            .where(Repository.github_repo == github_repo)
             .options(selectinload(Repository.project))
         )
         loaded = result.scalar_one()
 
-        # `project` must be loaded (i.e. not in unloaded attrs).
-        from sqlalchemy import inspect
-
-        state = inspect(loaded)
-        assert "project" not in state.unloaded, (
-            "Repository.project was not eagerly loaded — async lazy-load will "
-            "raise MissingGreenlet at runtime."
-        )
-
-        # Sanity: dereference target_locales without triggering I/O.
+        # The whole point of H3: this attribute access must not trigger any
+        # async I/O. If selectinload regresses, this raises MissingGreenlet
+        # under SQLAlchemy 2.0 async.
         assert loaded.project.target_locales == ["fr-FR", "de-DE"]
 
     @pytest.mark.asyncio
     async def test_repository_without_options_is_lazy(self, db_session, seeded_repo):
-        """Sanity check: prove that without selectinload, .project IS lazy
-        (so our positive test above is meaningful)."""
-        repo = seeded_repo["repo"]
+        """Negative control — proves the H3 hazard is real: without
+        selectinload, touching .project under async raises MissingGreenlet.
+        That's why the prod code in github_webhook.py needs selectinload.
+        """
+        from sqlalchemy.exc import MissingGreenlet
 
-        # Expire so we can observe the loader strategy on a fresh fetch.
+        github_repo = seeded_repo["repo"].github_repo
         db_session.expire_all()
 
-        # Same SELECT WITHOUT the selectinload.
         result = await db_session.execute(
-            select(Repository).where(Repository.github_repo == repo.github_repo)
+            select(Repository).where(Repository.github_repo == github_repo)
         )
         loaded = result.scalar_one()
 
-        from sqlalchemy import inspect
-
-        state = inspect(loaded)
-        # Without selectinload the relationship is unloaded — touching it
-        # under async would attempt a lazy-load and raise MissingGreenlet.
-        assert "project" in state.unloaded
+        with pytest.raises(MissingGreenlet):
+            _ = loaded.project.target_locales
 
 
 # ---------------------------------------------------------------------------
@@ -401,7 +405,7 @@ class TestMtApi:
         await mark_translations_published(
             db_session,
             [seeded_repo["approved"].id],
-            published_at=datetime.now(tz=timezone.utc),
+            published_at=datetime.now(tz=UTC),
         )
         await db_session.commit()
 

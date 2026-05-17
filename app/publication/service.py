@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +36,7 @@ async def publish_repository(
     from app.integrations.github.adapter import GitHubAdapter  # local import avoids circular
 
     adapter = GitHubAdapter(token=github_token)
-    timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d%H%M%S")
     branch_name = f"clariti/translations-{timestamp}"
 
     pr_url = await adapter.publish_translations(
@@ -48,7 +48,7 @@ async def publish_repository(
     await mark_translations_published(
         db,
         translation_ids,
-        published_at=datetime.now(tz=timezone.utc),
+        published_at=datetime.now(tz=UTC),
     )
     await db.commit()
 

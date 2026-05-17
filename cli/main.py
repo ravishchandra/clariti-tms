@@ -1,25 +1,322 @@
+"""loc — Clariti TMS command-line interface."""
+
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+
 import typer
+from rich.console import Console
+from rich.table import Table
+from sqlalchemy import select
 
 app = typer.Typer(
     name="loc",
     help="Clariti TMS — translation management CLI",
     no_args_is_help=True,
 )
+console = Console()
+err = Console(stderr=True)
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+TMS_YML_NAME = "tms.yml"
+
+PLATFORM_FORMATS = {
+    "ios": ["ios-strings", "ios-xcstrings"],
+    "android": ["android-xml"],
+    "web": ["i18next", "icu", "flat-json"],
+    "backend": ["i18next", "flat-json"],
+}
+
+FILE_FORMAT_EXTENSIONS = {
+    ".strings": "ios-strings",
+    ".xcstrings": "ios-xcstrings",
+    ".stringsdict": "ios-stringsdict",
+    ".xml": "android-xml",
+    ".json": "i18next",
+}
+
+
+def _detect_format(filename: str) -> str | None:
+    ext = Path(filename).suffix.lower()
+    return FILE_FORMAT_EXTENSIONS.get(ext)
+
+
+def _load_tms_yml(cwd: Path) -> dict:
+    p = cwd / TMS_YML_NAME
+    if not p.exists():
+        err.print(
+            f"[red]No {TMS_YML_NAME} found in {cwd}.[/red]\n"
+            "Run [bold]loc init[/bold] to set up this repository."
+        )
+        raise typer.Exit(1)
+    import yaml  # lazy — only needed when tms.yml exists
+
+    return yaml.safe_load(p.read_text()) or {}
+
+
+# ---------------------------------------------------------------------------
+# loc init
+# ---------------------------------------------------------------------------
 
 
 @app.command()
-def init() -> None:
-    """Scaffold tms.yml for a new project repo."""
-    typer.echo("loc init — not yet implemented (Phase 1)")
+def init(
+    cwd: Path = typer.Option(Path("."), "--dir", "-d", help="Repository root"),
+) -> None:
+    """Scaffold tms.yml for this repository."""
+    cwd = cwd.resolve()
+    out = cwd / TMS_YML_NAME
+
+    if out.exists():
+        overwrite = typer.confirm(f"{TMS_YML_NAME} already exists. Overwrite?", default=False)
+        if not overwrite:
+            raise typer.Exit(0)
+
+    console.print("\n[bold]Clariti TMS — repository setup[/bold]\n")
+
+    # Repo name
+    repo_name = typer.prompt("Repository name (e.g. ios, android, frontend)", default=cwd.name)
+
+    # Platform
+    platform_choices = ["ios", "android", "web", "backend", "other"]
+    console.print(f"Platform: {', '.join(platform_choices)}")
+    platform = typer.prompt("Platform", default="web")
+    while platform not in platform_choices:
+        err.print(f"[red]Choose one of: {', '.join(platform_choices)}[/red]")
+        platform = typer.prompt("Platform", default="web")
+
+    # File format
+    formats = PLATFORM_FORMATS.get(platform, ["i18next"])
+    if len(formats) == 1:
+        file_format = formats[0]
+        console.print(f"File format: [dim]{file_format}[/dim] (auto-detected)")
+    else:
+        console.print(f"File format: {', '.join(formats)}")
+        file_format = typer.prompt("File format", default=formats[0])
+
+    # Source file
+    source_file = typer.prompt(
+        "Source strings file (relative path)",
+        default={
+            "ios": "Localizable.strings",
+            "android": "app/src/main/res/values/strings.xml",
+            "web": "src/locales/en/common.json",
+            "backend": "locales/en.json",
+            "other": "locales/en.json",
+        }.get(platform, "locales/en.json"),
+    )
+
+    # Target locales
+    locales_raw = typer.prompt("Target locales (comma-separated)", default="fr-FR,de-DE,es-ES")
+    target_locales = [loc.strip() for loc in locales_raw.split(",") if loc.strip()]
+
+    # TMS server
+    server_url = typer.prompt("TMS server URL", default="http://localhost:8000")
+
+    # Domain description (goes into every LLM prompt)
+    domain = typer.prompt(
+        "Describe this app in one sentence (used in translation prompts)",
+        default="A professional mobile and web application.",
+    )
+
+    config = {
+        "repo": repo_name,
+        "platform": platform,
+        "file_format": file_format,
+        "source_file": source_file,
+        "target_locales": target_locales,
+        "server": server_url,
+        "domain_description": domain,
+        "llm": {
+            "provider": "anthropic",
+            "fallback_provider": "openai",
+        },
+    }
+
+    # Write YAML manually (avoid PyYAML dependency at init time)
+    lines = [
+        "# Clariti TMS — repository configuration",
+        f"repo: {config['repo']}",
+        f"platform: {config['platform']}",
+        f"file_format: {config['file_format']}",
+        f"source_file: {config['source_file']}",
+        "target_locales:",
+        *[f"  - {loc}" for loc in config["target_locales"]],
+        f"server: {config['server']}",
+        f"domain_description: \"{config['domain_description']}\"",
+        "llm:",
+        f"  provider: {config['llm']['provider']}",
+        f"  fallback_provider: {config['llm']['fallback_provider']}",
+    ]
+    out.write_text("\n".join(lines) + "\n")
+
+    console.print(f"\n[green]✓[/green] Created [bold]{out}[/bold]")
+    console.print("\nNext step:")
+    console.print(f"  [bold]loc ingest-file {source_file} --repo {repo_name}[/bold]")
 
 
-@app.command()
+# ---------------------------------------------------------------------------
+# loc ingest-file
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="ingest-file")
 def ingest_file(
     path: str = typer.Argument(..., help="Path to source strings file"),
-    repo: str = typer.Option(..., "--repo", help="Repository name"),
+    repo: str = typer.Option(None, "--repo", help="Repository name (overrides tms.yml)"),
+    file_format: str = typer.Option(None, "--format", help="File format override"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Parse only, do not write to DB"),
+    server: str = typer.Option(None, "--server", help="TMS server URL override"),
 ) -> None:
-    """Parse and upsert keys from a source strings file."""
-    typer.echo(f"loc ingest-file {path} --repo {repo} — not yet implemented (Phase 1)")
+    """Parse a source strings file and upsert keys into the TMS."""
+    asyncio.run(_ingest_file(path, repo, file_format, dry_run, server))
+
+
+async def _ingest_file(
+    path: str,
+    repo_name: str | None,
+    file_format: str | None,
+    dry_run: bool,
+    server_override: str | None,
+) -> None:
+    from app.ingestion.parsers import parse_file
+
+    file_path = Path(path).resolve()
+    if not file_path.exists():
+        err.print(f"[red]File not found:[/red] {path}")
+        raise typer.Exit(1)
+
+    # Detect format
+    fmt = file_format or _detect_format(file_path.name)
+    if fmt is None:
+        err.print(
+            f"[red]Cannot detect file format for {file_path.name}.[/red]\n"
+            "Use [bold]--format[/bold] to specify: ios-strings, ios-xcstrings, "
+            "android-xml, i18next, icu, flat-json"
+        )
+        raise typer.Exit(1)
+
+    # Parse
+    content = file_path.read_text(encoding="utf-8")
+    try:
+        result = parse_file(content, file_path.name, fmt)
+    except Exception as exc:
+        err.print(f"[red]Parse error:[/red] {exc}")
+        raise typer.Exit(1)
+
+    key_count = len(result.keys)
+
+    if dry_run:
+        # Show a preview table
+        console.print(
+            f"\n[bold]Dry run:[/bold] {file_path.name} "
+            f"({fmt}, {key_count} keys)\n"
+        )
+        table = Table("Key", "Component", "Risk", "Structural", "ICU", show_header=True)
+        for k in result.keys[:20]:
+            table.add_row(
+                k.key,
+                k.component or "—",
+                k.risk_class,
+                "✓" if k.has_structural_tags else "",
+                k.icu_shape if k.icu_shape != "plain" else "",
+            )
+        console.print(table)
+        if key_count > 20:
+            console.print(f"  [dim]… and {key_count - 20} more[/dim]")
+        return
+
+    # Check if server is running; if so, use API. Otherwise write directly to DB.
+    # For Phase 1 (before Phase 3 REST API), write directly via SQLAlchemy.
+    tms_config_path = Path(".") / TMS_YML_NAME
+    if not tms_config_path.exists():
+        err.print(
+            "[yellow]No tms.yml found — writing directly to local DB.[/yellow]\n"
+            "Run [bold]loc init[/bold] to configure repository settings."
+        )
+
+    await _ingest_direct(result, repo_name or file_path.stem, key_count)
+
+
+async def _ingest_direct(result, repo_name: str, key_count: int) -> None:
+    """Write directly to the DB (Phase 1 path — before REST API exists)."""
+    from app.core.database import AsyncSessionLocal
+    from app.ingestion.service import assemble_batches, upsert_keys
+    from app.models import Organization, Project, Repository
+
+    async with AsyncSessionLocal() as db:
+        # Find or create a dev organization/project/repository
+        org = await db.scalar(select(Organization).where(Organization.slug == "dev"))
+        if org is None:
+            org = Organization(name="Dev Organization", slug="dev")
+            db.add(org)
+            await db.flush()
+
+        project = await db.scalar(
+            select(Project).where(Project.slug == "dev-project")
+        )
+        if project is None:
+            project = Project(
+                organization_id=org.id,
+                name="Dev Project",
+                slug="dev-project",
+                target_locales=["fr-FR", "de-DE"],
+            )
+            db.add(project)
+            await db.flush()
+
+        repo = await db.scalar(
+            select(Repository).where(
+                Repository.project_id == project.id,
+                Repository.name == repo_name,
+            )
+        )
+        if repo is None:
+            repo = Repository(
+                project_id=project.id,
+                name=repo_name,
+                platform=result.platform,
+                file_format=result.file_format,
+            )
+            db.add(repo)
+            await db.flush()
+
+        await db.commit()
+
+        # Upsert keys
+        summary = await upsert_keys(
+            db=db,
+            result=result,
+            repository_id=str(repo.id),
+            project_id=str(project.id),
+            target_locales=project.target_locales,
+        )
+
+        # Assemble screen batches
+        batch_count = await assemble_batches(
+            db=db,
+            repository_id=str(repo.id),
+            project_id=str(project.id),
+        )
+
+    # Print summary
+    console.print(f"\n[green]✓[/green] Ingested [bold]{result.source_file}[/bold]")
+    console.print(
+        f"  {summary['inserted']} inserted · "
+        f"{summary['updated']} updated · "
+        f"{summary['unchanged']} unchanged · "
+        f"{summary['deactivated']} deactivated"
+    )
+    console.print(f"  {batch_count} translation batch(es) queued for MT")
+
+
+# ---------------------------------------------------------------------------
+# loc translate (stub)
+# ---------------------------------------------------------------------------
 
 
 @app.command()
@@ -27,14 +324,24 @@ def translate(
     project: str = typer.Option(..., "--project"),
     locale: str = typer.Option(..., "--locale"),
 ) -> None:
-    """Trigger MT on all draft strings for a project/locale."""
-    typer.echo("loc translate — not yet implemented (Phase 2)")
+    """Trigger MT on all draft strings for a project/locale. (Phase 2)"""
+    console.print("[dim]loc translate — Phase 2[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# loc status (stub)
+# ---------------------------------------------------------------------------
 
 
 @app.command()
 def status(locale: str = typer.Argument(None)) -> None:
-    """Show translation coverage report."""
-    typer.echo("loc status — not yet implemented (Phase 3)")
+    """Show translation coverage report. (Phase 3)"""
+    console.print("[dim]loc status — Phase 3[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# loc export / import (stubs)
+# ---------------------------------------------------------------------------
 
 
 @app.command()
@@ -43,19 +350,19 @@ def export(
     locales: str = typer.Option(..., "--locales"),
     output: str = typer.Option("./export.xlsx", "--output"),
 ) -> None:
-    """Export translations to Excel."""
-    typer.echo("loc export — not yet implemented (Phase 5)")
+    """Export translations to Excel. (Phase 5)"""
+    console.print("[dim]loc export — Phase 5[/dim]")
 
 
-@app.command()
+@app.command(name="import")
 def import_file(
     file: str = typer.Option(..., "--file"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     commit: bool = typer.Option(False, "--commit"),
     rollback: str = typer.Option(None, "--rollback"),
 ) -> None:
-    """Import translations from Excel."""
-    typer.echo("loc import — not yet implemented (Phase 5)")
+    """Import translations from Excel. (Phase 5)"""
+    console.print("[dim]loc import — Phase 5[/dim]")
 
 
 if __name__ == "__main__":

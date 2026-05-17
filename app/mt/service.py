@@ -31,7 +31,9 @@ import asyncio
 import json
 import logging
 import time
+from datetime import UTC
 from pathlib import Path
+from typing import Final
 
 import httpx
 from jinja2 import Environment, FileSystemLoader
@@ -101,6 +103,22 @@ def _platform_format_specifiers(platform: str) -> list[str]:
     ]
 
 
+# Anthropic and OpenAI SDKs raise their own exception types (not httpx
+# exceptions) for rate limits and 5xx — we recognize them by class name to
+# avoid coupling on the SDK imports. PyJWT-style duck-typing.
+_RETRYABLE_SDK_EXC_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "RateLimitError",  # anthropic, openai
+        "InternalServerError",  # anthropic, openai
+        "APITimeoutError",  # openai
+        "APIConnectionError",  # openai
+        "APIStatusError",  # both — only retryable if status_code matches
+        "OverloadedError",  # anthropic
+        "ServiceUnavailableError",  # anthropic
+    }
+)
+
+
 def _is_retryable(exc: BaseException) -> bool:
     """Whether *exc* matches our retry / fallback policy.
 
@@ -112,6 +130,12 @@ def _is_retryable(exc: BaseException) -> bool:
       refused, timeout).
     * :class:`httpx.HTTPStatusError` with a status in
       :data:`_RETRYABLE_HTTP_STATUS`.
+    * Anthropic / OpenAI SDK exceptions whose class name matches
+      :data:`_RETRYABLE_SDK_EXC_NAMES`, OR which carry a ``status_code`` /
+      ``status`` attribute matching :data:`_RETRYABLE_HTTP_STATUS`. The
+      providers in ``app/llm/providers/`` call the SDKs directly rather than
+      raw ``httpx``, so without this branch SDK-side rate limits and 5xx would
+      slip through as non-retryable.
 
     Auth errors, 4xx client errors, and unexpected programmer bugs fall
     through to ``False`` and bypass retries entirely.
@@ -121,6 +145,19 @@ def _is_retryable(exc: BaseException) -> bool:
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code in _RETRYABLE_HTTP_STATUS
     if isinstance(exc, httpx.RequestError):
+        return True
+    # SDK exceptions — duck-type by class name + status attribute.
+    name = type(exc).__name__
+    if name in _RETRYABLE_SDK_EXC_NAMES:
+        # Distinguish 429/5xx (retryable) from 4xx (not). If the SDK didn't
+        # set a status_code, default to retryable — the common case for the
+        # listed names is rate-limit or transient.
+        status = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+        if status is None:
+            return True
+        return isinstance(status, int) and status in _RETRYABLE_HTTP_STATUS
+    status = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+    if isinstance(status, int) and status in _RETRYABLE_HTTP_STATUS:
         return True
     return False
 
@@ -142,7 +179,15 @@ def _record_mt_run(
 
     Called for every attempt (primary, primary-retry, fallback) so we can
     audit each call separately — required by docs/05:52.
+
+    ``ran_at`` is set client-side via :func:`datetime.now` so each row gets
+    a distinct timestamp. The schema default ``func.now()`` resolves to
+    Postgres ``current_timestamp``, which is constant across a single
+    transaction — that would tie ORDER BY ran_at when we write multiple
+    attempts for one batch.
     """
+    from datetime import datetime
+
     mt_run = MtRun(
         batch_id=batch.id,
         prompt_version=PROMPT_VERSION,
@@ -154,6 +199,7 @@ def _record_mt_run(
         string_count=string_count,
         latency_ms=latency_ms,
         cost_usd=cost_usd,
+        ran_at=datetime.now(tz=UTC),
     )
     db.add(mt_run)
     return mt_run
@@ -290,11 +336,19 @@ async def _translate_with_retry_and_fallback(
             string_count=None,
             latency_ms=latency_ms,
         )
+        last_error = str(exc)
+        # Codex follow-up: don't proceed to fallback for non-retryable
+        # exceptions (auth failures, 4xx). Symmetric with attempt 1's check.
+        if not _is_retryable(exc):
+            logger.error(
+                "MT primary retry failed (non-retryable) for batch %s: %s",
+                batch.id, exc,
+            )
+            return None, None, last_error, primary_name
         logger.warning(
-            "MT primary retry failed for batch %s: %s — attempting fallback",
+            "MT primary retry failed (retryable) for batch %s: %s — attempting fallback",
             batch.id, exc,
         )
-        last_error = str(exc)
 
     # ---- Attempt 3: fallback provider -------------------------------------
     fallback_name = select_fallback_provider(primary_name)
@@ -364,15 +418,24 @@ async def _translate_via_deepl(
     branch exists at all. Back-translation + locale-consistency QA are
     skipped at the call site; the validator suite still runs.
 
-    Each attempt is logged to ``mt_runs`` (DeepL gets no retry/fallback —
-    docs/05:52 limits the fallback chain to LLM providers).
+    Retries once on a retryable failure (codex follow-up) — DeepL's
+    free/pro endpoints return 429 / 5xx under load. No fallback to LLM
+    providers: the prompt shapes are different and LLM-as-DeepL-fallback
+    would mean re-rendering the Jinja prompt with the same provider
+    pool we're already routing away from. Each attempt logged to mt_runs.
     """
     deepl_input = json.dumps(pre.processed_strings, ensure_ascii=False)
-    t0 = time.monotonic()
+
+    async def _attempt() -> tuple[str, int]:
+        t0_inner = time.monotonic()
+        raw = await provider.translate(deepl_input, batch.locale)
+        return raw, int((time.monotonic() - t0_inner) * 1000)
+
+    # ---- Attempt 1
     try:
-        raw_output = await provider.translate(deepl_input, batch.locale)
+        raw_output, latency_ms = await _attempt()
     except Exception as exc:
-        latency_ms = int((time.monotonic() - t0) * 1000)
+        latency_ms = 0  # we don't know how long it ran before raising
         _record_mt_run(
             db,
             batch,
@@ -382,10 +445,28 @@ async def _translate_via_deepl(
             string_count=None,
             latency_ms=latency_ms,
         )
-        logger.error("DeepL call failed for batch %s: %s", batch.id, exc)
-        return None, str(exc)
+        if not _is_retryable(exc):
+            logger.error("DeepL call failed (non-retryable) for batch %s: %s", batch.id, exc)
+            return None, str(exc)
+        # Retry once.
+        logger.warning("DeepL call failed (retryable) for batch %s: %s — retrying", batch.id, exc)
+        await asyncio.sleep(_RETRY_BACKOFF_SECONDS)
+        try:
+            raw_output, latency_ms = await _attempt()
+        except Exception as exc2:
+            _record_mt_run(
+                db,
+                batch,
+                model=provider.model_id,
+                prompt_text=f"DEEPL input ({batch.locale}):\n{deepl_input}",
+                output_text=f"ERROR (retry): {exc2}",
+                string_count=None,
+                latency_ms=0,
+            )
+            logger.error("DeepL retry also failed for batch %s: %s", batch.id, exc2)
+            return None, str(exc2)
 
-    latency_ms = int((time.monotonic() - t0) * 1000)
+    # `latency_ms` is set by the successful `_attempt()` call above.
     try:
         translations_out = parse_llm_json_output(
             raw_output, list(pre.processed_strings.keys())
@@ -708,6 +789,20 @@ async def translate_batch(
     )
     batch.mt_model = provider.model_id
     batch.mt_prompt_version = PROMPT_VERSION
+
+    # Codex follow-up: attach validator results to the successful attempt's
+    # mt_run row. We pick the most recent mt_run for this batch — that's the
+    # one that produced `translations_out`. Earlier rows are failed attempts
+    # whose `validators_passed` legitimately stays NULL.
+    last_run = await db.scalar(
+        select(MtRun)
+        .where(MtRun.batch_id == batch.id)
+        .order_by(MtRun.ran_at.desc())
+        .limit(1)
+    )
+    if last_run is not None:
+        last_run.validators_passed = len(validator_errors_all) == 0
+        last_run.validator_errors = validator_errors_all or None
 
     # Sum cost across all mt_runs we recorded for this batch (each attempt has
     # its own row now under M2). This avoids re-estimating and double-counting.

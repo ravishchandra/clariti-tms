@@ -1,0 +1,6 @@
+# Planning docs — tracked locally, excluded from git archive exports
+docs/ export-ignore
+
+# Scripts and eval data — may contain local paths or sample data
+scripts/ export-ignore
+evals/ export-ignore

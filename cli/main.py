@@ -434,14 +434,261 @@ async def _api_key(name: str, org_slug: str | None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# loc status (stub)
+# loc status
 # ---------------------------------------------------------------------------
 
 
 @app.command()
-def status(locale: str = typer.Argument(None)) -> None:
-    """Show translation coverage report. (Phase 3)"""
-    console.print("[dim]loc status — Phase 3[/dim]")
+def status(
+    project: str = typer.Option(..., "--project", help="Project slug"),
+    locale: str = typer.Option(None, "--locale", help="Filter to a single locale"),
+) -> None:
+    """Show translation coverage for a project."""
+    asyncio.run(_status(project, locale))
+
+
+async def _status(project_slug: str, locale_filter: str | None) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models import Key, Project, Translation, TranslationStatus
+
+    from sqlalchemy import func as sa_func
+
+    async with AsyncSessionLocal() as db:
+        project = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+
+        total_keys = await db.scalar(
+            select(sa_func.count(Key.id)).where(
+                Key.project_id == project.id,
+                Key.is_active.is_(True),
+            )
+        )
+
+        q = (
+            select(
+                Translation.locale,
+                Translation.status,
+                sa_func.count(Translation.id).label("cnt"),
+            )
+            .join(Key, Translation.key_id == Key.id)
+            .where(
+                Key.project_id == project.id,
+                Key.is_active.is_(True),
+            )
+            .group_by(Translation.locale, Translation.status)
+            .order_by(Translation.locale)
+        )
+        if locale_filter:
+            q = q.where(Translation.locale == locale_filter)
+
+        rows = (await db.execute(q)).all()
+
+    # Aggregate by locale
+    from collections import defaultdict
+
+    locale_stats: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for row_locale, row_status, cnt in rows:
+        locale_stats[row_locale][row_status] = cnt
+
+    console.print(f"\nProject: [bold]{project_slug}[/bold]\n")
+    table = Table("Locale", "Total", "Needs Revw", "Approved", "Coverage", show_header=True)
+    for loc in sorted(locale_stats):
+        stats = locale_stats[loc]
+        total = total_keys or 0
+        needs_review = stats.get(TranslationStatus.needs_review, 0)
+        approved = stats.get(TranslationStatus.approved, 0) + stats.get(TranslationStatus.published, 0)
+        coverage = f"{int(approved / total * 100)}%" if total else "—"
+        table.add_row(loc, str(total), str(needs_review), str(approved), coverage)
+    console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# loc add
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="add")
+def add_key(
+    project: str = typer.Option(..., "--project", help="Project slug"),
+    key: str = typer.Option(..., "--key", help="Translation key identifier"),
+    text: str = typer.Option(..., "--text", help="Source text (English)"),
+    context: str = typer.Option(None, "--context", help="Optional translator context note"),
+    repo: str = typer.Option(None, "--repo", help="Repository name (defaults to first repo in project)"),
+) -> None:
+    """Add a new translation key and queue it for MT."""
+    asyncio.run(_add_key(project, key, text, context, repo))
+
+
+async def _add_key(
+    project_slug: str,
+    key_name: str,
+    source_text: str,
+    context: str | None,
+    repo_name: str | None,
+) -> None:
+    import hashlib
+
+    from app.core.database import AsyncSessionLocal
+    from app.ingestion.parsers.common import detect_structural_tags, infer_risk_class, infer_string_type
+    from app.ingestion.service import assemble_batches
+    from app.models import Key, Project, Repository, Translation, TranslationStatus
+
+    async with AsyncSessionLocal() as db:
+        project = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+
+        if repo_name:
+            repository = await db.scalar(
+                select(Repository).where(
+                    Repository.project_id == project.id,
+                    Repository.name == repo_name,
+                )
+            )
+            if repository is None:
+                err.print(f"[red]Repository '{repo_name}' not found in project '{project_slug}'.[/red]")
+                raise typer.Exit(1)
+        else:
+            repository = await db.scalar(
+                select(Repository).where(Repository.project_id == project.id)
+            )
+            if repository is None:
+                err.print(f"[red]No repositories found for project '{project_slug}'.[/red]")
+                raise typer.Exit(1)
+
+        existing = await db.scalar(
+            select(Key).where(
+                Key.repository_id == repository.id,
+                Key.key == key_name,
+            )
+        )
+        if existing is not None:
+            err.print(f"[red]Key '{key_name}' already exists in repository '{repository.name}'.[/red]")
+            raise typer.Exit(1)
+
+        file_format = repository.file_format
+        has_structural = detect_structural_tags(source_text, file_format)
+        string_type = infer_string_type(key_name, source_text, has_structural_tags=has_structural)
+        risk_class = infer_risk_class(key_name, source_text, string_type)
+        source_hash = hashlib.sha256(source_text.encode()).hexdigest()
+
+        new_key = Key(
+            repository_id=repository.id,
+            project_id=project.id,
+            key=key_name,
+            source_text=source_text,
+            source_hash=source_hash,
+            string_type=string_type,
+            risk_class=risk_class,
+            has_structural_tags=has_structural,
+            description=context,
+            source="cli",
+        )
+        db.add(new_key)
+        await db.flush()
+
+        for locale in project.target_locales:
+            db.add(Translation(key_id=new_key.id, locale=locale, status=TranslationStatus.draft))
+
+        await db.commit()
+
+        batch_count = await assemble_batches(
+            db=db,
+            repository_id=str(repository.id),
+            project_id=str(project.id),
+        )
+
+    console.print(f"\n[green]✓[/green] Added key [bold]{key_name}[/bold]")
+    console.print(f"  string_type={string_type} · risk_class={risk_class} · structural_tags={has_structural}")
+    console.print(f"  {len(project.target_locales)} draft translation(s) created · {batch_count} batch(es) queued")
+
+
+# ---------------------------------------------------------------------------
+# loc pull
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def pull(
+    project: str = typer.Option(..., "--project", help="Project slug"),
+    locale: str = typer.Option(None, "--locale", help="Filter to a single locale"),
+    output_dir: str = typer.Option(".", "--output-dir", help="Directory to write locale files into"),
+) -> None:
+    """Fetch approved translations and write them to local locale files."""
+    asyncio.run(_pull(project, locale, output_dir))
+
+
+async def _pull(project_slug: str, locale_filter: str | None, output_dir: str) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models import Key, Project, Repository, Translation, TranslationStatus
+
+    try:
+        from app.publication.helpers import locale_file_path, serialize_locale_file
+    except ImportError:
+        err.print(
+            "[red]app.publication.helpers not found.[/red] "
+            "This module is provided by a parallel agent — ensure it exists before running loc pull."
+        )
+        raise typer.Exit(1)
+
+    out_root = Path(output_dir).resolve()
+    files_written: list[Path] = []
+
+    async with AsyncSessionLocal() as db:
+        project = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+
+        repos = list(await db.scalars(select(Repository).where(Repository.project_id == project.id)))
+        if not repos:
+            console.print(f"[dim]No repositories found for project '{project_slug}'.[/dim]")
+            return
+
+        for repository in repos:
+            q = (
+                select(Key.key, Translation.locale, Translation.value)
+                .join(Translation, Translation.key_id == Key.id)
+                .where(
+                    Key.repository_id == repository.id,
+                    Key.is_active.is_(True),
+                    Translation.status.in_([TranslationStatus.approved, TranslationStatus.published]),
+                    Translation.value.isnot(None),
+                )
+                .order_by(Translation.locale, Key.key)
+            )
+            if locale_filter:
+                q = q.where(Translation.locale == locale_filter)
+
+            rows = (await db.execute(q)).all()
+            if not rows:
+                continue
+
+            # Group by locale
+            from collections import defaultdict
+
+            by_locale: dict[str, dict[str, str]] = defaultdict(dict)
+            for key_name, loc, value in rows:
+                by_locale[loc][key_name] = value
+
+            for loc, translations in by_locale.items():
+                content = serialize_locale_file(translations, repository, loc)
+                rel_path = locale_file_path(repository, loc)
+                dest = out_root / rel_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(content, encoding="utf-8")
+                files_written.append(dest)
+
+    if not files_written:
+        console.print("[dim]No approved translations found — nothing written.[/dim]")
+        return
+
+    console.print(f"\n[green]✓[/green] Wrote {len(files_written)} locale file(s) to {out_root}")
+    for f in files_written:
+        console.print(f"  {f.relative_to(out_root)}")
 
 
 # ---------------------------------------------------------------------------

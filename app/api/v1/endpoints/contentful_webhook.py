@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB
+from app.core.crypto import decrypt
 from app.integrations.contentful.webhook import handle_contentful_publish, verify_contentful_signature
 from app.models import Repository
 
@@ -49,7 +50,8 @@ async def receive_contentful_webhook(
         # Return 200 so Contentful does not retry for unknown spaces.
         return {"status": "ignored", "reason": "no repository configured for this space"}
 
-    secret = repository.contentful_webhook_secret_encrypted
+    # C3: decrypt the at-rest Fernet ciphertext before the shared-secret comparison.
+    secret = decrypt(repository.contentful_webhook_secret_encrypted)
     if secret:
         if not x_contentful_webhook_secret or not verify_contentful_signature(
             payload_bytes, x_contentful_webhook_secret, secret

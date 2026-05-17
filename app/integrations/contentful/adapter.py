@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
+from app.core.crypto import decrypt
 from app.integrations.contentful.client import ContentfulClient
 from app.models import Repository
 
@@ -30,10 +31,21 @@ def _parse_config(repository: Repository) -> dict:
 
 
 class ContentfulAdapter:
-    """Implements SourceAdapter and PublicationAdapter for Contentful."""
+    """Implements SourceAdapter and PublicationAdapter for Contentful.
 
-    def __init__(self, space_id: str, environment: str, token: str) -> None:
-        self._client = ContentfulClient(space_id, environment, token)
+    The adapter is constructed with the *encrypted* CMA token straight from
+    `Repository.contentful_token_encrypted`. It decrypts internally — callers
+    never see plaintext. See C3 in the audit.
+    """
+
+    def __init__(self, space_id: str, environment: str, encrypted_token: str) -> None:
+        plaintext_token = decrypt(encrypted_token)
+        if not plaintext_token:
+            raise ValueError(
+                "ContentfulAdapter requires a non-empty encrypted CMA token; "
+                "got an empty or None value after decryption."
+            )
+        self._client = ContentfulClient(space_id, environment, plaintext_token)
 
     async def fetch_source_strings(self, repository: Repository) -> dict[str, str]:
         """Fetch all entries of the configured content type.

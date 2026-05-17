@@ -88,7 +88,15 @@ class TestGenerateAppJwt:
         assert header["typ"] == "JWT"
 
         # Signature verifies with the public half; claims match what we sent.
-        decoded = jwt.decode(token, public_pem, algorithms=["RS256"])
+        # `verify_exp=False` because we deliberately froze `now` to a past
+        # instant (`1_700_000_000`) to make claim values deterministic — the
+        # wall-clock exp check is irrelevant here.
+        decoded = jwt.decode(
+            token,
+            public_pem,
+            algorithms=["RS256"],
+            options={"verify_exp": False},
+        )
         assert decoded["iss"] == "987654"
         assert decoded["iat"] == now - 60  # 60s clock-skew buffer
         assert decoded["exp"] == now + 9 * 60  # 9-minute lifetime

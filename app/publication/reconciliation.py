@@ -4,6 +4,11 @@ Detects:
 - Keys present in source but missing from DB (ingest dropped them)
 - Keys in DB but no longer in source (likely deleted upstream)
 - Keys where DB source_text drifted from upstream
+
+The ``keys`` table is owned by the ingestion module; this module reads it
+through ``app.ingestion.api`` to keep the cross-module DB rule intact.
+Deactivation, on the other hand, is a write — we delegate it back to
+ingestion via :func:`deactivate_keys`.
 """
 
 from __future__ import annotations
@@ -11,11 +16,11 @@ from __future__ import annotations
 import hashlib
 import logging
 
-from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ingestion.api import deactivate_keys, list_keys_for_repo
 from app.integrations.protocols import SourceAdapter
-from app.models import Key, Repository
+from app.models import Repository
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +32,8 @@ async def run_reconciliation(
 ) -> dict:
     source_strings = await adapter.fetch_source_strings(repository)
 
-    rows = await db.execute(
-        select(Key.id, Key.key, Key.source_text, Key.is_active).where(Key.repository_id == repository.id)
-    )
-    db_keys = {r.key: (r.id, r.source_text, r.is_active) for r in rows}
+    keys = await list_keys_for_repo(db, repository.id)
+    db_keys = {k.key: (k.id, k.source_text, k.is_active) for k in keys}
 
     missing_in_db: list[str] = []
     source_drift: list[str] = []
@@ -45,12 +48,14 @@ async def run_reconciliation(
             source_drift.append(key_str)
 
     source_keys = set(source_strings.keys())
+    to_deactivate: list = []
     for key_str, (key_id, _, is_active) in db_keys.items():
         if key_str not in source_keys and is_active:
-            await db.execute(update(Key).where(Key.id == key_id).values(is_active=False))
+            to_deactivate.append(key_id)
             deactivated.append(key_str)
 
-    if deactivated:
+    if to_deactivate:
+        await deactivate_keys(db, to_deactivate)
         await db.commit()
 
     result = {

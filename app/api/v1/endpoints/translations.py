@@ -4,12 +4,18 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedTranslation, assert_project_in_org
 from app.api.v1.schemas.translations import TranslationRead, TranslationUpdate
-from app.models import Key, Translation, TranslationHistory, TranslationStatus
+from app.models import Key, Translation, TranslationStatus
+from app.mt.transitions import (
+    ALLOWED_REVIEWER_ACTIONS,
+    IllegalTransitionError,
+    InvalidReviewerActionError,
+    apply_transition,
+)
 
 router = APIRouter()
 
@@ -67,23 +73,50 @@ async def update_translation(
     if not patch:
         return TranslationRead.model_validate(translation)
 
-    old_value = translation.value
-    old_status = translation.status
+    # H1: status changes go through the state-machine helper so illegal edges
+    # (e.g. draft -> approved, published -> draft) return 422 instead of
+    # silently corrupting workflow invariants.
+    # H2: do NOT insert TranslationHistory here — the Postgres trigger
+    # record_translation_history() on every UPDATE is the canonical audit path
+    # (docs/04-data-model.md:427). The prior manual insert created duplicate
+    # rows on every PATCH.
+    new_status = patch.pop("status", None)
+    reviewer_action = patch.pop("reviewer_action", None)
+    reviewer_notes = patch.pop("reviewer_notes", None)
 
     for field, value in patch.items():
-        setattr(translation, field, value if not hasattr(value, "value") else value.value)
+        setattr(translation, field, value)
 
-    translation.updated_at = datetime.now(tz=UTC)
-
-    history = TranslationHistory(
-        translation_id=translation.id,
-        prev_value=old_value,
-        new_value=translation.value,
-        prev_status=old_status,
-        new_status=translation.status,
-        change_source="api",
-    )
-    db.add(history)
+    if new_status is not None:
+        try:
+            apply_transition(
+                translation,
+                new_status,
+                reviewer_action=reviewer_action,
+                reviewer_notes=reviewer_notes,
+            )
+        except IllegalTransitionError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from None
+        except InvalidReviewerActionError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from None
+    else:
+        # No status change, but the caller may still be setting reviewer
+        # fields (leaving a note before approving, etc.). Validate the
+        # reviewer_action whitelist here too — same check apply_transition
+        # would apply.
+        translation.updated_at = datetime.now(tz=UTC)
+        if reviewer_action is not None:
+            if reviewer_action not in ALLOWED_REVIEWER_ACTIONS:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"reviewer_action={reviewer_action!r} is not allowed. "
+                        f"Valid: {sorted(ALLOWED_REVIEWER_ACTIONS)}"
+                    ),
+                )
+            translation.reviewer_action = reviewer_action
+        if reviewer_notes is not None:
+            translation.reviewer_notes = reviewer_notes
 
     await db.commit()
     await db.refresh(translation)

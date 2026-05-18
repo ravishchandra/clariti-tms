@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,22 +13,24 @@ class TranslationRead(BaseModel):
 
     id: uuid.UUID
     key_id: uuid.UUID
-    batch_id: Optional[uuid.UUID]
+    batch_id: uuid.UUID | None
     locale: str
-    value: Optional[str]
+    value: str | None
     status: str
-    mt_value: Optional[str]
-    mt_model: Optional[str]
-    back_translation: Optional[str]
-    back_translation_similarity: Optional[float]
-    qa_naturalness: Optional[int]
-    qa_consistency: Optional[int]
-    qa_accuracy: Optional[int]
-    reviewer_action: Optional[str]
-    reviewed_at: Optional[datetime]
+    mt_value: str | None
+    mt_model: str | None
+    back_translation: str | None
+    back_translation_similarity: float | None
+    qa_naturalness: int | None
+    qa_consistency: int | None
+    qa_accuracy: int | None
+    reviewer_action: str | None
+    reviewed_at: datetime | None
     updated_at: datetime
 
 
 class TranslationUpdate(BaseModel):
-    value: Optional[str] = None
-    status: Optional[TranslationStatus] = None
+    value: str | None = None
+    status: TranslationStatus | None = None
+    reviewer_action: str | None = None
+    reviewer_notes: str | None = None

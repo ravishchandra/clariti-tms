@@ -53,7 +53,7 @@ These are explicitly out of scope. They are well-served by existing tools, or th
 - **CMS:** Contentful (existing — sync via Contentful Management API)
 - **Deployment:** Docker, runs on our own infra (data residency requirement)
 
-## Quick start (local dev)
+## Quick start (5 minutes, no API keys)
 
 ```bash
 # 1. Postgres + pgvector
@@ -66,12 +66,45 @@ pip install -e ".[dev]"
 # 3. Migrations
 cd infra && alembic upgrade head && cd ..
 
-# 4. Seed dev data + run
-python scripts/seed_dev.py
-uvicorn app.main:app --reload --port 8000
+# 4. Run the end-to-end demo — uses a mock LLM, no API keys required
+loc demo --locale fr-FR
 ```
 
-Tests: `pytest`. Full conventions and the broader workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
+`loc demo` creates a fresh project, ingests 5 sample strings, and walks them through the full translation pipeline with a mock provider so you can see the round-trip. The output table shows each string, its source, the mock-translated value, and the resulting status.
+
+To swap in a real provider:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+loc ingest-file path/to/locales/en/common.json --repo my-web
+loc translate --project <slug> --locale fr-FR
+```
+
+See **[GETTING_STARTED.md](GETTING_STARTED.md)** for the full walkthrough, troubleshooting, and how to wire up your own repo. Full conventions and the broader contributor workflow are in [CONTRIBUTING.md](CONTRIBUTING.md). Tests: `pytest`.
+
+## Connect to GitHub (for automatic PR-back)
+
+Translation publication opens a PR back to your source repo automatically. The code is ready; the operator needs to wire up a GitHub App once:
+
+1. **Create a GitHub App** at `https://github.com/settings/apps/new` with:
+   - **Webhook URL:** `https://your-tms.example.com/api/v1/webhooks/github`
+   - **Permissions:** Contents (read+write), Pull requests (write), Metadata (read)
+   - **Subscribed events:** Push (for source-string ingestion)
+2. **Set the App credentials** in `.env`:
+   ```
+   GITHUB_APP_ID=12345
+   GITHUB_APP_PRIVATE_KEY_PATH=./secrets/github-app.pem  # or GITHUB_APP_PRIVATE_KEY inline
+   ```
+3. **Install the App** on each target repo (one click in GitHub's UI).
+4. **Tell Clariti which installation owns which repo row:**
+   ```bash
+   curl -X PATCH -H "X-API-Key: <key>" \
+     -H "Content-Type: application/json" \
+     -d '{"github_installation_id": 67890, "github_repo": "owner/repo", "github_path": "src/locales/"}' \
+     http://localhost:8000/api/v1/projects/<project-id>/repositories/<repository-id>
+   ```
+
+Without `github_installation_id` set, `POST /api/v1/repositories/{id}/publish` returns 503 with a clear operator hint. See `docs/08-git-and-contentful-integration.md` for the full integration design and `docs/11-audit-followups.md` Section F (F-OPS-1) for the operator-setup checklist.
 
 ## Project status
 

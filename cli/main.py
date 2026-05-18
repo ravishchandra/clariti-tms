@@ -838,5 +838,338 @@ async def _import_tm(tmx_path: str, project_slug: str, platform: str) -> None:
     console.print(f"[green]✓[/green] Imported {summary['imported']} TM entries ({summary['skipped']} skipped)")
 
 
+# ---------------------------------------------------------------------------
+# loc demo — end-to-end walkthrough without any API keys
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def demo(
+    locale: str = typer.Option("fr-FR", "--locale", help="Target locale for the demo"),
+) -> None:
+    """Run an end-to-end demo with a mock LLM provider (no API keys required).
+
+    Walks through the canonical flow: seed → ingest → translate → status.
+    Useful for evaluating Clariti TMS before configuring real providers.
+
+    Each invocation creates a fresh, timestamped demo project so previous
+    runs are preserved (and the DB doesn't need a destructive reset).
+
+    Requires:
+    - Postgres running (`docker compose up -d postgres`)
+    - Migrations applied (`cd infra && alembic upgrade head`)
+    """
+    asyncio.run(_demo(locale))
+
+
+async def _demo(target_locale: str) -> None:
+    import json
+    import tempfile
+    from datetime import UTC, datetime
+
+    from rich.panel import Panel
+
+    from app.core.database import AsyncSessionLocal
+    from app.ingestion.parsers import parse_file
+    from app.ingestion.service import assemble_batches, upsert_keys
+    from app.llm.protocol import LLMProviderBase, TokenUsage
+    from app.llm.registry import registry
+    from app.models import (
+        Key,
+        LocaleConfig,
+        Organization,
+        Project,
+        Repository,
+        Translation,
+        TranslationBatch,
+    )
+    from app.mt.service import translate_batch
+
+    # ----- Mock LLM provider --------------------------------------------------
+
+    class DemoProvider(LLMProviderBase):
+        """In-process mock provider for the demo.
+
+        ``translate()`` parses the last JSON object out of the user prompt
+        (the prompt template ends with ``{{ strings | tojson }}``), then
+        returns each value prefixed with a locale tag so the round-trip is
+        visible. ``evaluate()`` returns canned QA scores. ``embed()``
+        returns a deterministic 1536-d zero-vector — enough for TM storage
+        without similarity to anything else.
+        """
+
+        @staticmethod
+        def _extract_strings_block(prompt: str) -> dict[str, str]:
+            """Return the JSON dict at the end of the rendered prompt.
+
+            Source values can contain literal ``{{name}}`` i18next
+            placeholders — those are *inside double-quoted strings* in the
+            JSON, not nested objects. A naive `{...}` regex matches the
+            inner ``{{name}}`` and breaks parsing. Instead, walk forward
+            from the strings-block opening brace (the prompt template
+            renders ``{{ strings | tojson(indent=2) }}`` so the opening
+            ``{`` sits at column 0 of its own line), tracking depth and
+            respecting quoted strings.
+            """
+            start = prompt.rfind("\n{")
+            if start == -1:
+                return {}
+            start += 1
+            depth = 0
+            in_string = False
+            escape = False
+            end = -1
+            for i in range(start, len(prompt)):
+                ch = prompt[i]
+                if escape:
+                    escape = False
+                    continue
+                if ch == "\\":
+                    escape = True
+                    continue
+                if ch == '"':
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i + 1
+                        break
+            if end == -1:
+                return {}
+            return json.loads(prompt[start:end])
+
+        async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
+            strings = self._extract_strings_block(prompt)
+            tag = f"[{target_locale}]"
+            out = {k: f"{tag} {v}" for k, v in strings.items()}
+            return json.dumps(out, ensure_ascii=False), {
+                "input_tokens": len(prompt) // 4,
+                "output_tokens": len(json.dumps(out)) // 4,
+            }
+
+        async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
+            # Mid-range scores so review-policy routing doesn't force review
+            # solely on QA grounds. Validation can still force review on
+            # placeholder mismatch, etc.
+            return (
+                json.dumps({"naturalness": 4, "consistency": 4, "accuracy": 4, "issue": None}),
+                {"input_tokens": 50, "output_tokens": 30},
+            )
+
+        async def embed(self, text: str) -> list[float]:
+            return [0.0] * 1536
+
+        @property
+        def model_id(self) -> str:
+            return "demo-mock-v1"
+
+        @property
+        def provider_name(self) -> str:
+            return "demo"
+
+        @property
+        def price_per_1k_input(self) -> float:
+            return 0.0
+
+        @property
+        def price_per_1k_output(self) -> float:
+            return 0.0
+
+    # ----- Demo flow ----------------------------------------------------------
+
+    console.print(
+        Panel.fit(
+            "[bold cyan]Clariti TMS demo[/bold cyan]\n"
+            f"Target locale: [bold]{target_locale}[/bold]\n"
+            "Provider: [bold]demo[/bold] (mock, no API key required)\n\n"
+            "[dim]Walks: seed → ingest → translate → status[/dim]",
+            border_style="cyan",
+        )
+    )
+
+    async with AsyncSessionLocal() as db:
+        # Step 1 — seed a fresh demo project + repo + locale config -----------
+        # Each run is timestamped so prior runs are preserved and we never
+        # have to delete data (which trips FK NOT NULL constraints if the
+        # CASCADE chain isn't perfect).
+        run_id = datetime.now(tz=UTC).strftime("%Y%m%d-%H%M%S")
+        console.print(f"\n[bold][1/4][/bold] Seeding demo project ([dim]run {run_id}[/dim]) ...")
+
+        org = await db.scalar(select(Organization).where(Organization.slug == "demo"))
+        if org is None:
+            org = Organization(name="Demo Org", slug="demo")
+            db.add(org)
+            await db.flush()
+
+        project_slug = f"demo-{run_id}"
+        project = Project(
+            organization_id=org.id,
+            name=f"Demo Project ({run_id})",
+            slug=project_slug,
+            source_locale="en-US",
+            target_locales=[target_locale],
+            style_guide="A friendly consumer-facing mobile app.",
+        )
+        db.add(project)
+        await db.flush()
+
+        repo = Repository(
+            project_id=project.id,
+            name="demo-web",
+            platform="web",
+            file_format="i18next",
+        )
+        db.add(repo)
+        await db.flush()
+
+        # Locale config — mark bootstrapped so the review policy doesn't force
+        # every batch into needs_review for the demo.
+        lc = await db.scalar(
+            select(LocaleConfig).where(
+                LocaleConfig.project_id == project.id,
+                LocaleConfig.locale == target_locale,
+            )
+        )
+        if lc is None:
+            db.add(
+                LocaleConfig(
+                    project_id=project.id,
+                    locale=target_locale,
+                    is_bootstrapped=True,
+                )
+            )
+
+        await db.commit()
+        console.print(
+            f"  [green]✓[/green] project [bold]{project_slug}[/bold]  "
+            f"repo [bold]demo-web[/bold]  locale [bold]{target_locale}[/bold]"
+        )
+
+        # Step 2 — write a sample source file and ingest it -------------------
+        console.print("\n[bold][2/4][/bold] Ingesting sample source file ...")
+        demo_source = {
+            "settings.title": "Settings",
+            "settings.account.label": "Account",
+            "checkout.button.pay": "Pay {{amount}}",
+            "errors.network": "Could not reach the server. Try again.",
+            "onboarding.welcome": "Welcome to Clariti.",
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as tmp:
+            json.dump(demo_source, tmp, ensure_ascii=False)
+            tmp_path = tmp.name
+
+        content = Path(tmp_path).read_text(encoding="utf-8")
+        result = parse_file(content, "demo.json", repo.file_format)
+        summary = await upsert_keys(
+            db,
+            result,
+            str(repo.id),
+            str(project.id),
+            project.target_locales,
+        )
+        batch_count = await assemble_batches(db, str(repo.id), str(project.id))
+        console.print(
+            f"  [green]✓[/green] inserted [bold]{summary['inserted']}[/bold] keys  "
+            f"→  [bold]{batch_count}[/bold] batches"
+        )
+
+        # Step 3 — register mock provider and translate -----------------------
+        console.print("\n[bold][3/4][/bold] Translating with [bold]demo[/bold] provider (mock) ...")
+        demo_provider = DemoProvider()
+        registry.register("demo", demo_provider)
+        # Annotate the wider Protocol type so translate_batch's
+        # `dict[str, LLMProvider]` parameter accepts our DemoProvider entry.
+        from app.llm.protocol import LLMProvider
+
+        providers: dict[str, LLMProvider] = {"demo": demo_provider}
+
+        batches = list(
+            (
+                await db.scalars(
+                    select(TranslationBatch).where(
+                        TranslationBatch.project_id == project.id,
+                        TranslationBatch.repository_id == repo.id,
+                    )
+                )
+            ).all()
+        )
+
+        totals = {"translated": 0, "needs_review": 0, "cost_usd": 0.0}
+        for batch in batches:
+            res = await translate_batch(
+                db,
+                batch,
+                providers,
+                deepl_locales=[],
+                config_provider="demo",
+                embed_provider="demo",
+            )
+            for k, v in res.items():
+                if k == "cost_usd":
+                    totals[k] += float(v)
+                elif k in totals:
+                    totals[k] += int(v)
+        console.print(
+            f"  [green]✓[/green] translated [bold]{totals['translated']}[/bold] strings  "
+            f"({totals['needs_review']} needs review, cost ${totals['cost_usd']:.4f})"
+        )
+
+        # Step 4 — render a results table -------------------------------------
+        console.print("\n[bold][4/4][/bold] Resulting translations:\n")
+        rows = (
+            await db.execute(
+                select(Key, Translation)
+                .join(Translation, Translation.key_id == Key.id)
+                .where(
+                    Key.repository_id == repo.id,
+                    Translation.locale == target_locale,
+                )
+                .order_by(Key.key)
+            )
+        ).all()
+
+        t = Table(show_header=True, header_style="bold", border_style="dim")
+        from rich.markup import escape as rich_escape
+
+        t.add_column("key", style="cyan", no_wrap=True)
+        t.add_column("source", overflow="fold")
+        t.add_column(target_locale, overflow="fold")
+        t.add_column("status", style="magenta")
+        for key, translation in rows:
+            # `escape` keeps `[fr-FR]` / `{{amount}}` visible — Rich would
+            # otherwise interpret the brackets as style tags and eat them.
+            t.add_row(
+                rich_escape(key.key),
+                rich_escape(key.source_text),
+                rich_escape(translation.value) if translation.value else "[dim](none)[/dim]",
+                str(translation.status.value if hasattr(translation.status, "value") else translation.status),
+            )
+        console.print(t)
+
+    console.print(
+        Panel.fit(
+            "[bold green]Demo complete.[/bold green]\n\n"
+            "What just happened:\n"
+            f"  • [bold]{project_slug}[/bold] was created under org [bold]demo[/bold]\n"
+            "  • Five sample strings were ingested as a i18next-shaped repo\n"
+            "  • A batch was translated by the mock provider (no API calls)\n"
+            "  • Translations were written through the canonical state-machine\n"
+            "    path [dim]draft → mt_proposed → {needs_review, approved}[/dim]\n\n"
+            "Next steps:\n"
+            "  • Run again with [bold]--locale de-DE[/bold] to translate a different locale\n"
+            "  • Drop in a real provider by setting [bold]ANTHROPIC_API_KEY[/bold] and\n"
+            f"    running [bold]loc translate --project {project_slug} --locale {target_locale}[/bold]\n"
+            "  • See [bold]GETTING_STARTED.md[/bold] for the full walkthrough\n"
+            f"  • [dim]Demo timestamp: {datetime.now(tz=UTC).isoformat(timespec='seconds')}[/dim]",
+            border_style="green",
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

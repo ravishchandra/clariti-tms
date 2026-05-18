@@ -702,12 +702,80 @@ async def _pull(project_slug: str, locale_filter: str | None, output_dir: str) -
 
 @app.command()
 def export(
-    project: str = typer.Option(..., "--project"),
-    locales: str = typer.Option(..., "--locales"),
-    output: str = typer.Option("./export.xlsx", "--output"),
+    project: str = typer.Option(..., "--project", help="Project slug"),
+    locales: str = typer.Option(..., "--locales", help="Comma-separated BCP-47 locales (e.g. fr-FR,de-DE)"),
+    status: str = typer.Option(
+        None,
+        "--status",
+        help="Translation status filter (e.g. needs_review). Omit for all rows.",
+    ),
+    output: str = typer.Option("./export.xlsx", "--output", help="Output .xlsx path"),
 ) -> None:
-    """Export translations to Excel. (Phase 5)"""
-    console.print("[dim]loc export — Phase 5[/dim]")
+    """Export translations to Excel (Phase 5).
+
+    Produces an XLSX workbook with one tab per locale plus a hidden ``_meta``
+    tab. Cells are locked except the three reviewer-editable columns; column
+    12 has a dropdown for ``yes/no/edit/needs_more_context``.
+    """
+    asyncio.run(_export(project, locales, status, output))
+
+
+async def _export(project_slug: str, locales_raw: str, status_filter: str | None, output: str) -> None:
+    from datetime import UTC, datetime
+
+    from app.core.database import AsyncSessionLocal
+    from app.export_import.export import (
+        ExportRequest,
+        build_filename,
+        export_to_bytes,
+        fetch_export_rows,
+        fetch_project_for_export,
+    )
+
+    locales = [loc.strip() for loc in locales_raw.split(",") if loc.strip()]
+    if not locales:
+        err.print("[red]--locales must list at least one locale.[/red]")
+        raise typer.Exit(1)
+
+    async with AsyncSessionLocal() as db:
+        project = await fetch_project_for_export(db, project_slug)
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+
+        rows_by_locale = await fetch_export_rows(
+            db=db,
+            project_id=project.id,
+            locales=locales,
+            status_filter=status_filter,
+        )
+
+    export_timestamp = datetime.now(tz=UTC)
+    request = ExportRequest(
+        project_id=project.id,
+        project_slug=project.slug,
+        status_filter=status_filter,
+        # CLI is system-context — there's no logged-in user. The import side
+        # tolerates an empty exported_by; audit attribution lives in the DB.
+        exported_by_email=None,
+        exported_by_user_id=None,
+        export_timestamp=export_timestamp,
+        rows_by_locale=rows_by_locale,
+    )
+
+    xlsx_bytes = export_to_bytes(request)
+
+    out_path = Path(output).resolve()
+    if out_path.is_dir():
+        # Caller passed a directory; place a conventionally-named file in it.
+        out_path = out_path / build_filename(project.slug, locales, status_filter, export_timestamp)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(xlsx_bytes)
+
+    total_rows = sum(len(rows) for rows in rows_by_locale.values())
+    console.print(f"\n[green]✓[/green] Wrote {total_rows} row(s) across {len(locales)} locale tab(s) → {out_path}")
+    for locale in locales:
+        console.print(f"  {locale}: {len(rows_by_locale.get(locale, []))}")
 
 
 @app.command(name="import")

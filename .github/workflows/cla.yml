@@ -37,10 +37,8 @@ jobs:
           path-to-signatures: 'signatures/cla.json'
           path-to-document: 'https://github.com/${{ github.repository }}/blob/main/CLA.md'
           branch: 'main'
-          allowlist: dependabot[bot]
-          # Maintainer accounts that should be exempt — add yourself here so
-          # the bot does not block your own PRs. Add comma-separated logins.
-          # bot-name: cla-bot[bot]
+          # Maintainers + bots exempt from signing (comma-separated logins).
+          allowlist: ravishchandra,dependabot[bot]
           custom-notsigned-prcomment: |
             Thank you for your contribution! Before we can merge, we need every
             contributor to sign the [Contributor License Agreement](https://github.com/${{ github.repository }}/blob/main/CLA.md).

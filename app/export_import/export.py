@@ -40,6 +40,7 @@ from app.export_import.schema import (
     COL_CURRENT_TRANSLATION,
     COL_INTERNAL_ID,
     COL_REVIEWER_ACTION,
+    COLUMN_INDEX,
     COLUMN_ORDER,
     COLUMN_WIDTHS,
     EDITABLE_COLUMNS,
@@ -249,7 +250,7 @@ def _build_locale_tab(wb: Workbook, locale: str, rows: list[ExportRow]) -> None:
 
     # ---- Hide _internal_id column ----------------------------------------
     # docs/07 line 40: hidden + locked. Column letter for index 15 == "O".
-    ws.column_dimensions[get_column_letter(COL_INTERNAL_ID)].hidden = True
+    ws.column_dimensions[get_column_letter(COLUMN_INDEX[COL_INTERNAL_ID])].hidden = True
 
     # ---- Frozen header ----------------------------------------------------
     # "A2" freezes row 1 (everything above the cursor cell stays visible).
@@ -273,7 +274,7 @@ def _build_locale_tab(wb: Workbook, locale: str, rows: list[ExportRow]) -> None:
     # dropdown — paste isn't really supported but the failure mode is
     # better with the dropdown present.
     last_row = max(2, len(rows) + 1)
-    col_letter = get_column_letter(COL_REVIEWER_ACTION)
+    col_letter = get_column_letter(COLUMN_INDEX[COL_REVIEWER_ACTION])
     dv.add(f"{col_letter}2:{col_letter}{last_row}")
     ws.add_data_validation(dv)
 
@@ -344,7 +345,7 @@ def _write_row(ws: Worksheet, row_idx: int, row: ExportRow) -> None:
     # variant over whole-row fill because (a) it preserves readability of
     # the locked metadata columns and (b) reviewers scan that column most.
     if status_fill is not None:
-        ws.cell(row=row_idx, column=COL_CURRENT_TRANSLATION).fill = status_fill
+        ws.cell(row=row_idx, column=COLUMN_INDEX[COL_CURRENT_TRANSLATION]).fill = status_fill
 
 
 def _build_meta_tab(

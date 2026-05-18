@@ -1,15 +1,26 @@
-"""Excel round-trip schema constants — the contract between export and import.
+"""Excel round-trip schema constants — contract between export and import.
 
-This file is intentionally tiny and dependency-free. The import side imports
-from it and relies on these names / values being stable across releases.
+This file is the single source of truth for the v1 XLSX shape. The export
+side reads it to write the workbook; the import side reads it to parse and
+validate the same workbook. **Canonical reference: docs/07-excel-roundtrip.md**
+sections "Locale tab columns (in this exact order — locked)" and "Mapping
+``reviewer_action`` to state changes".
+
+Naming convention
+-----------------
+``COL_*`` constants are **column-name strings** that match the header row.
+For places that need a 1-based column index (writing to cells, hiding a
+column with ``get_column_letter``) use :data:`COLUMN_INDEX[COL_NAME]`.
 
 Bumping any of:
-  * ``COLUMN_ORDER``
-  * ``REVIEWER_ACTIONS``
-  * ``META_FIELDS``
-is a breaking change that requires a new ``SCHEMA_VERSION`` and a
-six-month overlap window where the previous version's importer is still
-maintained. See ``docs/07-excel-roundtrip.md`` — "Schema versioning policy".
+
+* :data:`LOCALE_TAB_COLUMNS` (any reorder / rename / removal)
+* :data:`REVIEWER_ACTION_VALUES`
+* :data:`META_FIELDS`
+
+is a schema-breaking change. Per docs/07 "Schema versioning policy", bump
+:data:`SCHEMA_VERSION` to ``"v2"`` and keep ``"v1"`` reading supported for
+≥6 months.
 """
 
 from __future__ import annotations
@@ -17,148 +28,173 @@ from __future__ import annotations
 from typing import Final
 
 # ---------------------------------------------------------------------------
-# Schema version stamped in the _meta tab. The import side selects a parser
-# off this value, so it's the only thing distinguishing a v1 file from a v2.
+# Schema version. Stamped in the ``_meta`` tab and consulted by the importer
+# to pick a parser. The only thing distinguishing a v1 file from a v2 file.
 # ---------------------------------------------------------------------------
 SCHEMA_VERSION: Final[str] = "v1"
+SUPPORTED_SCHEMA_VERSIONS: Final[frozenset[str]] = frozenset({"v1"})
 
 # ---------------------------------------------------------------------------
-# Locale-tab columns, in exact order. The position is load-bearing — a v1
-# file written with a different order is not a v1 file. Do NOT reorder
-# without a SCHEMA_VERSION bump (see module docstring).
+# Locale-tab column names (docs/07:22-40). Position is load-bearing — index
+# in :data:`LOCALE_TAB_COLUMNS` + 1 == openpyxl column index (1-based).
 # ---------------------------------------------------------------------------
-COLUMN_ORDER: Final[tuple[str, ...]] = (
-    "key",
-    "source_text",
-    "description",
-    "component",
-    "screen",
-    "max_length",
-    "placeholders",
-    "risk_class",
-    "current_translation",
-    "mt_suggestion",
-    "status",
-    "reviewer_action",
-    "edited_translation",
-    "notes",
-    "_internal_id",
+COL_KEY: Final[str] = "key"
+COL_SOURCE_TEXT: Final[str] = "source_text"
+COL_DESCRIPTION: Final[str] = "description"
+COL_COMPONENT: Final[str] = "component"
+COL_SCREEN: Final[str] = "screen"
+COL_MAX_LENGTH: Final[str] = "max_length"
+COL_PLACEHOLDERS: Final[str] = "placeholders"
+COL_RISK_CLASS: Final[str] = "risk_class"
+COL_CURRENT_TRANSLATION: Final[str] = "current_translation"
+COL_MT_SUGGESTION: Final[str] = "mt_suggestion"
+COL_STATUS: Final[str] = "status"
+COL_REVIEWER_ACTION: Final[str] = "reviewer_action"
+COL_EDITED_TRANSLATION: Final[str] = "edited_translation"
+COL_NOTES: Final[str] = "notes"
+COL_INTERNAL_ID: Final[str] = "_internal_id"
+
+# Hidden columns required by the importer for conflict detection but not
+# part of the user-facing docs/07 table. The hashes let the importer compare
+# the source text the reviewer saw against the current DB state.
+COL_SOURCE_HASH_AT_EXPORT: Final[str] = "_source_hash_at_export"
+
+LOCALE_TAB_COLUMNS: Final[tuple[str, ...]] = (
+    COL_KEY,
+    COL_SOURCE_TEXT,
+    COL_DESCRIPTION,
+    COL_COMPONENT,
+    COL_SCREEN,
+    COL_MAX_LENGTH,
+    COL_PLACEHOLDERS,
+    COL_RISK_CLASS,
+    COL_CURRENT_TRANSLATION,
+    COL_MT_SUGGESTION,
+    COL_STATUS,
+    COL_REVIEWER_ACTION,
+    COL_EDITED_TRANSLATION,
+    COL_NOTES,
+    COL_INTERNAL_ID,
+    COL_SOURCE_HASH_AT_EXPORT,
 )
 
-# Column indices (1-based) — openpyxl uses 1-based indexing. Names match
-# COLUMN_ORDER. Kept as constants so call sites read like ``COL_REVIEWER_ACTION``
-# instead of magic numbers.
-COL_KEY: Final[int] = 1
-COL_SOURCE_TEXT: Final[int] = 2
-COL_DESCRIPTION: Final[int] = 3
-COL_COMPONENT: Final[int] = 4
-COL_SCREEN: Final[int] = 5
-COL_MAX_LENGTH: Final[int] = 6
-COL_PLACEHOLDERS: Final[int] = 7
-COL_RISK_CLASS: Final[int] = 8
-COL_CURRENT_TRANSLATION: Final[int] = 9
-COL_MT_SUGGESTION: Final[int] = 10
-COL_STATUS: Final[int] = 11
-COL_REVIEWER_ACTION: Final[int] = 12
-COL_EDITED_TRANSLATION: Final[int] = 13
-COL_NOTES: Final[int] = 14
-COL_INTERNAL_ID: Final[int] = 15
+# Backward-compatibility alias for the export-side surface.
+COLUMN_ORDER: Final[tuple[str, ...]] = LOCALE_TAB_COLUMNS
 
-# Sets used by the export writer to decide which cells get unlocked under
-# sheet protection. Everything else is locked. ``_internal_id`` (col 15) is
-# explicitly locked AND hidden so reviewers cannot edit re-import mappings.
+# Name → 1-based column index. Use ``COLUMN_INDEX[COL_NAME]`` wherever
+# openpyxl wants a numeric column (writing to cells, hiding columns).
+COLUMN_INDEX: Final[dict[str, int]] = {name: i + 1 for i, name in enumerate(LOCALE_TAB_COLUMNS)}
+
+# ---------------------------------------------------------------------------
+# Cell-level protection. Editable columns are unlocked inside a protected
+# sheet; everything else is locked (docs/07:42-47).
+# ---------------------------------------------------------------------------
+EDITABLE_COLUMN_NAMES: Final[frozenset[str]] = frozenset({COL_REVIEWER_ACTION, COL_EDITED_TRANSLATION, COL_NOTES})
+EDITABLE_COLUMNS: Final[frozenset[int]] = frozenset(COLUMN_INDEX[n] for n in EDITABLE_COLUMN_NAMES)
 LOCKED_COLUMNS: Final[frozenset[int]] = frozenset(
-    {
-        COL_KEY,
-        COL_SOURCE_TEXT,
-        COL_DESCRIPTION,
-        COL_COMPONENT,
-        COL_SCREEN,
-        COL_MAX_LENGTH,
-        COL_PLACEHOLDERS,
-        COL_RISK_CLASS,
-        COL_CURRENT_TRANSLATION,
-        COL_MT_SUGGESTION,
-        COL_STATUS,
-        COL_INTERNAL_ID,
-    }
+    COLUMN_INDEX[n] for n in LOCALE_TAB_COLUMNS if n not in EDITABLE_COLUMN_NAMES
 )
-EDITABLE_COLUMNS: Final[frozenset[int]] = frozenset({COL_REVIEWER_ACTION, COL_EDITED_TRANSLATION, COL_NOTES})
 
-# ---------------------------------------------------------------------------
-# Dropdown values for column 12 (`reviewer_action`). The import side MUST
-# reject any other value. Empty cell == skip the row (no change).
-# ---------------------------------------------------------------------------
-REVIEWER_ACTIONS: Final[tuple[str, ...]] = ("yes", "no", "edit", "needs_more_context")
+# Hidden columns — ``column_dimensions[letter].hidden = True``. Importer
+# still reads them.
+HIDDEN_COLUMN_NAMES: Final[frozenset[str]] = frozenset({COL_INTERNAL_ID, COL_SOURCE_HASH_AT_EXPORT})
 
-# ---------------------------------------------------------------------------
-# Color map: row background by current translation status. The reviewer sees
-# colour at a glance; on import the colour is informational only.
-# All colours are ARGB strings (alpha = FF) per openpyxl convention.
-# ---------------------------------------------------------------------------
-STATUS_COLOR_MAP: Final[dict[str, str]] = {
-    # docs/07-excel-roundtrip.md lines 50-55
-    "needs_review": "FFFFF59D",  # Yellow
-    "mt_proposed": "FFBBDEFB",  # Light blue
-    "approved": "FFC8E6C9",  # Light green
-    "rejected": "FFFFCDD2",  # Light red
-    "needs_more_context": "FFFFCC80",  # Orange
-}
-
-# ---------------------------------------------------------------------------
-# Sheet protection password. Per spec this is **UX, not security** —
-# protecting cells means Excel surfaces "this cell is protected, are you
-# sure?" when reviewers fumble into locked rows. Anyone determined to edit
-# the locked cells can do so by unprotecting the sheet. We use a constant,
-# deterministic, obvious password rather than a per-file secret because:
-#
-#  * Per-file passwords break offline editing for reviewers we trust.
-#  * A secret password in the _meta tab is no secret at all.
-#  * Reviewer audit trail comes from the DB diff at import time, not from
-#    XLSX-level protection.
-# ---------------------------------------------------------------------------
+# Sheet protection password (docs/07: "UX, not security"). Anyone determined
+# can unprotect the sheet; this just prevents reviewers from fumbling into
+# locked cells.
 SHEET_PROTECTION_PASSWORD: Final[str] = "clariti-tms-export"
 
 # ---------------------------------------------------------------------------
-# _meta tab field names (key column). Values are populated at export time.
-# Field shapes (string / int / comma-separated list) are documented in
-# docs/07-excel-roundtrip.md lines 60-74.
+# reviewer_action dropdown — exactly these four values (docs/07:37).
+# Empty cell == skip (no change).
+#
+# The importer maps these to the canonical reviewer_action vocabulary
+# (``accept`` / ``reject`` / ``edit`` / ``needs_more_context``, per
+# ``app.mt.transitions.ALLOWED_REVIEWER_ACTIONS``) in
+# ``app/export_import/commit.py``.
 # ---------------------------------------------------------------------------
-META_FIELDS: Final[tuple[str, ...]] = (
-    "schema_version",
-    "export_timestamp",
-    "project_id",
-    "project_slug",
-    "exported_by",
-    "exported_by_user_id",
-    "status_filter",
-    "locales",
-    "row_counts",
-    "export_hash",
-    "notes",
+REVIEWER_ACTION_YES: Final[str] = "yes"
+REVIEWER_ACTION_NO: Final[str] = "no"
+REVIEWER_ACTION_EDIT: Final[str] = "edit"
+REVIEWER_ACTION_NEEDS_MORE_CONTEXT: Final[str] = "needs_more_context"
+
+REVIEWER_ACTION_VALUES: Final[tuple[str, ...]] = (
+    REVIEWER_ACTION_YES,
+    REVIEWER_ACTION_NO,
+    REVIEWER_ACTION_EDIT,
+    REVIEWER_ACTION_NEEDS_MORE_CONTEXT,
 )
 
-# Sentinel for "no filter" in the status_filter meta field, so the import
-# side can distinguish "filter was empty" from "filter was the string 'all'".
-META_STATUS_FILTER_ALL: Final[str] = "all"
+# Backward-compat alias for export-side code.
+REVIEWER_ACTIONS: Final[tuple[str, ...]] = REVIEWER_ACTION_VALUES
 
-# Approximate column widths (in Excel "character" units). source_text and
-# current_translation are wide because reviewers need to compare them
-# side-by-side; everything else is sized to fit typical content.
-COLUMN_WIDTHS: Final[dict[int, float]] = {
-    COL_KEY: 28.0,
-    COL_SOURCE_TEXT: 50.0,
-    COL_DESCRIPTION: 35.0,
-    COL_COMPONENT: 18.0,
-    COL_SCREEN: 18.0,
-    COL_MAX_LENGTH: 10.0,
-    COL_PLACEHOLDERS: 22.0,
-    COL_RISK_CLASS: 14.0,
-    COL_CURRENT_TRANSLATION: 50.0,
-    COL_MT_SUGGESTION: 40.0,
-    COL_STATUS: 16.0,
-    COL_REVIEWER_ACTION: 20.0,
-    COL_EDITED_TRANSLATION: 40.0,
-    COL_NOTES: 30.0,
-    COL_INTERNAL_ID: 12.0,
+# ---------------------------------------------------------------------------
+# Status colour map (docs/07:51-55). openpyxl wants ARGB hex (FF == opaque).
+# ---------------------------------------------------------------------------
+STATUS_FILL_COLORS: Final[dict[str, str]] = {
+    "needs_review": "FFFFF59D",  # yellow
+    "mt_proposed": "FFBBDEFB",  # light blue
+    "approved": "FFC8E6C9",  # light green
+    "rejected": "FFFFCDD2",  # light red
+    "needs_more_context": "FFFFCC80",  # orange
 }
+
+# Backward-compat alias.
+STATUS_COLOR_MAP: Final[dict[str, str]] = STATUS_FILL_COLORS
+
+# Approximate column widths in Excel character units. source_text and
+# current_translation are wide so reviewers can compare side-by-side.
+COLUMN_WIDTHS: Final[dict[int, float]] = {
+    COLUMN_INDEX[COL_KEY]: 28.0,
+    COLUMN_INDEX[COL_SOURCE_TEXT]: 50.0,
+    COLUMN_INDEX[COL_DESCRIPTION]: 35.0,
+    COLUMN_INDEX[COL_COMPONENT]: 18.0,
+    COLUMN_INDEX[COL_SCREEN]: 18.0,
+    COLUMN_INDEX[COL_MAX_LENGTH]: 10.0,
+    COLUMN_INDEX[COL_PLACEHOLDERS]: 22.0,
+    COLUMN_INDEX[COL_RISK_CLASS]: 14.0,
+    COLUMN_INDEX[COL_CURRENT_TRANSLATION]: 50.0,
+    COLUMN_INDEX[COL_MT_SUGGESTION]: 40.0,
+    COLUMN_INDEX[COL_STATUS]: 16.0,
+    COLUMN_INDEX[COL_REVIEWER_ACTION]: 20.0,
+    COLUMN_INDEX[COL_EDITED_TRANSLATION]: 40.0,
+    COLUMN_INDEX[COL_NOTES]: 30.0,
+    COLUMN_INDEX[COL_INTERNAL_ID]: 12.0,
+    COLUMN_INDEX[COL_SOURCE_HASH_AT_EXPORT]: 18.0,
+}
+
+# ---------------------------------------------------------------------------
+# _meta tab — fields populated at export time, read by importer for
+# validation + conflict detection (docs/07:60-74).
+# ---------------------------------------------------------------------------
+META_SHEET_NAME: Final[str] = "_meta"
+
+META_KEY_SCHEMA_VERSION: Final[str] = "schema_version"
+META_KEY_EXPORT_TIMESTAMP: Final[str] = "export_timestamp"
+META_KEY_PROJECT_ID: Final[str] = "project_id"
+META_KEY_PROJECT_SLUG: Final[str] = "project_slug"
+META_KEY_EXPORTED_BY: Final[str] = "exported_by"
+META_KEY_EXPORTED_BY_USER_ID: Final[str] = "exported_by_user_id"
+META_KEY_STATUS_FILTER: Final[str] = "status_filter"
+META_KEY_LOCALES: Final[str] = "locales"
+META_KEY_ROW_COUNTS: Final[str] = "row_counts"
+META_KEY_EXPORT_HASH: Final[str] = "export_hash"
+META_KEY_NOTES: Final[str] = "notes"
+
+META_FIELDS: Final[tuple[str, ...]] = (
+    META_KEY_SCHEMA_VERSION,
+    META_KEY_EXPORT_TIMESTAMP,
+    META_KEY_PROJECT_ID,
+    META_KEY_PROJECT_SLUG,
+    META_KEY_EXPORTED_BY,
+    META_KEY_EXPORTED_BY_USER_ID,
+    META_KEY_STATUS_FILTER,
+    META_KEY_LOCALES,
+    META_KEY_ROW_COUNTS,
+    META_KEY_EXPORT_HASH,
+    META_KEY_NOTES,
+)
+
+# Sentinel for "no filter" in status_filter so the importer can distinguish
+# "filter was empty" from "filter was the literal string 'all'".
+META_STATUS_FILTER_ALL: Final[str] = "all"

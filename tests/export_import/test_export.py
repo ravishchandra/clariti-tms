@@ -40,6 +40,7 @@ from app.export_import.export import (
 from app.export_import.schema import (
     COL_CURRENT_TRANSLATION,
     COL_INTERNAL_ID,
+    COLUMN_INDEX,
     COLUMN_ORDER,
     META_FIELDS,
     REVIEWER_ACTIONS,
@@ -143,7 +144,7 @@ class TestSingleLocaleExport:
         rows = [_row("k", internal_id=rid)]
         wb = _load(export_to_bytes(_request({"fr-FR": rows})))
         ws = wb["fr-FR"]
-        assert ws.cell(row=2, column=COL_INTERNAL_ID).value == str(rid)
+        assert ws.cell(row=2, column=COLUMN_INDEX[COL_INTERNAL_ID]).value == str(rid)
 
     def test_reviewer_action_dropdown_present(self) -> None:
         wb = _load(export_to_bytes(_request({"fr-FR": [_row("k", internal_id=uuid.uuid4())]})))
@@ -166,7 +167,7 @@ class TestSingleLocaleExport:
         rows = [_row("k", internal_id=rid, status="needs_review")]
         wb = _load(export_to_bytes(_request({"fr-FR": rows})))
         ws = wb["fr-FR"]
-        cell = ws.cell(row=2, column=COL_CURRENT_TRANSLATION)
+        cell = ws.cell(row=2, column=COLUMN_INDEX[COL_CURRENT_TRANSLATION])
         # openpyxl normalises ARGB to upper-case hex.
         expected = STATUS_COLOR_MAP["needs_review"].upper()
         assert cell.fill.fgColor.rgb == expected
@@ -177,7 +178,7 @@ class TestSingleLocaleExport:
         rows = [_row("k", internal_id=rid, status="draft")]
         wb = _load(export_to_bytes(_request({"fr-FR": rows})))
         ws = wb["fr-FR"]
-        cell = ws.cell(row=2, column=COL_CURRENT_TRANSLATION)
+        cell = ws.cell(row=2, column=COLUMN_INDEX[COL_CURRENT_TRANSLATION])
         # "draft" is not in STATUS_COLOR_MAP — no fill applied.
         assert cell.fill.patternType in (None, "none")
 

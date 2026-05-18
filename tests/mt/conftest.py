@@ -67,9 +67,14 @@ from app.models import (  # noqa: E402
 # Tables whose rows are written by translate_batch — wiped before/after each
 # integration test so cross-test bleed-through can't ever cause flakes.
 # Order matters: child tables first.
+#
+# `import_jobs` is included because the Phase 5 export-import integration
+# tests in tests/export_import/ may leave job rows that FK-reference projects;
+# without wiping them here, the projects DELETE below fails on cross-suite runs.
 _WIPE_TABLES: tuple[str, ...] = (
     "translation_history",
     "mt_runs",
+    "import_jobs",
     "translation_memory",
     "translations",
     "translation_batches",
@@ -79,6 +84,7 @@ _WIPE_TABLES: tuple[str, ...] = (
     "glossary_terms",
     "repositories",
     "projects",
+    "users",
     "organizations",
 )
 

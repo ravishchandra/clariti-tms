@@ -1,11 +1,14 @@
-"""Excel round-trip module: XLSX export (Phase 5).
+"""Excel round-trip module — export and import (Phase 5).
 
-Export side writes one workbook per request with one tab per locale plus
-a hidden ``_meta`` tab. See ``docs/07-excel-roundtrip.md`` — the schema is
-the contract between this module and the import side.
+The export side (XLSX writer + ``POST /api/v1/exports`` + ``loc export``) and
+the import side (XLSX parser + validators + conflict detection + dry-run +
+24h-rollback commit + ``POST /api/v1/imports/*`` + ``loc import``) share
+:mod:`app.export_import.schema`: column order, dropdown values, schema
+version (``"v1"``), color map.
 
-The import half (parsing, validation, dry-run, commit, rollback) lives in
-a parallel agent's surface and imports from :mod:`app.export_import.schema`.
+See ``docs/07-excel-roundtrip.md`` for the full spec — Section "Locale tab
+columns (in this exact order — locked)" and "Mapping reviewer_action to
+state changes" are canonical.
 """
 
 from __future__ import annotations

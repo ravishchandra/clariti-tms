@@ -63,12 +63,19 @@ try:
 except ImportError:
     pass
 
-# Phase 5 — Excel export. The import endpoints live in a parallel module
-# (``imports.py``) owned by the import agent; both are tolerant of each other's
-# absence so the app boots even if only one half has merged.
+# Phase 5 — Excel round-trip. Export and import shipped as parallel halves;
+# both use try/except so partial merges (or future module renames) don't
+# break app boot.
 try:
     from app.api.v1.endpoints.exports import router as exports_router
 
     router.include_router(exports_router, prefix="/exports", tags=["Exports"])
+except ImportError:
+    pass
+
+try:
+    from app.api.v1.endpoints.imports import router as imports_router
+
+    router.include_router(imports_router, prefix="/imports", tags=["Imports"])
 except ImportError:
     pass

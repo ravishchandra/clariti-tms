@@ -475,6 +475,216 @@ async def test_github_webhook_undecryptable_secret_returns_401(
 
 
 # ---------------------------------------------------------------------------
+# F5: PATCH null clears secret columns; non-nullable null is rejected.
+# ---------------------------------------------------------------------------
+
+
+async def _create_repo_for_f5(
+    client: AsyncClient,
+    seeded: dict[str, Any],
+    *,
+    with_secrets: bool = True,
+) -> str:
+    """Create a repository for F5 tests. Returns the repository id."""
+    body: dict[str, Any] = {
+        "name": f"f5-repo-{seeded['suffix']}",
+        "platform": "web",
+        "file_format": "i18next",
+        "github_repo": f"acme/f5-{seeded['suffix']}",
+        "default_branch": "main",
+    }
+    if with_secrets:
+        body["webhook_secret"] = "wh-secret-v1"
+        body["contentful_token"] = "cma-token-v1"
+        body["contentful_webhook_secret"] = "cf-secret-v1"
+    resp = await client.post(
+        f"/api/v1/projects/{seeded['project'].id}/repositories",
+        json=body,
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+@pytest.mark.parametrize(
+    ("clear_field", "column", "boolean_field"),
+    [
+        ("webhook_secret", "webhook_secret_encrypted", "has_webhook_secret"),
+        ("contentful_token", "contentful_token_encrypted", "has_contentful_token"),
+        (
+            "contentful_webhook_secret",
+            "contentful_webhook_secret_encrypted",
+            "has_contentful_webhook_secret",
+        ),
+    ],
+)
+async def test_patch_null_clears_each_secret(
+    client: AsyncClient,
+    seeded: dict[str, Any],
+    db: AsyncSession,
+    clear_field: str,
+    column: str,
+    boolean_field: str,
+) -> None:
+    """F5: PATCH with explicit JSON null clears each Fernet-encrypted secret.
+
+    Previously the endpoint used `exclude_none=True`, so a JSON null was
+    indistinguishable from omission and the stale ciphertext persisted. This
+    test exercises each of the three secret columns in isolation: after the
+    PATCH the column is NULL in the DB and the read response's
+    `has_*_secret` boolean flips back to False.
+    """
+    repo_id = await _create_repo_for_f5(client, seeded)
+
+    # Sanity: all three secrets are stored.
+    row = await db.execute(
+        text(
+            "SELECT webhook_secret_encrypted, contentful_token_encrypted, "
+            "contentful_webhook_secret_encrypted FROM repositories WHERE id = :id"
+        ),
+        {"id": uuid.UUID(repo_id)},
+    )
+    wh, ct, cf = row.one()
+    assert wh is not None and ct is not None and cf is not None
+
+    # PATCH null on just one field.
+    resp = await client.patch(
+        f"/api/v1/projects/{seeded['project'].id}/repositories/{repo_id}",
+        json={clear_field: None},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200, resp.text
+    payload = resp.json()
+    assert payload[boolean_field] is False
+    # The other two booleans must still be True — partial-update means only
+    # the targeted column is cleared.
+    other_flags = {"has_webhook_secret", "has_contentful_token", "has_contentful_webhook_secret"} - {
+        boolean_field
+    }
+    for other in other_flags:
+        assert payload[other] is True, f"PATCH null on {clear_field} should not touch {other}"
+
+    # DB: targeted column is NULL, other two unchanged.
+    row = await db.execute(
+        text(
+            "SELECT webhook_secret_encrypted, contentful_token_encrypted, "
+            "contentful_webhook_secret_encrypted FROM repositories WHERE id = :id"
+        ),
+        {"id": uuid.UUID(repo_id)},
+    )
+    wh2, ct2, cf2 = row.one()
+    values_by_column = {
+        "webhook_secret_encrypted": wh2,
+        "contentful_token_encrypted": ct2,
+        "contentful_webhook_secret_encrypted": cf2,
+    }
+    assert values_by_column[column] is None
+    for col, value in values_by_column.items():
+        if col != column:
+            assert value is not None, f"unrelated column {col} was incorrectly cleared"
+
+
+async def test_patch_partial_update_preserves_unset_fields(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    """F5: `exclude_unset=True` must keep partial updates working.
+
+    A PATCH body containing only ``context_notes`` must:
+      1. update `context_notes`,
+      2. leave every other column (including the three secrets and the
+         `default_branch="main"` non-nullable) untouched.
+
+    Prior to F5, `exclude_none=True` accidentally kept this working because
+    every other field defaulted to None and was filtered out. After F5 we
+    rely on `exclude_unset=True`, so this guard makes sure we haven't
+    regressed the partial-update path.
+    """
+    from app.core.crypto import decrypt
+    from app.models import Repository
+
+    repo_id = await _create_repo_for_f5(client, seeded)
+
+    resp = await client.patch(
+        f"/api/v1/projects/{seeded['project'].id}/repositories/{repo_id}",
+        json={"context_notes": "now with feeling"},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200, resp.text
+
+    # Refresh from DB and assert every other field is unchanged.
+    row_result = await db.execute(
+        select(Repository).where(Repository.id == uuid.UUID(repo_id))
+    )
+    repo = row_result.scalar_one()
+    assert repo.context_notes == "now with feeling"
+    assert repo.default_branch == "main"
+    assert repo.platform == "web"
+    assert repo.file_format == "i18next"
+    assert repo.github_repo == f"acme/f5-{seeded['suffix']}"
+    # Secrets all still present.
+    assert decrypt(repo.webhook_secret_encrypted) == "wh-secret-v1"
+    assert decrypt(repo.contentful_token_encrypted) == "cma-token-v1"
+    assert decrypt(repo.contentful_webhook_secret_encrypted) == "cf-secret-v1"
+
+
+async def test_patch_empty_body_is_no_op(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    """F5: PATCH with `{}` returns 200 and changes nothing.
+
+    A "ping the row to make sure it still parses" call has to be a clean
+    no-op — no fields modified, no rows lost, the response shape matches
+    what GET would return.
+    """
+    repo_id = await _create_repo_for_f5(client, seeded)
+
+    # Capture the pre-PATCH row state.
+    pre = await client.get(
+        f"/api/v1/projects/{seeded['project'].id}/repositories/{repo_id}",
+        headers=seeded["headers"],
+    )
+    assert pre.status_code == 200, pre.text
+    pre_payload = pre.json()
+
+    resp = await client.patch(
+        f"/api/v1/projects/{seeded['project'].id}/repositories/{repo_id}",
+        json={},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 200, resp.text
+    post_payload = resp.json()
+
+    # Every public field is identical pre vs post.
+    assert post_payload == pre_payload
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["name", "platform", "file_format", "plural_convention", "default_branch"],
+)
+async def test_patch_null_on_non_nullable_column_returns_422(
+    client: AsyncClient, seeded: dict[str, Any], field: str
+) -> None:
+    """F5: explicit null on a NOT NULL column is rejected with 422.
+
+    Without this guard we'd reach the DB and trip a NOT NULL violation which
+    SQLAlchemy surfaces as a 500. The schema's `_reject_null_on_required`
+    model_validator catches it earlier and explains how to fix the request.
+    """
+    repo_id = await _create_repo_for_f5(client, seeded, with_secrets=False)
+
+    resp = await client.patch(
+        f"/api/v1/projects/{seeded['project'].id}/repositories/{repo_id}",
+        json={field: None},
+        headers=seeded["headers"],
+    )
+    assert resp.status_code == 422, resp.text
+    # Error message should name the offending field so the client doesn't
+    # have to guess which one is the problem.
+    assert field in resp.text
+
+
+# ---------------------------------------------------------------------------
 # 7. Teardown: clean rows created by these tests so reruns are deterministic.
 # ---------------------------------------------------------------------------
 

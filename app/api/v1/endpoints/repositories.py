@@ -78,8 +78,17 @@ async def get_repository(repo: ScopedRepository) -> RepositoryRead:
 async def update_repository(
     body: RepositoryUpdate, db: DB, repo: ScopedRepository
 ) -> RepositoryRead:
-    updates = body.model_dump(exclude_none=True)
-    # C3: pull off any incoming secrets, encrypt, and route to the *_encrypted column.
+    # F5: use `exclude_unset=True` (not `exclude_none=True`) so the handler can
+    # distinguish "field omitted" from "field explicitly set to null". Omitted
+    # fields stay as-is; explicit null on a nullable column clears it. Explicit
+    # null on a NOT NULL column is rejected at schema validation time (see
+    # `_reject_null_on_required` in RepositoryUpdate) so we never reach a NOT
+    # NULL violation at flush.
+    updates = body.model_dump(exclude_unset=True)
+    # C3 + F5: pull off any incoming secret fields, encrypt, and route to the
+    # *_encrypted column. `encrypt(None)` returns None, so an explicit JSON
+    # null clears the secret column (F5). Empty/whitespace strings are
+    # rejected earlier by the `_reject_blank_secret` schema validator.
     for field, column in _SECRET_FIELD_TO_COLUMN.items():
         if field in updates:
             setattr(repo, column, encrypt(updates.pop(field)))

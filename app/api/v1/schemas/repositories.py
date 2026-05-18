@@ -49,11 +49,29 @@ class RepositoryCreate(BaseModel):
     )(_reject_blank_secret)
 
 
+# Set of PATCH fields backed by NOT NULL columns on `repositories`.
+# Used by the PATCH endpoint and by RepositoryUpdate._reject_explicit_null
+# below to surface a 422 when a client sends explicit JSON null on a column
+# that the DB will refuse. Keep in sync with `models.Repository`'s
+# `nullable=False` columns.
+_NON_NULLABLE_PATCH_FIELDS: frozenset[str] = frozenset(
+    {"name", "platform", "file_format", "plural_convention", "default_branch"}
+)
+
+
 class RepositoryUpdate(BaseModel):
+    # Fields backed by NOT NULL columns on `repositories`. Accepting a JSON
+    # null here would either mean "no change" (use omission for that) or
+    # "clear the value" (impossible — the column is NOT NULL). The
+    # `_reject_null_on_required` model_validator below catches explicit-null
+    # so the client gets a clean 422 rather than a 500 from the DB driver.
     name: str | None = None
     platform: str | None = None
     file_format: str | None = None
     plural_convention: str | None = None
+    default_branch: str | None = None
+
+    # Fields backed by nullable columns. Explicit ``null`` clears the column.
     github_repo: str | None = None
     github_path: str | None = None
     github_installation_id: int | None = None
@@ -61,10 +79,9 @@ class RepositoryUpdate(BaseModel):
     context_notes: str | None = None
     contentful_space_id: str | None = None
     contentful_env: str | None = None
-    default_branch: str | None = None
 
     # Write-only secret rotations. Setting any of these encrypts and overwrites
-    # the corresponding DB column.
+    # the corresponding DB column. Explicit ``null`` clears the column (F5).
     webhook_secret: str | None = None
     contentful_token: str | None = None
     contentful_webhook_secret: str | None = None
@@ -72,6 +89,27 @@ class RepositoryUpdate(BaseModel):
     _strip_blank_secrets = field_validator(
         "webhook_secret", "contentful_token", "contentful_webhook_secret"
     )(_reject_blank_secret)
+
+    @model_validator(mode="after")
+    def _reject_null_on_required(self) -> RepositoryUpdate:
+        """Reject explicit JSON ``null`` on fields backed by NOT NULL columns.
+
+        `model_fields_set` lists only fields the client actually provided,
+        so omitted-but-defaulted-to-None fields are not flagged. This pairs
+        with the PATCH endpoint's ``exclude_unset=True`` to distinguish
+        "omit" from "explicit null" (F5).
+        """
+        bad = [
+            name
+            for name in _NON_NULLABLE_PATCH_FIELDS
+            if name in self.model_fields_set and getattr(self, name) is None
+        ]
+        if bad:
+            raise ValueError(
+                f"the following fields cannot be set to null (NOT NULL columns); "
+                f"omit them to leave unchanged: {sorted(bad)}"
+            )
+        return self
 
 
 class RepositoryRead(BaseModel):

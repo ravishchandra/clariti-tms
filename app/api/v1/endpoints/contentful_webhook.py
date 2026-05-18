@@ -49,6 +49,19 @@ async def receive_contentful_webhook(
         # Return 200 so Contentful does not retry for unknown spaces.
         return {"status": "ignored", "reason": "no repository configured for this space"}
 
+    # Sanity: the resolved repository must have a project FK. NOT NULL enforces
+    # this at the DB level, but assert defensively so any drift fails loudly
+    # instead of routing writes against the wrong tenant.
+    if repository.project_id is None:
+        logger.error(
+            "contentful.webhook.repository_missing_project_id",
+            extra={"repo_id": str(repository.id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Repository state inconsistent",
+        )
+
     secret = repository.contentful_webhook_secret_encrypted
     if secret:
         if not x_contentful_webhook_secret or not verify_contentful_signature(

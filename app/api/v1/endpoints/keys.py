@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import (
+    DB,
+    CurrentKey,
+    ScopedKey,
+    assert_project_in_org,
+    assert_repository_in_org,
+)
 from app.api.v1.schemas.keys import KeyRead, KeyUpdate
 from app.api.v1.schemas.translations import TranslationRead
 from app.models import Key, Translation, TranslationStatus
@@ -18,15 +24,21 @@ router = APIRouter()
 @router.get("")
 async def list_keys(
     db: DB,
-    _auth: CurrentKey,
+    current_key: CurrentKey,
     project_id: uuid.UUID = Query(...),
-    repository_id: Optional[uuid.UUID] = Query(None),
-    locale: Optional[str] = Query(None),
-    status: Optional[TranslationStatus] = Query(None),
-    component: Optional[str] = Query(None),
+    repository_id: uuid.UUID | None = Query(None),
+    locale: str | None = Query(None),
+    status: TranslationStatus | None = Query(None),
+    component: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> dict[str, Any]:
+    # Org-scope by the FK filter: if the project (or repo) belongs to a
+    # different org, return 404 — same behavior as a non-existent resource.
+    await assert_project_in_org(project_id, db, current_key)
+    if repository_id is not None:
+        await assert_repository_in_org(repository_id, db, current_key)
+
     q = select(Key).where(Key.project_id == project_id, Key.is_active.is_(True))
 
     if repository_id is not None:
@@ -57,36 +69,25 @@ async def list_keys(
 
 
 @router.get("/{key_id}")
-async def get_key(
-    key_id: uuid.UUID,
-    db: DB,
-    _auth: CurrentKey,
-) -> dict[str, Any]:
+async def get_key(key: ScopedKey, db: DB) -> dict[str, Any]:
+    # ScopedKey already enforced org membership. Reload with eager-loaded
+    # translations for the response payload.
     result = await db.execute(
-        select(Key).options(selectinload(Key.translations)).where(Key.id == key_id)
+        select(Key).options(selectinload(Key.translations)).where(Key.id == key.id)
     )
-    key = result.scalar_one_or_none()
-    if key is None:
-        raise HTTPException(status_code=404, detail="Key not found")
-
+    full_key = result.scalar_one()
     return {
-        **KeyRead.model_validate(key).model_dump(),
-        "translations": [TranslationRead.model_validate(t) for t in key.translations],
+        **KeyRead.model_validate(full_key).model_dump(),
+        "translations": [TranslationRead.model_validate(t) for t in full_key.translations],
     }
 
 
 @router.patch("/{key_id}", response_model=KeyRead)
 async def update_key(
-    key_id: uuid.UUID,
     body: KeyUpdate,
     db: DB,
-    _auth: CurrentKey,
+    key: ScopedKey,
 ) -> KeyRead:
-    result = await db.execute(select(Key).where(Key.id == key_id))
-    key = result.scalar_one_or_none()
-    if key is None:
-        raise HTTPException(status_code=404, detail="Key not found")
-
     patch = body.model_dump(exclude_unset=True)
     for field, value in patch.items():
         setattr(key, field, value)

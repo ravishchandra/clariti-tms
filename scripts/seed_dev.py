@@ -8,10 +8,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import hashlib
+import secrets
+
+from sqlalchemy import func as sa_func
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
-from app.models import GlossaryTerm, LocaleConfig, Organization, Project, Repository
+from app.models import ApiKey, GlossaryTerm, LocaleConfig, Organization, Project, Repository
 
 
 async def seed() -> None:
@@ -112,6 +116,25 @@ async def seed() -> None:
                     )
                 )
                 print(f"  glossary: {source_term} → {target_term} ({locale})")
+
+        # Bootstrap an org-admin API key on a fresh database. We only mint a
+        # key here when no keys exist — re-running the seed should not silently
+        # create extra credentials, and the printed key is shown once.
+        existing_keys = await db.scalar(select(sa_func.count()).select_from(ApiKey))
+        if (existing_keys or 0) == 0:
+            raw_key = secrets.token_hex(32)
+            key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+            db.add(
+                ApiKey(
+                    key_hash=key_hash,
+                    name="seed-admin",
+                    organization_id=org.id,
+                    is_org_admin=True,
+                )
+            )
+            print(f"\n  created org-admin API key (shown once): {raw_key}")
+        else:
+            print(f"\n  api keys exist ({existing_keys}); skipping admin-key bootstrap")
 
         await db.commit()
         print("\nSeed complete.")

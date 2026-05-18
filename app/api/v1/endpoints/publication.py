@@ -1,25 +1,16 @@
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
 
-from app.api.deps import CurrentKey, DB
+from app.api.deps import DB, ScopedRepository
 from app.core.settings import get_settings
-from app.models import Repository
 from app.publication.service import publish_repository
 
 router = APIRouter()
 
 
 @router.post("/repositories/{repo_id}/publish")
-async def trigger_publication(repo_id: uuid.UUID, db: DB, _: CurrentKey) -> dict:
-    result = await db.execute(select(Repository).where(Repository.id == repo_id))
-    repository = result.scalar_one_or_none()
-    if repository is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found")
-
+async def trigger_publication(db: DB, repository: ScopedRepository) -> dict:
     if not repository.github_repo:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

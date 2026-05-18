@@ -39,7 +39,9 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql+asyncpg://clariti:clariti@localhost:5432/clariti_test
-      SECRET_KEY: test-secret-key-for-ci-only
+      # DEBUG=true relaxes the SECRET_KEY/FERNET_KEY length-and-presence checks
+      # so the test runner doesn't need real production-grade keys.
+      DEBUG: "true"
       ANTHROPIC_API_KEY: ""
       OPENAI_API_KEY: ""
     steps:
@@ -49,6 +51,15 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e ".[dev]"
+      - name: Generate ephemeral CI keys
+        # Both keys are required when DEBUG=False; we keep DEBUG=true above to
+        # avoid that path, but tests that explicitly flip DEBUG=False (see
+        # tests/core/test_settings.py) need real-shape values in env.
+        run: |
+          {
+            echo "SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+            echo "FERNET_KEY=$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+          } >> "$GITHUB_ENV"
       - name: Run migrations
         run: |
           cd infra

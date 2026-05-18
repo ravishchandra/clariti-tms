@@ -1,4 +1,9 @@
-# In-House Localization Platform
+# Clariti TMS
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 A self-hosted translation management system (TMS) for web and mobile apps, built for teams whose UI text lives in GitHub and Contentful, with English (en-US) as the base language.
 
@@ -47,3 +52,42 @@ These are explicitly out of scope. They are well-served by existing tools, or th
 - **Source control:** GitHub (existing repos hold source `en-US.json` files)
 - **CMS:** Contentful (existing — sync via Contentful Management API)
 - **Deployment:** Docker, runs on our own infra (data residency requirement)
+
+## Quick start (local dev)
+
+```bash
+# 1. Postgres + pgvector
+docker compose up -d postgres
+
+# 2. Python env
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# 3. Migrations
+cd infra && alembic upgrade head && cd ..
+
+# 4. Seed dev data + run
+python scripts/seed_dev.py
+uvicorn app.main:app --reload --port 8000
+```
+
+Tests: `pytest`. Full conventions and the broader workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Project status
+
+Phases 1–4 are on `main` (foundation, LLM pipeline, REST API + SDKs, GitHub + Contentful adapters). Phase 5 (Excel round-trip) is the next milestone. See `docs/09-build-phases.md` for the full plan and `docs/11-audit-followups.md` for the cleanup state.
+
+## Contributing
+
+We welcome contributions. Read [CONTRIBUTING.md](CONTRIBUTING.md) first — it covers project conventions, local dev, the test setup, and the PR workflow. Every contributor signs the [Contributor License Agreement](CLA.md) on their first PR (the bot prompts you with a one-line acknowledgment) — this exists so we can offer both AGPL and commercial licenses without re-licensing every patch. We follow the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+Found a security issue? Please follow [SECURITY.md](SECURITY.md) — **do not** file public issues for vulnerabilities.
+
+## License
+
+Clariti TMS is dual-licensed:
+
+- **Open source:** [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). The AGPL's network-copyleft clause means SaaS operators who modify the code must publish their modifications. Self-hosters who don't modify or redistribute the code are unaffected.
+- **Commercial:** available from the maintainers for organizations whose use is incompatible with the AGPL. Contact the maintainers via GitHub for licensing terms.
+
+The dual-license model (AGPL + commercial) is why we ask every contributor to sign the [CLA](CLA.md) — it grants the project the right to re-license each contribution under commercial terms.

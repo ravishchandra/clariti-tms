@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a defect in Clariti TMS.
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill out the form below — incomplete reports get deprioritized.
+
+        **For security issues, stop and follow [SECURITY.md](../SECURITY.md) instead.** Do not file public bug reports for vulnerabilities.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence — what's broken.
+      placeholder: "Translating an iOS .strings file with a stringsdict plural inside crashes the MT batch."
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimum reproduction
+      description: Step-by-step. Include the exact `loc` / API command, file contents (with secrets redacted), and what you expected to happen.
+      placeholder: |
+        1. `loc ingest-file fixtures/sample.strings --repo ios-app`
+        2. `loc translate --project clariti-app --locale fr-FR`
+        3. Expected: 5 translations populated.
+           Actual: AttributeError in app/mt/post_process.py:42.
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit hash
+      description: Output of `git rev-parse HEAD` in your checkout.
+      placeholder: "b1e6470"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (your assessment)
+      options:
+        - "Critical — data loss, security, or production blocker"
+        - "High — feature broken, no workaround"
+        - "Medium — feature broken, workaround exists"
+        - "Low — cosmetic, edge-case, or doc issue"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / traceback
+      description: Paste structured JSON logs or Python tracebacks. Redact API keys, DB connection strings, and customer text.
+      render: text
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Python version, OS, Postgres version, any provider details (Anthropic vs Ollama, etc.).
+      placeholder: |
+        Python 3.13.0
+        macOS 14.5
+        Postgres 16 with pgvector 0.7
+        Anthropic provider, claude-sonnet-4-6
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit
+      options:
+        - label: I have read [CONTRIBUTING.md](../CONTRIBUTING.md).
+          required: true
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I have redacted secrets, customer strings, and PII from the logs / repro.
+          required: true

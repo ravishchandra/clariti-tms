@@ -3,6 +3,20 @@ name = "clariti-tms"
 version = "0.1.0"
 description = "Self-hosted translation management system"
 requires-python = ">=3.12"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+readme = "README.md"
+authors = [{ name = "Clariti TMS contributors" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Internationalization",
+    "Topic :: Software Development :: Localization",
+]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",

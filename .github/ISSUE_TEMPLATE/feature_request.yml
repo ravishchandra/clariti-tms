@@ -1,0 +1,60 @@
+name: Feature request
+description: Propose a new feature or enhancement.
+title: "feat: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the proposal. **Read `docs/02-requirements.md` and `docs/09-build-phases.md` before filing** — many features are either already planned for a future phase or explicitly out of scope.
+
+        For Phase 5 / Phase 6 work that's already on the roadmap, please discuss in an existing tracking issue or in Discussions rather than opening a new feature request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What's painful or impossible today? Write this as a user story, not a solution.
+      placeholder: "Reviewers can't tell which strings in a batch are new vs. re-translated after a source change, so they re-read everything every time."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you'd solve it. Keep alternatives separate (use the next field).
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What did you weigh against this proposal? Why is this the right shape?
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Which phase does this belong to?
+      description: See `docs/09-build-phases.md`. If in doubt, pick "I'm not sure".
+      options:
+        - "Phase 5 — Excel round-trip (in progress)"
+        - "Phase 6 — Web Review UI (not started)"
+        - "Phase 7 — Extensions (post-MVP)"
+        - "Cross-cutting / infrastructure"
+        - "I'm not sure"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I have read `docs/02-requirements.md` (scope confirmation).
+          required: true
+        - label: This is NOT one of the explicit "what we're not building" items in the README.
+          required: true
+        - label: I'd be willing to help implement this (mark if true — optional but helps prioritization).
+          required: false

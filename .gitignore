@@ -6,6 +6,11 @@
 *.key
 secrets/
 
+# Claude Code per-user/per-machine state — accumulates allowed shell commands
+# (including curl invocations that can embed dev API keys). NEVER commit this.
+# The shared, safe-to-commit equivalent is `.claude/settings.json`.
+.claude/settings.local.json
+
 # Python
 __pycache__/
 *.pyc

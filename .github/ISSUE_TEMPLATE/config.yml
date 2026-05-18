@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ravishchandra/clariti-tms/security/advisories/new
+    about: "Report a security issue privately. Do NOT file a public issue."
+  - name: Question / discussion
+    url: https://github.com/ravishchandra/clariti-tms/discussions
+    about: "Open a Discussion for design questions, usage help, or to propose a Phase 7 extension."

@@ -1,17 +1,47 @@
-"""MT service — translate a single TranslationBatch end-to-end."""
+"""MT service — translate a single TranslationBatch end-to-end.
+
+This module is the orchestrator for the LLM-driven translation pipeline. It is
+intentionally a long, linear flow — each stage's job is documented in
+``docs/05-llm-translation-pipeline.md``.
+
+Audit fixes applied in this revision (2026-05):
+
+* **H4** — DeepL no longer receives the rendered Jinja batch prompt. The
+  service detects ``provider_name == "deepl"`` and routes through
+  :func:`_translate_via_deepl`, which calls DeepL with the per-string dict it
+  actually expects. DeepL output skips back-translation QA and the locale
+  consistency eval (DeepL does not implement ``evaluate``) but still flows
+  through the validator suite + structural-tag restoration.
+* **H5** — :class:`~app.models.LocaleConfig.is_bootstrapped` is now enforced
+  in the review policy: a locale that has not been bootstrapped (50-string
+  native-speaker review per ``docs/06:109``) forces every batch to
+  ``needs_review``.
+* **M2** — Retry + fallback chain implemented per ``docs/05:52``. Each LLM
+  attempt writes its own ``mt_runs`` row (primary, primary-retry, fallback)
+  so post-mortem analysis can see every call. The fallback chain is
+  configured in :func:`app.llm.registry.select_fallback_provider`.
+* **M6** — :func:`app.mt.tm.store_tm_entry` now requires
+  ``repository_id``; the caller here passes it from the loaded
+  :class:`~app.models.Repository`.
+"""
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import time
+from datetime import UTC
 from pathlib import Path
+from typing import Final
 
+import httpx
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.llm.protocol import LLMProvider
-from app.llm.registry import select_provider
+from app.llm.registry import select_fallback_provider, select_provider
 from app.models import (
     BatchStatus,
     ComponentContext,
@@ -24,10 +54,11 @@ from app.models import (
     TranslationBatch,
     TranslationStatus,
 )
+from app.mt.errors import TranslationError
 from app.mt.glossary import format_glossary_for_prompt, load_glossary
 from app.mt.plural import plural_prompt_instruction
 from app.mt.post_process import parse_llm_json_output, restore_structural_tags
-from app.mt.pre_process import pre_process_batch
+from app.mt.pre_process import PreProcessResult, pre_process_batch
 from app.mt.qa import back_translation_qa, locale_consistency_eval
 from app.mt.tm import retrieve_tm_neighbors, store_tm_entry
 from app.mt.validators import validate_string
@@ -42,6 +73,16 @@ PROMPT_VERSION = "translate_v1"
 # Cost per 1k tokens (USD) — Sonnet pricing, updated manually
 _COST_PER_1K_INPUT = 0.003
 _COST_PER_1K_OUTPUT = 0.015
+
+# HTTP status codes worth retrying. 429 = rate limit; 5xx = transient server
+# failures. Anything outside this set (auth, 4xx client errors) is treated as
+# non-retryable so we fail fast.
+_RETRYABLE_HTTP_STATUS: tuple[int, ...] = (429, 500, 502, 503, 504)
+
+# Backoff between the primary attempt and its single retry. Deliberately
+# small — we want the *fallback provider* to be the heavyweight recovery, not
+# a long sleep.
+_RETRY_BACKOFF_SECONDS = 1.0
 
 
 def _platform_format_specifiers(platform: str) -> list[str]:
@@ -62,6 +103,399 @@ def _platform_format_specifiers(platform: str) -> list[str]:
     ]
 
 
+# Anthropic and OpenAI SDKs raise their own exception types (not httpx
+# exceptions) for rate limits and 5xx — we recognize them by class name to
+# avoid coupling on the SDK imports. PyJWT-style duck-typing.
+_RETRYABLE_SDK_EXC_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "RateLimitError",  # anthropic, openai
+        "InternalServerError",  # anthropic, openai
+        "APITimeoutError",  # openai
+        "APIConnectionError",  # openai
+        "APIStatusError",  # both — only retryable if status_code matches
+        "OverloadedError",  # anthropic
+        "ServiceUnavailableError",  # anthropic
+    }
+)
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Whether *exc* matches our retry / fallback policy.
+
+    See docs/05-llm-translation-pipeline.md:52. We retry on:
+
+    * :class:`TranslationError` — provider raised a transient failure shape we
+      defined ourselves (e.g. JSON parse failure that may be flaky LLM output).
+    * :class:`httpx.RequestError` — network-level failure (DNS, connection
+      refused, timeout).
+    * :class:`httpx.HTTPStatusError` with a status in
+      :data:`_RETRYABLE_HTTP_STATUS`.
+    * Anthropic / OpenAI SDK exceptions whose class name matches
+      :data:`_RETRYABLE_SDK_EXC_NAMES`, OR which carry a ``status_code`` /
+      ``status`` attribute matching :data:`_RETRYABLE_HTTP_STATUS`. The
+      providers in ``app/llm/providers/`` call the SDKs directly rather than
+      raw ``httpx``, so without this branch SDK-side rate limits and 5xx would
+      slip through as non-retryable.
+
+    Auth errors, 4xx client errors, and unexpected programmer bugs fall
+    through to ``False`` and bypass retries entirely.
+    """
+    if isinstance(exc, TranslationError):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in _RETRYABLE_HTTP_STATUS
+    if isinstance(exc, httpx.RequestError):
+        return True
+    # SDK exceptions — duck-type by class name + status attribute.
+    name = type(exc).__name__
+    if name in _RETRYABLE_SDK_EXC_NAMES:
+        # Distinguish 429/5xx (retryable) from 4xx (not). If the SDK didn't
+        # set a status_code, default to retryable — the common case for the
+        # listed names is rate-limit or transient.
+        status = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+        if status is None:
+            return True
+        return isinstance(status, int) and status in _RETRYABLE_HTTP_STATUS
+    status = getattr(exc, "status_code", None) or getattr(exc, "status", None)
+    if isinstance(status, int) and status in _RETRYABLE_HTTP_STATUS:
+        return True
+    return False
+
+
+def _record_mt_run(
+    db: AsyncSession,
+    batch: TranslationBatch,
+    *,
+    model: str,
+    prompt_text: str,
+    output_text: str,
+    string_count: int | None,
+    latency_ms: int,
+    validators_passed: bool | None = None,
+    validator_errors: dict | None = None,
+    cost_usd: float = 0.0,
+) -> MtRun:
+    """Insert an ``mt_runs`` row for a single LLM attempt.
+
+    Called for every attempt (primary, primary-retry, fallback) so we can
+    audit each call separately — required by docs/05:52.
+
+    ``ran_at`` is set client-side via :func:`datetime.now` so each row gets
+    a distinct timestamp. The schema default ``func.now()`` resolves to
+    Postgres ``current_timestamp``, which is constant across a single
+    transaction — that would tie ORDER BY ran_at when we write multiple
+    attempts for one batch.
+    """
+    from datetime import datetime
+
+    mt_run = MtRun(
+        batch_id=batch.id,
+        prompt_version=PROMPT_VERSION,
+        model=model,
+        prompt_text=prompt_text,
+        output_text=output_text,
+        validators_passed=validators_passed,
+        validator_errors=validator_errors,
+        string_count=string_count,
+        latency_ms=latency_ms,
+        cost_usd=cost_usd,
+        ran_at=datetime.now(tz=UTC),
+    )
+    db.add(mt_run)
+    return mt_run
+
+
+def _estimate_cost(system_prompt: str, user_prompt: str, raw_output: str) -> float:
+    """Rough token-count + price estimate (instrumentation TBD)."""
+    estimated_input = len(system_prompt.split()) * 1.3 + len(user_prompt.split()) * 1.3
+    estimated_output = len(raw_output.split()) * 1.3
+    return round(
+        (estimated_input / 1000 * _COST_PER_1K_INPUT)
+        + (estimated_output / 1000 * _COST_PER_1K_OUTPUT),
+        6,
+    )
+
+
+async def _attempt_translation(
+    provider: LLMProvider,
+    system_prompt: str,
+    user_prompt: str,
+    expected_keys: list[str],
+) -> tuple[dict[str, str], str]:
+    """Single LLM call + JSON parse.
+
+    Returns ``(translations_dict, raw_output_text)``. Raises whatever the
+    provider raises (``httpx.HTTPStatusError``, ``httpx.RequestError``,
+    auth errors, etc.) and converts JSON parse failures into
+    :class:`TranslationError` so the retry/fallback machinery picks them up.
+    """
+    raw_output = await provider.translate(user_prompt, system_prompt, cache_system=True)
+    try:
+        translations_out = parse_llm_json_output(raw_output, expected_keys)
+    except ValueError as exc:
+        # Wrap so this is retryable — LLMs occasionally emit malformed JSON
+        # that succeeds on a retry.
+        raise TranslationError(f"LLM output parse failure: {exc}") from exc
+    return translations_out, raw_output
+
+
+async def _translate_with_retry_and_fallback(
+    db: AsyncSession,
+    batch: TranslationBatch,
+    providers: dict[str, LLMProvider],
+    primary_name: str,
+    system_prompt: str,
+    user_prompt: str,
+    expected_keys: list[str],
+) -> tuple[dict[str, str] | None, str | None, str | None, str]:
+    """Run primary → retry-once → fallback per docs/05:52.
+
+    Each attempt writes its own ``mt_runs`` row regardless of outcome (the
+    error message is stored in ``output_text`` when the call raises).
+
+    Returns ``(translations_out, raw_output, error_message, provider_used)``.
+    On total failure, ``translations_out`` and ``raw_output`` are ``None`` and
+    ``error_message`` carries the last error.
+
+    TODO(observability): emit a metric / alert hook here when a fallback
+    fires; docs/05:52 calls for an alert if fallback triggers > 3 times per
+    hour. That belongs alongside the structured logging work (M3).
+    """
+    last_error: str | None = None
+    last_provider_used: str = primary_name
+
+    # ---- Attempt 1: primary provider --------------------------------------
+    primary_provider = providers[primary_name]
+    t0 = time.monotonic()
+    try:
+        translations_out, raw_output = await _attempt_translation(
+            primary_provider, system_prompt, user_prompt, expected_keys
+        )
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        _record_mt_run(
+            db,
+            batch,
+            model=primary_provider.model_id,
+            prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
+            output_text=raw_output,
+            string_count=len(translations_out),
+            latency_ms=latency_ms,
+            cost_usd=_estimate_cost(system_prompt, user_prompt, raw_output),
+        )
+        return translations_out, raw_output, None, primary_name
+    except Exception as exc:
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        _record_mt_run(
+            db,
+            batch,
+            model=primary_provider.model_id,
+            prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
+            output_text=f"ERROR: {exc}",
+            string_count=None,
+            latency_ms=latency_ms,
+        )
+        if not _is_retryable(exc):
+            logger.error(
+                "MT primary attempt failed (non-retryable) for batch %s: %s",
+                batch.id, exc,
+            )
+            return None, None, str(exc), primary_name
+        logger.warning(
+            "MT primary attempt failed (retryable) for batch %s: %s — retrying",
+            batch.id, exc,
+        )
+        last_error = str(exc)
+
+    # ---- Attempt 2: retry primary -----------------------------------------
+    await asyncio.sleep(_RETRY_BACKOFF_SECONDS)
+    t0 = time.monotonic()
+    try:
+        translations_out, raw_output = await _attempt_translation(
+            primary_provider, system_prompt, user_prompt, expected_keys
+        )
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        _record_mt_run(
+            db,
+            batch,
+            model=primary_provider.model_id,
+            prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
+            output_text=raw_output,
+            string_count=len(translations_out),
+            latency_ms=latency_ms,
+            cost_usd=_estimate_cost(system_prompt, user_prompt, raw_output),
+        )
+        return translations_out, raw_output, None, primary_name
+    except Exception as exc:
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        _record_mt_run(
+            db,
+            batch,
+            model=primary_provider.model_id,
+            prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
+            output_text=f"ERROR (retry): {exc}",
+            string_count=None,
+            latency_ms=latency_ms,
+        )
+        last_error = str(exc)
+        # Codex follow-up: don't proceed to fallback for non-retryable
+        # exceptions (auth failures, 4xx). Symmetric with attempt 1's check.
+        if not _is_retryable(exc):
+            logger.error(
+                "MT primary retry failed (non-retryable) for batch %s: %s",
+                batch.id, exc,
+            )
+            return None, None, last_error, primary_name
+        logger.warning(
+            "MT primary retry failed (retryable) for batch %s: %s — attempting fallback",
+            batch.id, exc,
+        )
+
+    # ---- Attempt 3: fallback provider -------------------------------------
+    fallback_name = select_fallback_provider(primary_name)
+    if fallback_name is None or fallback_name not in providers:
+        logger.error(
+            "MT no fallback available for batch %s after primary='%s' failed",
+            batch.id, primary_name,
+        )
+        return None, None, last_error, primary_name
+
+    fallback_provider = providers[fallback_name]
+    last_provider_used = fallback_name
+    t0 = time.monotonic()
+    try:
+        translations_out, raw_output = await _attempt_translation(
+            fallback_provider, system_prompt, user_prompt, expected_keys
+        )
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        _record_mt_run(
+            db,
+            batch,
+            model=fallback_provider.model_id,
+            prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
+            output_text=raw_output,
+            string_count=len(translations_out),
+            latency_ms=latency_ms,
+            cost_usd=_estimate_cost(system_prompt, user_prompt, raw_output),
+        )
+        # TODO(observability): increment "mt_fallback_triggered" counter here.
+        # docs/05:52 wants an alert if this fires > 3 times/hour.
+        logger.info(
+            "MT fallback to '%s' succeeded for batch %s", fallback_name, batch.id,
+        )
+        return translations_out, raw_output, None, fallback_name
+    except Exception as exc:
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        _record_mt_run(
+            db,
+            batch,
+            model=fallback_provider.model_id,
+            prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
+            output_text=f"ERROR (fallback): {exc}",
+            string_count=None,
+            latency_ms=latency_ms,
+        )
+        logger.error(
+            "MT fallback '%s' also failed for batch %s: %s",
+            fallback_name, batch.id, exc,
+        )
+        return None, None, str(exc), last_provider_used
+
+
+async def _translate_via_deepl(
+    db: AsyncSession,
+    batch: TranslationBatch,
+    provider: LLMProvider,
+    pre: PreProcessResult,
+) -> tuple[dict[str, str] | None, str | None]:
+    """DeepL-specific translate path (H4).
+
+    DeepL doesn't accept the rendered Jinja prompt — it expects a JSON dict of
+    ``{key: source_text}`` as ``prompt`` and the target locale as ``system``.
+    We hand it exactly that shape, then return the parsed translations in the
+    same form the JSON-LLM path uses.
+
+    DeepL also doesn't implement ``evaluate`` or ``embed`` — that's why this
+    branch exists at all. Back-translation + locale-consistency QA are
+    skipped at the call site; the validator suite still runs.
+
+    Retries once on a retryable failure (codex follow-up) — DeepL's
+    free/pro endpoints return 429 / 5xx under load. No fallback to LLM
+    providers: the prompt shapes are different and LLM-as-DeepL-fallback
+    would mean re-rendering the Jinja prompt with the same provider
+    pool we're already routing away from. Each attempt logged to mt_runs.
+    """
+    deepl_input = json.dumps(pre.processed_strings, ensure_ascii=False)
+
+    async def _attempt() -> tuple[str, int]:
+        t0_inner = time.monotonic()
+        raw = await provider.translate(deepl_input, batch.locale)
+        return raw, int((time.monotonic() - t0_inner) * 1000)
+
+    # ---- Attempt 1
+    try:
+        raw_output, latency_ms = await _attempt()
+    except Exception as exc:
+        latency_ms = 0  # we don't know how long it ran before raising
+        _record_mt_run(
+            db,
+            batch,
+            model=provider.model_id,
+            prompt_text=f"DEEPL input ({batch.locale}):\n{deepl_input}",
+            output_text=f"ERROR: {exc}",
+            string_count=None,
+            latency_ms=latency_ms,
+        )
+        if not _is_retryable(exc):
+            logger.error("DeepL call failed (non-retryable) for batch %s: %s", batch.id, exc)
+            return None, str(exc)
+        # Retry once.
+        logger.warning("DeepL call failed (retryable) for batch %s: %s — retrying", batch.id, exc)
+        await asyncio.sleep(_RETRY_BACKOFF_SECONDS)
+        try:
+            raw_output, latency_ms = await _attempt()
+        except Exception as exc2:
+            _record_mt_run(
+                db,
+                batch,
+                model=provider.model_id,
+                prompt_text=f"DEEPL input ({batch.locale}):\n{deepl_input}",
+                output_text=f"ERROR (retry): {exc2}",
+                string_count=None,
+                latency_ms=0,
+            )
+            logger.error("DeepL retry also failed for batch %s: %s", batch.id, exc2)
+            return None, str(exc2)
+
+    # `latency_ms` is set by the successful `_attempt()` call above.
+    try:
+        translations_out = parse_llm_json_output(
+            raw_output, list(pre.processed_strings.keys())
+        )
+    except ValueError as exc:
+        _record_mt_run(
+            db,
+            batch,
+            model=provider.model_id,
+            prompt_text=f"DEEPL input ({batch.locale}):\n{deepl_input}",
+            output_text=raw_output,
+            string_count=None,
+            latency_ms=latency_ms,
+        )
+        logger.warning("DeepL output parse failure for batch %s: %s", batch.id, exc)
+        return None, str(exc)
+
+    _record_mt_run(
+        db,
+        batch,
+        model=provider.model_id,
+        prompt_text=f"DEEPL input ({batch.locale}):\n{deepl_input}",
+        output_text=raw_output,
+        string_count=len(translations_out),
+        latency_ms=latency_ms,
+    )
+    return translations_out, None
+
+
 async def translate_batch(
     db: AsyncSession,
     batch: TranslationBatch,
@@ -75,7 +509,6 @@ async def translate_batch(
     Returns a summary dict with counts and cost.
     """
     deepl_locales = deepl_locales or []
-    t0 = time.monotonic()
 
     # Mark batch running
     batch.status = BatchStatus.mt_running
@@ -126,11 +559,13 @@ async def translate_batch(
     )
     provider = providers[provider_name]
     embed_prov = providers.get(embed_provider, provider)
+    is_deepl = provider_name == "deepl"
 
     # Glossary
     glossary = await load_glossary(db, str(batch.project_id), batch.locale)
 
-    # TM neighbors — embed batch source texts together
+    # TM neighbors — embed batch source texts together. DeepL doesn't embed,
+    # so we use the embed provider directly (already not the DeepL one).
     raw_strings = {k.key: k.source_text for k in keys_list}
     batch_text = " ".join(raw_strings.values())
     try:
@@ -155,50 +590,86 @@ async def translate_batch(
     plural_format = next((k.plural_format for k in keys_list if k.plural_format), None)
     plural_instr = plural_prompt_instruction(batch.locale, plural_format)
 
-    # Render prompt
-    template = _JINJA_ENV.get_template("translate_v1.j2")
-    rendered = template.render(
-        screen_name=batch.screen or batch.component,
-        project_name=project.name,
-        domain_description=project.style_guide or "A professional application.",
-        source_locale="en-US",
-        target_locale=batch.locale,
-        style_guide=project.style_guide,
-        locale_config=locale_cfg,
-        repository_platform=repo.platform,
-        platform_notes=repo.context_notes,
-        formatted_glossary=format_glossary_for_prompt(glossary),
-        tm_neighbors=tm_neighbors,
-        screen_context=(ctx.description if ctx else None),
-        strings=pre.processed_strings,
-        format_specifiers=_platform_format_specifiers(repo.platform),
-        plural_instruction=plural_instr,
-    )
-    parts = rendered.split("===USER===", 1)
-    system_prompt = parts[0].replace("===SYSTEM===", "").strip()
-    user_prompt = parts[1].strip() if len(parts) > 1 else rendered.strip()
+    # Translation dispatch -------------------------------------------------
+    #
+    # Two paths:
+    #   1. DeepL (plain-text-only locales): build per-string dict, hand it to
+    #      DeepL with the locale as `system`. No Jinja prompt. No retry/fallback
+    #      (DeepL is a peer of the LLM providers, not a fallback target).
+    #   2. LLM (anthropic/openai/ollama/openrouter/community): render the
+    #      Jinja batch prompt, attempt primary → retry → fallback.
+    translations_out: dict[str, str] | None
+    error_message: str | None
+    provider_used: str = provider_name
 
-    # LLM call
-    try:
-        raw_output = await provider.translate(user_prompt, system_prompt, cache_system=True)
-    except Exception as exc:
-        logger.error("MT failed for batch %s: %s", batch.id, exc)
-        batch.status = BatchStatus.needs_review
-        await db.flush()
-        return {"translated": 0, "needs_review": len(pairs), "cost_usd": 0.0, "error": str(exc)}
+    if is_deepl:
+        translations_out, error_message = await _translate_via_deepl(
+            db=db, batch=batch, provider=provider, pre=pre,
+        )
+        if translations_out is None:
+            batch.status = BatchStatus.needs_review
+            await db.commit()
+            return {
+                "translated": 0,
+                "needs_review": len(pairs),
+                "cost_usd": 0.0,
+                "error": error_message,
+            }
+    else:
+        # Render the Jinja batch prompt for the LLM path only.
+        template = _JINJA_ENV.get_template("translate_v1.j2")
+        rendered = template.render(
+            screen_name=batch.screen or batch.component,
+            project_name=project.name,
+            domain_description=project.style_guide or "A professional application.",
+            source_locale="en-US",
+            target_locale=batch.locale,
+            style_guide=project.style_guide,
+            locale_config=locale_cfg,
+            repository_platform=repo.platform,
+            platform_notes=repo.context_notes,
+            formatted_glossary=format_glossary_for_prompt(glossary),
+            tm_neighbors=tm_neighbors,
+            screen_context=(ctx.description if ctx else None),
+            strings=pre.processed_strings,
+            format_specifiers=_platform_format_specifiers(repo.platform),
+            plural_instruction=plural_instr,
+        )
+        parts = rendered.split("===USER===", 1)
+        system_prompt = parts[0].replace("===SYSTEM===", "").strip()
+        user_prompt = parts[1].strip() if len(parts) > 1 else rendered.strip()
 
-    # Parse output
-    try:
-        translations_out = parse_llm_json_output(raw_output, list(pre.processed_strings.keys()))
-    except ValueError as exc:
-        logger.warning("JSON parse error for batch %s: %s", batch.id, exc)
-        batch.status = BatchStatus.needs_review
-        await db.flush()
-        return {"translated": 0, "needs_review": len(pairs), "cost_usd": 0.0, "error": str(exc)}
+        (
+            translations_out,
+            _raw_output,
+            error_message,
+            provider_used,
+        ) = await _translate_with_retry_and_fallback(
+            db=db,
+            batch=batch,
+            providers=providers,
+            primary_name=provider_name,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            expected_keys=list(pre.processed_strings.keys()),
+        )
+        if translations_out is None:
+            batch.status = BatchStatus.needs_review
+            await db.commit()
+            return {
+                "translated": 0,
+                "needs_review": len(pairs),
+                "cost_usd": 0.0,
+                "error": error_message,
+            }
+        # Swap to the provider that actually succeeded so the model_id we
+        # record and the per-string evaluate() calls below come from the
+        # provider that actually produced these translations. The embedding
+        # provider (used for TM neighbor retrieval) is independent — leave
+        # ``embed_prov`` alone.
+        provider = providers[provider_used]
 
-    latency_ms = int((time.monotonic() - t0) * 1000)
-
-    # Process each string
+    # Process each string ---------------------------------------------------
     summary = {"translated": 0, "needs_review": 0, "cost_usd": 0.0}
     validator_errors_all: dict[str, list[str]] = {}
 
@@ -223,10 +694,18 @@ async def translate_batch(
         if not val_result.valid:
             validator_errors_all[key_str] = val_result.errors
 
-        # Back-translation QA
+        # QA — back-translation + locale-consistency eval.
+        #
+        # DeepL doesn't implement ``evaluate`` (it raises NotImplementedError)
+        # and skipping QA for the DeepL path is the documented trade-off
+        # (H4). All three QA scores remain None so the review-policy
+        # disjunction below uses its safe default (5) and does NOT force
+        # review on missing scores.
         back_text: str | None = None
         back_sim: float | None = None
-        if batch_embedding is not None:
+        qa_scores: dict = {}
+
+        if not is_deepl and batch_embedding is not None:
             try:
                 back_text, back_sim = await back_translation_qa(
                     source=key.source_text,
@@ -238,28 +717,28 @@ async def translate_batch(
             except Exception as exc:
                 logger.warning("Back-translation failed for key %s: %s", key_str, exc)
 
-        # Locale consistency eval
-        qa_scores: dict = {}
-        try:
-            qa_scores = await locale_consistency_eval(
-                source=key.source_text,
-                translated=translated_text,
-                locale=batch.locale,
-                domain_description=project.style_guide or "A professional application.",
-                locale_notes=locale_cfg.notes if locale_cfg else None,
-                tm_neighbors=tm_neighbors,
-                evaluate_fn=provider.evaluate,
-            )
-        except Exception as exc:
-            logger.warning("QA eval failed for key %s: %s", key_str, exc)
+            try:
+                qa_scores = await locale_consistency_eval(
+                    source=key.source_text,
+                    translated=translated_text,
+                    locale=batch.locale,
+                    domain_description=project.style_guide or "A professional application.",
+                    locale_notes=locale_cfg.notes if locale_cfg else None,
+                    tm_neighbors=tm_neighbors,
+                    evaluate_fn=provider.evaluate,
+                )
+            except Exception as exc:
+                logger.warning("QA eval failed for key %s: %s", key_str, exc)
 
-        # Risk-class routing
+        # Risk-class routing — see docs/06-human-review-workflow.md:100-113.
         review_forced = (
             not val_result.valid
             or key.risk_class in ("high_risk", "human_only")
             or (key.risk_class == "standard")
             or (back_sim is not None and back_sim < 0.80)
             or any(qa_scores.get(d, 5) < 3 for d in ("naturalness", "consistency", "accuracy"))
+            # docs/06:109 — force review until native-speaker bootstrap complete
+            or (locale_cfg is not None and not locale_cfg.is_bootstrapped)
         )
         new_status = (
             TranslationStatus.needs_review if review_forced else TranslationStatus.approved
@@ -284,13 +763,16 @@ async def translate_batch(
         else:
             summary["translated"] += 1
 
-        # Store TM entry if approved
+        # Store TM entry if approved. DeepL output can also feed TM as long as
+        # we have an embedding provider available — TM is keyed by source
+        # text similarity, so the origin provider is irrelevant.
         if new_status == TranslationStatus.approved and batch_embedding is not None:
             try:
                 key_embedding = await embed_prov.embed(key.source_text)
                 await store_tm_entry(
                     db=db,
                     project_id=str(batch.project_id),
+                    repository_id=str(repo.id),
                     locale=batch.locale,
                     source_key_id=str(key.id),
                     source_text=key.source_text,
@@ -301,30 +783,6 @@ async def translate_batch(
             except Exception as exc:
                 logger.warning("TM store failed for key %s: %s", key_str, exc)
 
-    # Rough cost estimate (input tokens unknown without instrumentation — estimate)
-    estimated_input = len(system_prompt.split()) * 1.3 + len(user_prompt.split()) * 1.3
-    estimated_output = len(raw_output.split()) * 1.3
-    cost = (
-        (estimated_input / 1000 * _COST_PER_1K_INPUT)
-        + (estimated_output / 1000 * _COST_PER_1K_OUTPUT)
-    )
-    summary["cost_usd"] = round(cost, 6)
-
-    # Log MtRun
-    mt_run = MtRun(
-        batch_id=batch.id,
-        prompt_version=PROMPT_VERSION,
-        model=provider.model_id,
-        prompt_text=f"SYSTEM:\n{system_prompt}\n\nUSER:\n{user_prompt}",
-        output_text=raw_output,
-        validators_passed=len(validator_errors_all) == 0,
-        validator_errors=validator_errors_all or None,
-        string_count=len(translations_out),
-        latency_ms=latency_ms,
-        cost_usd=cost,
-    )
-    db.add(mt_run)
-
     # Update batch
     batch.status = (
         BatchStatus.needs_review if summary["needs_review"] > 0 else BatchStatus.mt_complete
@@ -332,9 +790,36 @@ async def translate_batch(
     batch.mt_model = provider.model_id
     batch.mt_prompt_version = PROMPT_VERSION
 
+    # Codex follow-up: attach validator results to the successful attempt's
+    # mt_run row. We pick the most recent mt_run for this batch — that's the
+    # one that produced `translations_out`. Earlier rows are failed attempts
+    # whose `validators_passed` legitimately stays NULL.
+    last_run = await db.scalar(
+        select(MtRun)
+        .where(MtRun.batch_id == batch.id)
+        .order_by(MtRun.ran_at.desc())
+        .limit(1)
+    )
+    if last_run is not None:
+        last_run.validators_passed = len(validator_errors_all) == 0
+        last_run.validator_errors = validator_errors_all or None
+
+    # Sum cost across all mt_runs we recorded for this batch (each attempt has
+    # its own row now under M2). This avoids re-estimating and double-counting.
+    cost_rows = await db.execute(
+        select(MtRun.cost_usd).where(MtRun.batch_id == batch.id)
+    )
+    summary["cost_usd"] = round(
+        float(sum(c or 0 for (c,) in cost_rows.all())), 6,
+    )
+
     await db.commit()
     logger.info(
-        "Batch %s done: %d translated, %d needs_review, $%.4f",
-        batch.id, summary["translated"], summary["needs_review"], cost,
+        "Batch %s done: %d translated, %d needs_review, $%.4f (provider=%s)",
+        batch.id,
+        summary["translated"],
+        summary["needs_review"],
+        summary["cost_usd"],
+        provider_used,
     )
     return summary

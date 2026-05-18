@@ -5,11 +5,16 @@ import logging
 from fastapi import FastAPI
 
 from app.api.v1.router import router as api_v1_router
+from app.core.logging import configure_logging, request_id_middleware
 from app.core.settings import get_settings
 
-logger = logging.getLogger(__name__)
-
 settings = get_settings()
+
+# Install the JSON handler before anyone calls ``logging.getLogger``
+# below us captures records.  ``configure_logging`` is idempotent.
+configure_logging(level="DEBUG" if settings.DEBUG else "INFO")
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Clariti TMS",
@@ -18,24 +23,47 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
 )
 
+request_id_middleware(app)
+
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    """Log a masked DB URL on startup to confirm settings loaded."""
+    """Log a masked DB URL on startup to confirm settings loaded.
+
+    Masking rebuilds the URL from urlparse components rather than running
+    str.replace on the password — the latter would also mask any other
+    occurrence of the password substring (e.g. when the password equals the
+    user/db name, as in our dev `tms:tms@host/tms`).
+    """
     db_url = settings.DATABASE_URL
-    # Mask credentials: postgresql+asyncpg://user:PASS@host/db
     try:
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, urlunparse
 
         parsed = urlparse(db_url)
-        masked = db_url.replace(parsed.password or "", "***") if parsed.password else db_url
+        masked_host = parsed.hostname or "<unknown>"
+        if parsed.password:
+            host_with_port = parsed.hostname or ""
+            if parsed.port:
+                host_with_port += f":{parsed.port}"
+            netloc = (
+                f"{parsed.username or ''}:***@{host_with_port}"
+                if parsed.username
+                else f":***@{host_with_port}"
+            )
+            masked = urlunparse(parsed._replace(netloc=netloc))
+        else:
+            masked = db_url
     except Exception:
         masked = "<masked>"
+        masked_host = "<unknown>"
     logger.info(
-        "Clariti TMS starting",
+        "app.startup",
         extra={
-            "database_url": masked,
+            "event": "app.startup",
+            "version": app.version,
             "debug": settings.DEBUG,
+            "database_url": masked,
+            "database_host": masked_host,
         },
     )
 

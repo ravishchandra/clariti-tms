@@ -31,6 +31,7 @@ class RepositoryCreate(BaseModel):
     plural_convention: str = "icu"
     github_repo: str | None = None
     github_path: str | None = None
+    github_installation_id: int | None = None
     source_file: str | None = None
     context_notes: str | None = None
     contentful_space_id: str | None = None
@@ -55,6 +56,7 @@ class RepositoryUpdate(BaseModel):
     plural_convention: str | None = None
     github_repo: str | None = None
     github_path: str | None = None
+    github_installation_id: int | None = None
     source_file: str | None = None
     context_notes: str | None = None
     contentful_space_id: str | None = None
@@ -91,6 +93,7 @@ class RepositoryRead(BaseModel):
     plural_convention: str
     github_repo: str | None
     github_path: str | None
+    github_installation_id: int | None
     source_file: str | None
     context_notes: str | None
     contentful_space_id: str | None
@@ -142,6 +145,7 @@ class RepositoryRead(BaseModel):
             "plural_convention": data.plural_convention,
             "github_repo": data.github_repo,
             "github_path": data.github_path,
+            "github_installation_id": data.github_installation_id,
             "source_file": data.source_file,
             "context_notes": data.context_notes,
             "contentful_space_id": data.contentful_space_id,

@@ -53,12 +53,31 @@ async def handle_github_push(
     source_file = repository.source_file or ""
     filename = os.path.basename(source_file)
 
-    # We need a token to fetch from GitHub. Use a per-repo token if stored,
-    # otherwise fall back to the app-level installation token.
-    # TODO: derive an installation token from GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY_PATH
-    from app.core.settings import get_settings  # local import avoids circular
-    settings = get_settings()
-    client = GitHubClient(token=settings.GITHUB_WEBHOOK_SECRET)  # TODO: replace with install token
+    # Resolve the installation_id: prefer the value stored on the Repository,
+    # fall back to the webhook payload (which always includes installation.id
+    # for App-installed repos). If neither is present we cannot mint a token,
+    # so bail out with a clear log line — webhook handler will still return
+    # 200 to GitHub so it doesn't retry forever.
+    install_id = repository.github_installation_id
+    if install_id is None:
+        payload_install = payload.get("installation") or {}
+        raw = payload_install.get("id")
+        if raw is not None:
+            install_id = int(raw)
+    if install_id is None:
+        logger.error(
+            "github push for repository %s ignored — no installation_id available "
+            "(set repositories.github_installation_id or ensure the webhook payload "
+            "carries installation.id)",
+            repository.id,
+        )
+        return
+
+    # Local import keeps the auth module out of the import cycle at module load.
+    from app.integrations.github.auth import get_installation_token
+
+    token = await get_installation_token(install_id)
+    client = GitHubClient(token=token)
 
     content = await client.get_file_content(
         repo=repository.github_repo,

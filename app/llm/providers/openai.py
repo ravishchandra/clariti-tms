@@ -53,3 +53,12 @@ class OpenAIProvider(LLMProviderBase):
     @property
     def provider_name(self) -> str:
         return "openai"
+
+    # OpenAI GPT-4o pricing (USD per 1K tokens). openai.com/pricing.
+    @property
+    def price_per_1k_input(self) -> float:
+        return 0.0025
+
+    @property
+    def price_per_1k_output(self) -> float:
+        return 0.01

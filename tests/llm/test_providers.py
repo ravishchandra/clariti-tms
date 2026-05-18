@@ -8,7 +8,12 @@ import pytest
 from app.llm.providers.anthropic import AnthropicProvider
 from app.llm.providers.ollama import OllamaProvider
 from app.llm.providers.openai import OpenAIProvider
-from app.llm.registry import LLMRegistry, select_fallback_provider, select_provider
+from app.llm.registry import (
+    LLMRegistry,
+    RoutingContext,
+    select_fallback_provider,
+    select_provider,
+)
 
 # ---------------------------------------------------------------------------
 # select_provider routing
@@ -17,43 +22,51 @@ from app.llm.registry import LLMRegistry, select_fallback_provider, select_provi
 class TestSelectProvider:
     def test_structural_tags_always_use_config_provider(self) -> None:
         result = select_provider(
-            batch_has_structural_tags=True,
-            batch_has_icu=False,
-            locale="fr-FR",
-            config_provider="anthropic",
-            deepl_locales=["fr-FR"],
+            RoutingContext(
+                batch_has_structural_tags=True,
+                batch_has_icu=False,
+                locale="fr-FR",
+                config_provider="anthropic",
+                deepl_locales=("fr-FR",),
+            )
         )
         assert result == "anthropic"
         assert result != "deepl"
 
     def test_icu_always_use_config_provider(self) -> None:
         result = select_provider(
-            batch_has_structural_tags=False,
-            batch_has_icu=True,
-            locale="fr-FR",
-            config_provider="anthropic",
-            deepl_locales=["fr-FR"],
+            RoutingContext(
+                batch_has_structural_tags=False,
+                batch_has_icu=True,
+                locale="fr-FR",
+                config_provider="anthropic",
+                deepl_locales=("fr-FR",),
+            )
         )
         assert result == "anthropic"
         assert result != "deepl"
 
     def test_plain_text_in_deepl_locales_returns_deepl(self) -> None:
         result = select_provider(
-            batch_has_structural_tags=False,
-            batch_has_icu=False,
-            locale="fr-FR",
-            config_provider="anthropic",
-            deepl_locales=["fr-FR", "de-DE"],
+            RoutingContext(
+                batch_has_structural_tags=False,
+                batch_has_icu=False,
+                locale="fr-FR",
+                config_provider="anthropic",
+                deepl_locales=("fr-FR", "de-DE"),
+            )
         )
         assert result == "deepl"
 
     def test_plain_text_not_in_deepl_locales_returns_config_provider(self) -> None:
         result = select_provider(
-            batch_has_structural_tags=False,
-            batch_has_icu=False,
-            locale="ja-JP",
-            config_provider="anthropic",
-            deepl_locales=["fr-FR", "de-DE"],
+            RoutingContext(
+                batch_has_structural_tags=False,
+                batch_has_icu=False,
+                locale="ja-JP",
+                config_provider="anthropic",
+                deepl_locales=("fr-FR", "de-DE"),
+            )
         )
         assert result == "anthropic"
 

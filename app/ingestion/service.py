@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ingestion.parsers.types import ParseResult
 from app.models import Key, Translation, TranslationBatch, TranslationStatus
+from app.mt.transitions import IllegalTransitionError, apply_transition
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,10 @@ async def upsert_keys(
             logger.debug("inserted key %s", parsed.key)
 
         elif row.source_hash != new_hash:
-            # Source text changed — update key, invalidate approved translations
+            # Source text changed — update key, invalidate approved + published
+            # translations. Both `approved -> needs_review` and `published ->
+            # needs_review` are legal edges (docs/04 state diagram); routing
+            # through `apply_transition` keeps the state machine canonical.
             row.source_text = parsed.source_text
             row.source_hash = new_hash
             row.component = parsed.component
@@ -95,14 +99,21 @@ async def upsert_keys(
             row.icu_shape = parsed.icu_shape
             row.plural_format = parsed.plural_format
 
-            await db.execute(
-                update(Translation)
-                .where(
+            stale = await db.execute(
+                select(Translation).where(
                     Translation.key_id == row.id,
-                    Translation.status == TranslationStatus.approved,
+                    Translation.status.in_(
+                        (TranslationStatus.approved, TranslationStatus.published),
+                    ),
                 )
-                .values(status=TranslationStatus.needs_review)
             )
+            for translation in stale.scalars():
+                try:
+                    apply_transition(translation, TranslationStatus.needs_review)
+                except IllegalTransitionError:
+                    # Status changed between SELECT and now (concurrent writer);
+                    # skip rather than fail the whole ingest.
+                    continue
 
             summary["updated"] += 1
             logger.debug("updated key %s (source changed)", parsed.key)

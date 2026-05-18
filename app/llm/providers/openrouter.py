@@ -34,3 +34,15 @@ class OpenRouterProvider(OpenAIProvider):
     @property
     def provider_name(self) -> str:
         return "openrouter"
+
+    # OpenRouter's prices vary per underlying model — we can't safely return
+    # the OpenAI defaults inherited from the parent. Return 0.0 so callers
+    # know the cost is unknown for this provider; an operator who needs
+    # accurate cost tracking should subclass and override per model.
+    @property
+    def price_per_1k_input(self) -> float:
+        return 0.0
+
+    @property
+    def price_per_1k_output(self) -> float:
+        return 0.0

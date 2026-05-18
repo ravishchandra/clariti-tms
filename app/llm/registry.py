@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from app.llm.protocol import LLMProvider
 
 
@@ -19,21 +21,29 @@ class LLMRegistry:
 registry = LLMRegistry()
 
 
-def select_provider(
-    batch_has_structural_tags: bool,
-    batch_has_icu: bool,
-    locale: str,
-    config_provider: str,
-    deepl_locales: list[str],
-) -> str:
-    # Structural tags or ICU placeholders require LLM understanding — never delegate to DeepL
-    if batch_has_structural_tags or batch_has_icu:
-        return config_provider
+@dataclass(frozen=True)
+class RoutingContext:
+    """Inputs to provider routing for one batch.
 
-    if locale in deepl_locales:
+    Bundled into a dataclass so call sites read as named fields and so new
+    routing rules can be added without breaking positional callers (M4).
+    """
+
+    batch_has_structural_tags: bool
+    batch_has_icu: bool
+    locale: str
+    config_provider: str
+    deepl_locales: tuple[str, ...]
+
+
+def select_provider(ctx: RoutingContext) -> str:
+    # Structural tags or ICU placeholders require LLM understanding — never
+    # delegate to DeepL.
+    if ctx.batch_has_structural_tags or ctx.batch_has_icu:
+        return ctx.config_provider
+    if ctx.locale in ctx.deepl_locales:
         return "deepl"
-
-    return config_provider
+    return ctx.config_provider
 
 
 # Ordered fallback chain — primary providers that can run the full structured

@@ -16,10 +16,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Key, Translation, TranslationStatus
+from app.mt.transitions import IllegalTransitionError, apply_transition
 
 
 async def list_approved_translations(
@@ -79,6 +80,16 @@ async def mark_translations_published(
     state machine — publication must not write to the ``translations``
     table directly.
 
+    The state-machine guard (`approved -> published` is the only legal
+    edge here) is enforced by :func:`app.mt.transitions.apply_transition`.
+    Rows whose current status is not ``approved`` are silently skipped — the
+    caller treats this bulk path as "best-effort publish what's publishable".
+
+    The ``published_at`` parameter is accepted for API compatibility but is
+    no longer authoritative: ``apply_transition`` stamps ``published_at``
+    with ``now(tz=UTC)`` at the moment of the edge. If a caller really needs
+    to backdate, they should write per-row outside this helper.
+
     Parameters
     ----------
     db:
@@ -86,22 +97,17 @@ async def mark_translations_published(
     translation_ids:
         UUIDs of translations to publish.
     published_at:
-        Timezone-aware ``datetime`` to stamp on each row.
+        Retained for backward compatibility; ignored.
     """
+    del published_at  # see docstring — apply_transition stamps its own.
     if not translation_ids:
         return
-    # State-machine guard: only `approved` translations may move to `published`.
-    # `approved -> published` is one of the legal edges in the state machine
-    # (docs/04-data-model.md). When the dedicated transitions module from H1
-    # lands on main, this UPDATE should delegate to `apply_transition()` for
-    # each row so the rule lives in exactly one place. For now we replicate
-    # the guard inline.
-    await db.execute(
-        update(Translation)
-        .where(Translation.id.in_(translation_ids))
-        .where(Translation.status == TranslationStatus.approved)
-        .values(
-            status=TranslationStatus.published,
-            published_at=published_at,
-        )
+    rows = await db.execute(
+        select(Translation).where(Translation.id.in_(translation_ids))
     )
+    for translation in rows.scalars():
+        try:
+            apply_transition(translation, TranslationStatus.published)
+        except IllegalTransitionError:
+            # Not in `approved` — skip, matching the prior WHERE-filter semantics.
+            continue

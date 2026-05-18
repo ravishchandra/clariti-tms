@@ -18,6 +18,17 @@ class LLMProvider(Protocol):
     @property
     def provider_name(self) -> str: ...
 
+    # M5 — per-provider USD pricing per 1K tokens, used by the MT service to
+    # populate `mt_runs.cost_usd`. Providers that don't bill per token
+    # (Ollama: local; DeepL: per-character) return 0.0 and the cost field
+    # is then a known under-estimate for that provider — surface it through
+    # a separate sink if it matters.
+    @property
+    def price_per_1k_input(self) -> float: ...
+
+    @property
+    def price_per_1k_output(self) -> float: ...
+
 
 class LLMProviderBase(ABC):
     @abstractmethod
@@ -36,3 +47,11 @@ class LLMProviderBase(ABC):
     @property
     @abstractmethod
     def provider_name(self) -> str: ...
+
+    @property
+    def price_per_1k_input(self) -> float:
+        return 0.0
+
+    @property
+    def price_per_1k_output(self) -> float:
+        return 0.0

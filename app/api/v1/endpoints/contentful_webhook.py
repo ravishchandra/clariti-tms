@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
@@ -28,7 +29,7 @@ async def receive_contentful_webhook(
 
     try:
         payload = await request.json()
-    except Exception:
+    except json.JSONDecodeError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
     space_id = payload.get("sys", {}).get("space", {}).get("sys", {}).get("id")

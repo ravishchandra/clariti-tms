@@ -137,14 +137,6 @@ def apply_transition(
     touched, so the Postgres history trigger doesn't fire for a phantom
     change. Callers wanting to bump `updated_at` without a status change
     should do so themselves and pass `new_status=current` is not needed.
-
-    Note on coverage gap: this helper is only invoked from API endpoints
-    today. System paths (MT service, ingestion source-change writer,
-    publication's bulk publish via `mt.api.mark_translations_published`)
-    write `translation.status` more directly. Each system path's writes
-    correspond to an edge in `LEGAL_TRANSITIONS`, but they don't run through
-    the validator. Pulling them into `apply_transition` is a follow-up
-    (would coordinate with the MT-service-hardening branch).
     """
     if reviewer_action is not None and reviewer_action not in ALLOWED_REVIEWER_ACTIONS:
         raise InvalidReviewerActionError(reviewer_action)

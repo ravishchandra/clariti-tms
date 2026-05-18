@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
@@ -25,6 +26,9 @@ from app.models import (
 DB = Annotated[AsyncSession, Depends(get_db)]
 
 
+_LAST_USED_DEBOUNCE = timedelta(seconds=60)
+
+
 async def _get_api_key(
     db: DB,
     x_api_key: str = Header(..., alias="X-API-Key"),
@@ -34,6 +38,14 @@ async def _get_api_key(
     api_key = result.scalar_one_or_none()
     if api_key is None or not api_key.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or revoked API key")
+
+    # D1 — touch last_used_at, debounced to once per minute so every
+    # authenticated request doesn't UPDATE the same hot row.
+    now = datetime.now(tz=UTC)
+    previous = api_key.last_used_at
+    if previous is None or now - previous >= _LAST_USED_DEBOUNCE:
+        api_key.last_used_at = now
+        await db.flush()
     return api_key
 
 

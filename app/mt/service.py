@@ -31,7 +31,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
@@ -41,7 +41,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.llm.protocol import LLMProvider
-from app.llm.registry import select_fallback_provider, select_provider
+from app.llm.registry import RoutingContext, select_fallback_provider, select_provider
 from app.models import (
     BatchStatus,
     ComponentContext,
@@ -61,6 +61,7 @@ from app.mt.post_process import parse_llm_json_output, restore_structural_tags
 from app.mt.pre_process import PreProcessResult, pre_process_batch
 from app.mt.qa import back_translation_qa, locale_consistency_eval
 from app.mt.tm import retrieve_tm_neighbors, store_tm_entry
+from app.mt.transitions import apply_transition
 from app.mt.validators import validate_string
 
 logger = logging.getLogger(__name__)
@@ -70,9 +71,8 @@ _JINJA_ENV = Environment(loader=FileSystemLoader(str(_PROMPT_DIR)), autoescape=F
 
 PROMPT_VERSION = "translate_v1"
 
-# Cost per 1k tokens (USD) — Sonnet pricing, updated manually
-_COST_PER_1K_INPUT = 0.003
-_COST_PER_1K_OUTPUT = 0.015
+# Per-1K-token pricing now lives on the LLMProvider Protocol (M5). See
+# `app/llm/protocol.py` and each provider in `app/llm/providers/`.
 
 # HTTP status codes worth retrying. 429 = rate limit; 5xx = transient server
 # failures. Anything outside this set (auth, 4xx client errors) is treated as
@@ -186,8 +186,6 @@ def _record_mt_run(
     transaction — that would tie ORDER BY ran_at when we write multiple
     attempts for one batch.
     """
-    from datetime import datetime
-
     mt_run = MtRun(
         batch_id=batch.id,
         prompt_version=PROMPT_VERSION,
@@ -205,13 +203,20 @@ def _record_mt_run(
     return mt_run
 
 
-def _estimate_cost(system_prompt: str, user_prompt: str, raw_output: str) -> float:
-    """Rough token-count + price estimate (instrumentation TBD)."""
+def _estimate_cost(
+    provider: LLMProvider, system_prompt: str, user_prompt: str, raw_output: str
+) -> float:
+    """Rough token-count + price estimate using the provider's own rates (M5).
+
+    Token counts are still word-count estimates with a 1.3x fudge factor;
+    D2 in `docs/11-audit-followups.md` tracks moving to real usage tokens
+    from each SDK's response.
+    """
     estimated_input = len(system_prompt.split()) * 1.3 + len(user_prompt.split()) * 1.3
     estimated_output = len(raw_output.split()) * 1.3
     return round(
-        (estimated_input / 1000 * _COST_PER_1K_INPUT)
-        + (estimated_output / 1000 * _COST_PER_1K_OUTPUT),
+        (estimated_input / 1000 * provider.price_per_1k_input)
+        + (estimated_output / 1000 * provider.price_per_1k_output),
         6,
     )
 
@@ -257,9 +262,9 @@ async def _translate_with_retry_and_fallback(
     On total failure, ``translations_out`` and ``raw_output`` are ``None`` and
     ``error_message`` carries the last error.
 
-    TODO(observability): emit a metric / alert hook here when a fallback
-    fires; docs/05:52 calls for an alert if fallback triggers > 3 times per
-    hour. That belongs alongside the structured logging work (M3).
+    Fallback emissions are logged as the structured event
+    ``mt.fallback_triggered`` (F7); the rate-of-3/hour alarm from docs/05:52
+    is enforced at the log sink, not in-process.
     """
     last_error: str | None = None
     last_provider_used: str = primary_name
@@ -280,7 +285,7 @@ async def _translate_with_retry_and_fallback(
             output_text=raw_output,
             string_count=len(translations_out),
             latency_ms=latency_ms,
-            cost_usd=_estimate_cost(system_prompt, user_prompt, raw_output),
+            cost_usd=_estimate_cost(primary_provider, system_prompt, user_prompt, raw_output),
         )
         return translations_out, raw_output, None, primary_name
     except Exception as exc:
@@ -322,7 +327,7 @@ async def _translate_with_retry_and_fallback(
             output_text=raw_output,
             string_count=len(translations_out),
             latency_ms=latency_ms,
-            cost_usd=_estimate_cost(system_prompt, user_prompt, raw_output),
+            cost_usd=_estimate_cost(primary_provider, system_prompt, user_prompt, raw_output),
         )
         return translations_out, raw_output, None, primary_name
     except Exception as exc:
@@ -362,6 +367,19 @@ async def _translate_with_retry_and_fallback(
     fallback_provider = providers[fallback_name]
     last_provider_used = fallback_name
     t0 = time.monotonic()
+    # F7 — structured `mt.fallback_triggered` event for the sink-side rate
+    # alarm (docs/05:52: alert if fallback fires > 3 times/hour). Logged
+    # before the attempt so the event is captured even if the fallback
+    # itself raises.
+    logger.warning(
+        "mt.fallback_triggered",
+        extra={
+            "primary": primary_name,
+            "fallback": fallback_name,
+            "batch_id": str(batch.id),
+            "error": last_error,
+        },
+    )
     try:
         translations_out, raw_output = await _attempt_translation(
             fallback_provider, system_prompt, user_prompt, expected_keys
@@ -375,10 +393,8 @@ async def _translate_with_retry_and_fallback(
             output_text=raw_output,
             string_count=len(translations_out),
             latency_ms=latency_ms,
-            cost_usd=_estimate_cost(system_prompt, user_prompt, raw_output),
+            cost_usd=_estimate_cost(fallback_provider, system_prompt, user_prompt, raw_output),
         )
-        # TODO(observability): increment "mt_fallback_triggered" counter here.
-        # docs/05:52 wants an alert if this fires > 3 times/hour.
         logger.info(
             "MT fallback to '%s' succeeded for batch %s", fallback_name, batch.id,
         )
@@ -555,7 +571,13 @@ async def translate_batch(
     has_structural = any(k.has_structural_tags for k in keys_list)
     has_icu = any(k.icu_shape != "plain" for k in keys_list)
     provider_name = select_provider(
-        has_structural, has_icu, batch.locale, config_provider, deepl_locales
+        RoutingContext(
+            batch_has_structural_tags=has_structural,
+            batch_has_icu=has_icu,
+            locale=batch.locale,
+            config_provider=config_provider,
+            deepl_locales=tuple(deepl_locales),
+        )
     )
     provider = providers[provider_name]
     embed_prov = providers.get(embed_provider, provider)
@@ -744,12 +766,17 @@ async def translate_batch(
             TranslationStatus.needs_review if review_forced else TranslationStatus.approved
         )
 
-        # Write translation row
+        # Write translation row. Status moves via the canonical state-machine
+        # path `draft -> mt_proposed -> {needs_review, approved}` so every
+        # edge is validated by `apply_transition`. SQLAlchemy collapses the
+        # two ORM writes into one UPDATE on commit.
         translation.value = translated_text
         translation.mt_value = translated_text
-        translation.status = new_status
+        apply_transition(translation, TranslationStatus.mt_proposed)
+        apply_transition(translation, new_status)
         translation.mt_model = provider.model_id
         translation.mt_prompt_version = PROMPT_VERSION
+        translation.mt_run_at = datetime.now(tz=UTC)
         translation.source_hash_at_translation = key.source_hash
         translation.back_translation = back_text
         translation.back_translation_similarity = back_sim

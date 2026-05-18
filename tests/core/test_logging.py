@@ -79,9 +79,7 @@ class TestConfigureLogging:
         configure_logging("WARNING")
         root = logging.getLogger()
         # The clariti handler should be at WARNING after the second call.
-        clariti_handlers = [
-            h for h in root.handlers if getattr(h, "_clariti_json_handler", False)
-        ]
+        clariti_handlers = [h for h in root.handlers if getattr(h, "_clariti_json_handler", False)]
         assert clariti_handlers, "expected at least one clariti json handler"
         assert clariti_handlers[-1].level == logging.WARNING
 
@@ -144,9 +142,7 @@ class TestBind:
             logger.info("inside")
         logger.info("after")
 
-        lines = [
-            json.loads(line) for line in buf.getvalue().splitlines() if line.strip()
-        ]
+        lines = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
         assert len(lines) == 3
         assert "project_id" not in lines[0]
         assert lines[1]["project_id"] == "p1"
@@ -159,9 +155,7 @@ class TestBind:
                 logger.info("inner")
             logger.info("outer")
 
-        lines = [
-            json.loads(line) for line in buf.getvalue().splitlines() if line.strip()
-        ]
+        lines = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
         inner, outer = lines[0], lines[1]
         assert inner["project_id"] == "p1"
         assert inner["translation_id"] == "t1"
@@ -175,9 +169,7 @@ class TestBind:
                 logger.info("inner")
             logger.info("outer")
 
-        lines = [
-            json.loads(line) for line in buf.getvalue().splitlines() if line.strip()
-        ]
+        lines = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
         assert lines[0]["project_id"] == "inner"
         assert lines[1]["project_id"] == "outer"
 
@@ -290,11 +282,7 @@ def test_configure_logging_emits_bound_fields() -> None:
     finally:
         root.removeHandler(capture)
 
-    matches = [
-        line
-        for line in buf.getvalue().splitlines()
-        if line.strip() and "smoke.event" in line
-    ]
+    matches = [line for line in buf.getvalue().splitlines() if line.strip() and "smoke.event" in line]
     assert matches, f"no JSON line captured: {buf.getvalue()!r}"
     record = json.loads(matches[-1])
     assert record["project_id"] == "proj-xyz"

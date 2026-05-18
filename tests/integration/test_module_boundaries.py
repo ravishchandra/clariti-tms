@@ -71,22 +71,19 @@ class TestPublicationDoesNotQueryOtherModulesTables:
                 text=True,
             )
             assert proc.stdout == "", (
-                f"publication/ contains forbidden cross-module access matching "
-                f"{pattern!r}:\n{proc.stdout}"
+                f"publication/ contains forbidden cross-module access matching {pattern!r}:\n{proc.stdout}"
             )
 
     def test_no_key_or_translation_imports(self):
         """Publication should not even import Key or Translation models —
         all access goes through app.ingestion.api / app.mt.api."""
         proc = subprocess.run(
-            ["grep", "-rEn", r"from app\.models import .*\b(Key|Translation)\b",
-             str(PUBLICATION_DIR)],
+            ["grep", "-rEn", r"from app\.models import .*\b(Key|Translation)\b", str(PUBLICATION_DIR)],
             capture_output=True,
             text=True,
         )
         assert proc.returncode != 0 or proc.stdout == "", (
-            "publication/ imports Key/Translation directly — go through the module api.py:\n"
-            + proc.stdout
+            "publication/ imports Key/Translation directly — go through the module api.py:\n" + proc.stdout
         )
 
 
@@ -210,9 +207,7 @@ class TestH3GithubWebhookEagerLoad:
 
         # Same SELECT shape as app/api/v1/endpoints/github_webhook.py
         result = await db_session.execute(
-            select(Repository)
-            .where(Repository.github_repo == github_repo)
-            .options(selectinload(Repository.project))
+            select(Repository).where(Repository.github_repo == github_repo).options(selectinload(Repository.project))
         )
         loaded = result.scalar_one()
 
@@ -232,9 +227,7 @@ class TestH3GithubWebhookEagerLoad:
         github_repo = seeded_repo["repo"].github_repo
         db_session.expire_all()
 
-        result = await db_session.execute(
-            select(Repository).where(Repository.github_repo == github_repo)
-        )
+        result = await db_session.execute(select(Repository).where(Repository.github_repo == github_repo))
         loaded = result.scalar_one()
 
         with pytest.raises(MissingGreenlet):
@@ -253,9 +246,7 @@ class TestH6PublishRepositoryRespectsBoundary:
     """
 
     @pytest.mark.asyncio
-    async def test_publish_repository_uses_module_api(
-        self, db_session, seeded_repo, monkeypatch
-    ):
+    async def test_publish_repository_uses_module_api(self, db_session, seeded_repo, monkeypatch):
         from app.publication import service as publication_service
 
         captured: dict = {}
@@ -284,9 +275,7 @@ class TestH6PublishRepositoryRespectsBoundary:
         repo = seeded_repo["repo"]
         approved = seeded_repo["approved"]
 
-        pr_url = await publication_service.publish_repository(
-            db_session, repo, github_token="dummy"
-        )
+        pr_url = await publication_service.publish_repository(db_session, repo, github_token="dummy")
 
         assert pr_url == "https://github.com/acme/repo/pull/42"
         assert captured["repository_id"] == repo.id
@@ -300,9 +289,7 @@ class TestH6PublishRepositoryRespectsBoundary:
         assert approved.published_at is not None
 
     @pytest.mark.asyncio
-    async def test_publish_repository_no_op_when_nothing_approved(
-        self, db_session, monkeypatch
-    ):
+    async def test_publish_repository_no_op_when_nothing_approved(self, db_session, monkeypatch):
         from app.publication import service as publication_service
 
         # Per codex follow-up: prove the adapter is NOT INSTANTIATED, not just
@@ -350,14 +337,11 @@ class TestH6PublishRepositoryRespectsBoundary:
             FakeAdapter,
         )
 
-        result = await publication_service.publish_repository(
-            db_session, repo, github_token="dummy"
-        )
+        result = await publication_service.publish_repository(db_session, repo, github_token="dummy")
         assert result is None
         assert called["called"] is False
         assert adapter_constructed["flag"] is False, (
-            "publish_repository should not even construct GitHubAdapter when "
-            "there are no approved translations"
+            "publish_repository should not even construct GitHubAdapter when there are no approved translations"
         )
 
 
@@ -393,9 +377,7 @@ class TestIngestionApi:
 
 class TestMtApi:
     @pytest.mark.asyncio
-    async def test_list_approved_translations_filters_by_status(
-        self, db_session, seeded_repo
-    ):
+    async def test_list_approved_translations_filters_by_status(self, db_session, seeded_repo):
         from app.mt.api import list_approved_translations
 
         pairs = await list_approved_translations(db_session, seeded_repo["repo"].id)
@@ -405,14 +387,10 @@ class TestMtApi:
         assert key.key == "hello"
 
     @pytest.mark.asyncio
-    async def test_list_approved_translations_filters_by_locale(
-        self, db_session, seeded_repo
-    ):
+    async def test_list_approved_translations_filters_by_locale(self, db_session, seeded_repo):
         from app.mt.api import list_approved_translations
 
-        pairs = await list_approved_translations(
-            db_session, seeded_repo["repo"].id, locale="de-DE"
-        )
+        pairs = await list_approved_translations(db_session, seeded_repo["repo"].id, locale="de-DE")
         assert pairs == []
 
     @pytest.mark.asyncio

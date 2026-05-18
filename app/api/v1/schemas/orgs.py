@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,8 +12,8 @@ class OrgCreate(BaseModel):
 
 
 class OrgUpdate(BaseModel):
-    name: Optional[str] = None
-    slug: Optional[str] = None
+    name: str | None = None
+    slug: str | None = None
 
 
 class OrgRead(BaseModel):

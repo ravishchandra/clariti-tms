@@ -117,7 +117,11 @@ def serialize_stringsdict(translations: dict[str, str], locale: str) -> str:
             ET.SubElement(value_dict, "string").text = cat_value
 
     if not has_entries:
-        return '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict/>\n</plist>\n'
+        return (  # noqa: E501 — Apple PLIST DOCTYPE URL must remain on a single line per spec
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
+            '<plist version="1.0">\n<dict/>\n</plist>\n'
+        )
 
     ET.indent(root, space="    ")
     xml_body = ET.tostring(root, encoding="unicode", xml_declaration=False)

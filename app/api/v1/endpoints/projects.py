@@ -12,9 +12,7 @@ router = APIRouter()
 
 
 @router.post("/{org_id}/projects", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
-async def create_project(
-    body: ProjectCreate, db: DB, org: ScopedOrganization
-) -> ProjectRead:
+async def create_project(body: ProjectCreate, db: DB, org: ScopedOrganization) -> ProjectRead:
     project = Project(
         organization_id=org.id,
         name=body.name,
@@ -35,9 +33,7 @@ async def create_project(
 
 @router.get("/{org_id}/projects", response_model=dict)
 async def list_projects(db: DB, org: ScopedOrganization) -> dict:
-    total_result = await db.execute(
-        select(func.count()).select_from(Project).where(Project.organization_id == org.id)
-    )
+    total_result = await db.execute(select(func.count()).select_from(Project).where(Project.organization_id == org.id))
     total = total_result.scalar_one()
     result = await db.execute(
         select(Project).where(Project.organization_id == org.id).order_by(Project.created_at.desc())
@@ -56,9 +52,7 @@ async def get_project(project: ScopedProject, _: CurrentKey) -> ProjectRead:
 
 
 @router.patch("/{org_id}/projects/{project_id}", response_model=ProjectRead)
-async def update_project(
-    body: ProjectUpdate, db: DB, project: ScopedProject
-) -> ProjectRead:
+async def update_project(body: ProjectUpdate, db: DB, project: ScopedProject) -> ProjectRead:
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(project, field, value)
     try:

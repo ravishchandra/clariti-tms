@@ -9,6 +9,7 @@ and delete organizations) from ordinary tenant keys. Existing keys keep the
 default of false; bootstrap tooling (`loc api-key`, seed_dev) flips it to true
 for the first key created in an empty database.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

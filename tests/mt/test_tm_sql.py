@@ -82,9 +82,7 @@ class TestUuidArrayExcludeClause:
     def test_single_uuid(self) -> None:
         u = uuid.UUID("12345678-1234-5678-1234-567812345678")
         result = _uuid_array_exclude_clause([u])
-        assert result == (
-            "AND source_key_id != ALL(ARRAY['12345678-1234-5678-1234-567812345678']::uuid[])"
-        )
+        assert result == ("AND source_key_id != ALL(ARRAY['12345678-1234-5678-1234-567812345678']::uuid[])")
 
     def test_multiple_uuids(self) -> None:
         u1 = uuid.UUID("11111111-1111-1111-1111-111111111111")

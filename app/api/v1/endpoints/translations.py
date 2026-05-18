@@ -35,11 +35,7 @@ async def list_translations(
     # returns 404 (same as a non-existent project).
     await assert_project_in_org(project_id, db, current_key)
 
-    q = (
-        select(Translation)
-        .join(Key, Key.id == Translation.key_id)
-        .where(Key.project_id == project_id)
-    )
+    q = select(Translation).join(Key, Key.id == Translation.key_id).where(Key.project_id == project_id)
 
     if locale is not None:
         q = q.where(Translation.locale == locale)
@@ -110,8 +106,7 @@ async def update_translation(
                 raise HTTPException(
                     status_code=422,
                     detail=(
-                        f"reviewer_action={reviewer_action!r} is not allowed. "
-                        f"Valid: {sorted(ALLOWED_REVIEWER_ACTIONS)}"
+                        f"reviewer_action={reviewer_action!r} is not allowed. Valid: {sorted(ALLOWED_REVIEWER_ACTIONS)}"
                     ),
                 )
             translation.reviewer_action = reviewer_action

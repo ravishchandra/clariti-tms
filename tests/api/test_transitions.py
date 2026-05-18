@@ -190,9 +190,7 @@ async def _history_count_for(db: AsyncSession, translation_id: uuid.UUID) -> int
 # ---------------------------------------------------------------------------
 
 
-async def test_legal_needs_review_to_approved(
-    client: AsyncClient, seeded: dict[str, Any]
-) -> None:
+async def test_legal_needs_review_to_approved(client: AsyncClient, seeded: dict[str, Any]) -> None:
     t_id = seeded["translation"].id
     resp = await client.patch(
         f"/api/v1/translations/{t_id}",
@@ -206,9 +204,7 @@ async def test_legal_needs_review_to_approved(
     assert body["reviewed_at"] is not None
 
 
-async def test_legal_approved_to_published(
-    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
-) -> None:
+async def test_legal_approved_to_published(client: AsyncClient, seeded: dict[str, Any], db: AsyncSession) -> None:
     from app.models import Translation, TranslationStatus
 
     t_id = seeded["translation"].id
@@ -245,9 +241,7 @@ async def test_legal_approved_to_published(
 # ---------------------------------------------------------------------------
 
 
-async def test_illegal_published_to_draft_rejected(
-    client: AsyncClient, seeded: dict[str, Any]
-) -> None:
+async def test_illegal_published_to_draft_rejected(client: AsyncClient, seeded: dict[str, Any]) -> None:
     t_id = seeded["translation"].id
 
     # Drive to published first.
@@ -272,9 +266,7 @@ async def test_illegal_published_to_draft_rejected(
     assert "Illegal transition" in resp.json()["detail"]
 
 
-async def test_illegal_needs_review_to_published_rejected(
-    client: AsyncClient, seeded: dict[str, Any]
-) -> None:
+async def test_illegal_needs_review_to_published_rejected(client: AsyncClient, seeded: dict[str, Any]) -> None:
     """needs_review -> published is illegal; must go through approved first."""
     t_id = seeded["translation"].id
     resp = await client.patch(
@@ -328,9 +320,7 @@ async def test_rejected_goes_to_draft_not_mt_proposed(
     assert row.reviewed_at is None
 
 
-async def test_rejected_to_mt_proposed_is_illegal(
-    client: AsyncClient, seeded: dict[str, Any]
-) -> None:
+async def test_rejected_to_mt_proposed_is_illegal(client: AsyncClient, seeded: dict[str, Any]) -> None:
     """The wrong re-MT edge must 422 — guards against the worker-stranding
     bug codex caught.
     """
@@ -377,9 +367,7 @@ async def test_approved_to_needs_review_is_legal_for_source_change(
     "bad_action",
     ["lol", "yes", "approved", "REJECT", " accept ", ""],
 )
-async def test_reviewer_action_whitelist(
-    client: AsyncClient, seeded: dict[str, Any], bad_action: str
-) -> None:
+async def test_reviewer_action_whitelist(client: AsyncClient, seeded: dict[str, Any], bad_action: str) -> None:
     """reviewer_action is constrained to {accept, edit, reject, needs_more_context}
     per docs/04:236. Excel-format values (yes/no) and free text must be rejected
     so we don't drift into a free-form audit column.
@@ -393,9 +381,7 @@ async def test_reviewer_action_whitelist(
     assert resp.status_code == 422
 
 
-async def test_self_transition_is_true_no_op(
-    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
-) -> None:
+async def test_self_transition_is_true_no_op(client: AsyncClient, seeded: dict[str, Any], db: AsyncSession) -> None:
     """current==target must not touch updated_at, so the trigger doesn't fire
     a phantom history row.
     """
@@ -412,9 +398,7 @@ async def test_self_transition_is_true_no_op(
     assert resp.status_code == 200
 
     after = await _history_count_for(db, t_id)
-    assert after == before, (
-        f"self-transition wrote {after - before} history rows; expected 0"
-    )
+    assert after == before, f"self-transition wrote {after - before} history rows; expected 0"
 
 
 # ---------------------------------------------------------------------------
@@ -422,9 +406,7 @@ async def test_self_transition_is_true_no_op(
 # ---------------------------------------------------------------------------
 
 
-async def test_reviewer_fields_set_on_reject(
-    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
-) -> None:
+async def test_reviewer_fields_set_on_reject(client: AsyncClient, seeded: dict[str, Any], db: AsyncSession) -> None:
     from app.models import Translation
 
     t_id = seeded["translation"].id
@@ -467,9 +449,7 @@ async def test_patch_writes_exactly_one_history_row(
     assert resp.status_code == 200, resp.text
 
     after = await _history_count_for(db, t_id)
-    assert after - before == 1, (
-        f"expected exactly 1 new history row (the trigger), got {after - before}"
-    )
+    assert after - before == 1, f"expected exactly 1 new history row (the trigger), got {after - before}"
 
 
 async def test_batch_approve_writes_one_history_per_translation(
@@ -511,18 +491,14 @@ async def test_batch_approve_writes_one_history_per_translation(
     all_ids = [seeded["translation"].id, *extra_ids]
     counts_before = {tid: await _history_count_for(db, tid) for tid in all_ids}
 
-    resp = await client.post(
-        f"/api/v1/batches/{batch_id}/approve", headers=seeded["headers"]
-    )
+    resp = await client.post(f"/api/v1/batches/{batch_id}/approve", headers=seeded["headers"])
     assert resp.status_code == 200, resp.text
     assert resp.json()["approved"] == 3
 
     counts_after = {tid: await _history_count_for(db, tid) for tid in all_ids}
     for tid in all_ids:
         delta = counts_after[tid] - counts_before[tid]
-        assert delta == 1, (
-            f"translation {tid} got {delta} new history rows; expected exactly 1"
-        )
+        assert delta == 1, f"translation {tid} got {delta} new history rows; expected exactly 1"
 
 
 # ---------------------------------------------------------------------------

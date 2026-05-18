@@ -38,7 +38,6 @@ These tests run against the real Postgres (``tms_h7``) — bootstrap with::
 
 from __future__ import annotations
 
-import hashlib
 import os
 import uuid
 from collections.abc import AsyncIterator
@@ -121,13 +120,7 @@ async def db(_engine: object) -> AsyncIterator[AsyncSession]:
         # Wipe on exit too so subsequent tests in this same session see a
         # clean DB. TRUNCATE ... CASCADE in case any FK isn't on-delete-cascade.
         try:
-            await session.execute(
-                text(
-                    "TRUNCATE TABLE "
-                    + ", ".join(_WIPE_TABLES)
-                    + " RESTART IDENTITY CASCADE"
-                )
-            )
+            await session.execute(text("TRUNCATE TABLE " + ", ".join(_WIPE_TABLES) + " RESTART IDENTITY CASCADE"))
             await session.commit()
         except Exception:  # noqa: BLE001 — best-effort across loop teardown
             pass
@@ -198,14 +191,8 @@ def _parsed(
     )
 
 
-async def _get_translation(
-    db: AsyncSession, key_id: uuid.UUID, locale: str
-) -> Translation | None:
-    return await db.scalar(
-        select(Translation).where(
-            Translation.key_id == key_id, Translation.locale == locale
-        )
-    )
+async def _get_translation(db: AsyncSession, key_id: uuid.UUID, locale: str) -> Translation | None:
+    return await db.scalar(select(Translation).where(Translation.key_id == key_id, Translation.locale == locale))
 
 
 # ---------------------------------------------------------------------------
@@ -237,18 +224,14 @@ class TestUpsertNewKeys:
         }
 
         # Key row written with the sha256 of source_text.
-        key_row = await db.scalar(
-            select(Key).where(Key.repository_id == repo.id, Key.key == "hello")
-        )
+        key_row = await db.scalar(select(Key).where(Key.repository_id == repo.id, Key.key == "hello"))
         assert key_row is not None
         assert key_row.source_text == "Hello, world"
         assert key_row.source_hash == _sha256("Hello, world")
         assert key_row.is_active is True
 
         # Exactly one draft translation per target locale.
-        rows = await db.execute(
-            select(Translation).where(Translation.key_id == key_row.id)
-        )
+        rows = await db.execute(select(Translation).where(Translation.key_id == key_row.id))
         translations = list(rows.scalars())
         assert {t.locale for t in translations} == set(target_locales)
         assert len(translations) == len(target_locales)
@@ -257,9 +240,7 @@ class TestUpsertNewKeys:
             assert t.value is None
             assert t.mt_value is None
 
-    async def test_inserting_multiple_keys_in_one_call(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_inserting_multiple_keys_in_one_call(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         repo = seeded["repo"]  # type: ignore[assignment]
         project = seeded["project"]  # type: ignore[assignment]
 
@@ -279,9 +260,7 @@ class TestUpsertNewKeys:
 
         assert summary["inserted"] == 3
         rows = await db.execute(
-            select(Translation).join(Key, Translation.key_id == Key.id).where(
-                Key.repository_id == repo.id
-            )
+            select(Translation).join(Key, Translation.key_id == Key.id).where(Key.repository_id == repo.id)
         )
         assert len(list(rows.scalars())) == 3
 
@@ -292,9 +271,7 @@ class TestUpsertNewKeys:
 
 
 class TestUpsertSourceChange:
-    async def test_unchanged_source_text_is_no_op(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_unchanged_source_text_is_no_op(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         repo = seeded["repo"]  # type: ignore[assignment]
         project = seeded["project"]  # type: ignore[assignment]
 
@@ -340,9 +317,7 @@ class TestUpsertSourceChange:
             project_id=str(project_id),
             target_locales=["fr-FR"],
         )
-        key_row = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "hello")
-        )
+        key_row = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "hello"))
         assert key_row is not None
         key_id = key_row.id  # capture before any expire_all
 
@@ -383,9 +358,7 @@ class TestUpsertSourceChange:
 
         # 6. Key row has the new source + new hash.
         db.expire_all()
-        key_row = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "hello")
-        )
+        key_row = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "hello"))
         assert key_row is not None
         assert key_row.source_text == "Hello, world"
         assert key_row.source_hash == _sha256("Hello, world")
@@ -409,9 +382,7 @@ class TestUpsertSourceChange:
             project_id=str(project_id),
             target_locales=["fr-FR"],
         )
-        key_row = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "hello")
-        )
+        key_row = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "hello"))
         assert key_row is not None
         key_id = key_row.id
         translation = await _get_translation(db, key_id, "fr-FR")
@@ -455,9 +426,7 @@ class TestUpsertSourceChange:
             project_id=str(project_id),
             target_locales=["fr-FR"],
         )
-        key_row = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "hello")
-        )
+        key_row = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "hello"))
         assert key_row is not None
         key_id = key_row.id
 
@@ -479,9 +448,7 @@ class TestUpsertSourceChange:
         assert translation is not None
         assert translation.status == TranslationStatus.draft
 
-    async def test_source_change_flips_all_target_locales(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_source_change_flips_all_target_locales(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         """If a key has approved translations in multiple locales, all of
         them flip to needs_review on a source change."""
         repo = seeded["repo"]  # type: ignore[assignment]
@@ -496,9 +463,7 @@ class TestUpsertSourceChange:
             project_id=str(project_id),
             target_locales=["fr-FR", "es-ES"],
         )
-        key_row = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "hello")
-        )
+        key_row = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "hello"))
         assert key_row is not None
         key_id = key_row.id
         for locale in ("fr-FR", "es-ES"):
@@ -529,9 +494,7 @@ class TestUpsertSourceChange:
 
 
 class TestUpsertRemovedKey:
-    async def test_key_dropped_upstream_is_marked_inactive(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_key_dropped_upstream_is_marked_inactive(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         repo = seeded["repo"]  # type: ignore[assignment]
         project = seeded["project"]  # type: ignore[assignment]
         repo_id = repo.id
@@ -540,9 +503,7 @@ class TestUpsertRemovedKey:
         # Two keys initially.
         await upsert_keys(
             db,
-            _result(
-                [_parsed("hello", "Hello"), _parsed("goodbye", "Goodbye")]
-            ),
+            _result([_parsed("hello", "Hello"), _parsed("goodbye", "Goodbye")]),
             repository_id=str(repo_id),
             project_id=str(project_id),
             target_locales=["fr-FR"],
@@ -561,21 +522,15 @@ class TestUpsertRemovedKey:
         assert summary["unchanged"] == 1
 
         db.expire_all()
-        goodbye = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "goodbye")
-        )
-        hello = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "hello")
-        )
+        goodbye = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "goodbye"))
+        hello = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "hello"))
         assert goodbye is not None
         assert goodbye.is_active is False
         # Hello stays active.
         assert hello is not None
         assert hello.is_active is True
 
-    async def test_already_inactive_key_not_double_counted(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_already_inactive_key_not_double_counted(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         """A second sync that still doesn't see the key shouldn't deactivate
         it again. The helper filters by ``is_active = True`` so the row is
         already off the candidate list."""
@@ -586,9 +541,7 @@ class TestUpsertRemovedKey:
 
         await upsert_keys(
             db,
-            _result(
-                [_parsed("hello", "Hello"), _parsed("goodbye", "Goodbye")]
-            ),
+            _result([_parsed("hello", "Hello"), _parsed("goodbye", "Goodbye")]),
             repository_id=str(repo_id),
             project_id=str(project_id),
             target_locales=["fr-FR"],
@@ -616,9 +569,7 @@ class TestUpsertRemovedKey:
 
 
 class TestAssembleBatches:
-    async def test_groups_by_component_screen_locale(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_groups_by_component_screen_locale(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         repo = seeded["repo"]  # type: ignore[assignment]
         project = seeded["project"]  # type: ignore[assignment]
         repo_id = repo.id
@@ -652,13 +603,7 @@ class TestAssembleBatches:
         assert count == 4
 
         batches = list(
-            (
-                await db.execute(
-                    select(TranslationBatch).where(
-                        TranslationBatch.repository_id == repo_id
-                    )
-                )
-            ).scalars()
+            (await db.execute(select(TranslationBatch).where(TranslationBatch.repository_id == repo_id))).scalars()
         )
         assert len(batches) == 4
         # Verify the (component, screen, locale) tuples present.
@@ -672,9 +617,7 @@ class TestAssembleBatches:
 
         # Every draft translation now points at a batch.
         rows = await db.execute(
-            select(Translation).join(Key, Translation.key_id == Key.id).where(
-                Key.repository_id == repo_id
-            )
+            select(Translation).join(Key, Translation.key_id == Key.id).where(Key.repository_id == repo_id)
         )
         translations = list(rows.scalars())
         assert all(t.batch_id is not None for t in translations)
@@ -699,9 +642,7 @@ class TestAssembleBatches:
 
         await upsert_keys(
             db,
-            _result(
-                [_parsed("orphan", "Orphan", component=None, screen=None)]
-            ),
+            _result([_parsed("orphan", "Orphan", component=None, screen=None)]),
             repository_id=str(repo_id),
             project_id=str(project_id),
             target_locales=["fr-FR"],
@@ -712,18 +653,12 @@ class TestAssembleBatches:
             project_id=str(project_id),
         )
         assert count == 1
-        batch = await db.scalar(
-            select(TranslationBatch).where(
-                TranslationBatch.repository_id == repo_id
-            )
-        )
+        batch = await db.scalar(select(TranslationBatch).where(TranslationBatch.repository_id == repo_id))
         assert batch is not None
         assert batch.component == "shared"
         assert batch.screen is None
 
-    async def test_no_draft_translations_returns_zero(
-        self, db: AsyncSession, seeded: dict[str, object]
-    ) -> None:
+    async def test_no_draft_translations_returns_zero(self, db: AsyncSession, seeded: dict[str, object]) -> None:
         """Re-running ``assemble_batches`` after the first call should yield
         zero new batches (the prior call attached batch_ids, so there are no
         draft+unbatched rows left)."""
@@ -771,9 +706,7 @@ class TestAssembleBatches:
         )
 
         # Manually promote "a"'s translation to approved.
-        key_a = await db.scalar(
-            select(Key).where(Key.repository_id == repo_id, Key.key == "a")
-        )
+        key_a = await db.scalar(select(Key).where(Key.repository_id == repo_id, Key.key == "a"))
         assert key_a is not None
         key_a_id = key_a.id
         t_a = await _get_translation(db, key_a_id, "fr-FR")
@@ -790,9 +723,7 @@ class TestAssembleBatches:
         assert count == 1
 
         rows = await db.execute(
-            select(Translation).join(Key, Translation.key_id == Key.id).where(
-                Key.repository_id == repo_id
-            )
+            select(Translation).join(Key, Translation.key_id == Key.id).where(Key.repository_id == repo_id)
         )
         translations = list(rows.scalars())
         # "a" stayed approved, no batch attached; "b" became batched draft.

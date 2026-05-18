@@ -247,9 +247,7 @@ async def _attempt_translation(
     auth errors, etc.) and converts JSON parse failures into
     :class:`TranslationError` so the retry/fallback machinery picks them up.
     """
-    raw_output, usage = await provider.translate(
-        user_prompt, system_prompt, cache_system=True
-    )
+    raw_output, usage = await provider.translate(user_prompt, system_prompt, cache_system=True)
     try:
         translations_out = parse_llm_json_output(raw_output, expected_keys)
     except ValueError as exc:
@@ -319,12 +317,14 @@ async def _translate_with_retry_and_fallback(
         if not _is_retryable(exc):
             logger.error(
                 "MT primary attempt failed (non-retryable) for batch %s: %s",
-                batch.id, exc,
+                batch.id,
+                exc,
             )
             return None, None, str(exc), primary_name
         logger.warning(
             "MT primary attempt failed (retryable) for batch %s: %s — retrying",
-            batch.id, exc,
+            batch.id,
+            exc,
         )
         last_error = str(exc)
 
@@ -366,12 +366,14 @@ async def _translate_with_retry_and_fallback(
         if not _is_retryable(exc):
             logger.error(
                 "MT primary retry failed (non-retryable) for batch %s: %s",
-                batch.id, exc,
+                batch.id,
+                exc,
             )
             return None, None, last_error, primary_name
         logger.warning(
             "MT primary retry failed (retryable) for batch %s: %s — attempting fallback",
-            batch.id, exc,
+            batch.id,
+            exc,
         )
 
     # ---- Attempt 3: fallback provider -------------------------------------
@@ -379,7 +381,8 @@ async def _translate_with_retry_and_fallback(
     if fallback_name is None or fallback_name not in providers:
         logger.error(
             "MT no fallback available for batch %s after primary='%s' failed",
-            batch.id, primary_name,
+            batch.id,
+            primary_name,
         )
         return None, None, last_error, primary_name
 
@@ -417,7 +420,9 @@ async def _translate_with_retry_and_fallback(
             cost_usd=_cost_from_usage(fallback_provider, usage),
         )
         logger.info(
-            "MT fallback to '%s' succeeded for batch %s", fallback_name, batch.id,
+            "MT fallback to '%s' succeeded for batch %s",
+            fallback_name,
+            batch.id,
         )
         return translations_out, raw_output, None, fallback_name
     except Exception as exc:
@@ -433,7 +438,9 @@ async def _translate_with_retry_and_fallback(
         )
         logger.error(
             "MT fallback '%s' also failed for batch %s: %s",
-            fallback_name, batch.id, exc,
+            fallback_name,
+            batch.id,
+            exc,
         )
         return None, None, str(exc), last_provider_used
 
@@ -505,9 +512,7 @@ async def _translate_via_deepl(
 
     # `latency_ms` / `usage` are set by the successful `_attempt()` call above.
     try:
-        translations_out = parse_llm_json_output(
-            raw_output, list(pre.processed_strings.keys())
-        )
+        translations_out = parse_llm_json_output(raw_output, list(pre.processed_strings.keys()))
     except ValueError as exc:
         _record_mt_run(
             db,
@@ -652,7 +657,10 @@ async def translate_batch(
 
     if is_deepl:
         translations_out, error_message = await _translate_via_deepl(
-            db=db, batch=batch, provider=provider, pre=pre,
+            db=db,
+            batch=batch,
+            provider=provider,
+            pre=pre,
         )
         if translations_out is None:
             batch.status = BatchStatus.needs_review
@@ -788,9 +796,7 @@ async def translate_batch(
             # docs/06:109 — force review until native-speaker bootstrap complete
             or (locale_cfg is not None and not locale_cfg.is_bootstrapped)
         )
-        new_status = (
-            TranslationStatus.needs_review if review_forced else TranslationStatus.approved
-        )
+        new_status = TranslationStatus.needs_review if review_forced else TranslationStatus.approved
 
         # Write translation row. Status moves via the canonical state-machine
         # path `draft -> mt_proposed -> {needs_review, approved}` so every
@@ -837,9 +843,7 @@ async def translate_batch(
                 logger.warning("TM store failed for key %s: %s", key_str, exc)
 
     # Update batch
-    batch.status = (
-        BatchStatus.needs_review if summary["needs_review"] > 0 else BatchStatus.mt_complete
-    )
+    batch.status = BatchStatus.needs_review if summary["needs_review"] > 0 else BatchStatus.mt_complete
     batch.mt_model = provider.model_id
     batch.mt_prompt_version = PROMPT_VERSION
 
@@ -847,23 +851,17 @@ async def translate_batch(
     # mt_run row. We pick the most recent mt_run for this batch — that's the
     # one that produced `translations_out`. Earlier rows are failed attempts
     # whose `validators_passed` legitimately stays NULL.
-    last_run = await db.scalar(
-        select(MtRun)
-        .where(MtRun.batch_id == batch.id)
-        .order_by(MtRun.ran_at.desc())
-        .limit(1)
-    )
+    last_run = await db.scalar(select(MtRun).where(MtRun.batch_id == batch.id).order_by(MtRun.ran_at.desc()).limit(1))
     if last_run is not None:
         last_run.validators_passed = len(validator_errors_all) == 0
         last_run.validator_errors = validator_errors_all or None
 
     # Sum cost across all mt_runs we recorded for this batch (each attempt has
     # its own row now under M2). This avoids re-estimating and double-counting.
-    cost_rows = await db.execute(
-        select(MtRun.cost_usd).where(MtRun.batch_id == batch.id)
-    )
+    cost_rows = await db.execute(select(MtRun.cost_usd).where(MtRun.batch_id == batch.id))
     summary["cost_usd"] = round(
-        float(sum(c or 0 for (c,) in cost_rows.all())), 6,
+        float(sum(c or 0 for (c,) in cost_rows.all())),
+        6,
     )
 
     await db.commit()

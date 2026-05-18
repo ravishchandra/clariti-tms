@@ -29,6 +29,7 @@ async def _claim_next_batch(
 ) -> TranslationBatch | None:
     """Atomically claim the oldest pending batch, optionally filtered by project/locale."""
     import uuid as _uuid
+
     q = select(TranslationBatch).where(TranslationBatch.status == BatchStatus.pending)
     if project_id is not None:
         q = q.where(TranslationBatch.project_id == _uuid.UUID(project_id))
@@ -68,7 +69,9 @@ async def run_worker(
 
             logger.info(
                 "Processing batch %s (locale=%s, component=%s)",
-                batch.id, batch.locale, batch.component,
+                batch.id,
+                batch.locale,
+                batch.component,
             )
             try:
                 summary = await translate_batch(

@@ -19,6 +19,7 @@ from app.llm.registry import (
 # select_provider routing
 # ---------------------------------------------------------------------------
 
+
 class TestSelectProvider:
     def test_structural_tags_always_use_config_provider(self) -> None:
         result = select_provider(
@@ -75,6 +76,7 @@ class TestSelectProvider:
 # select_fallback_provider (M2 — docs/05:52)
 # ---------------------------------------------------------------------------
 
+
 class TestSelectFallbackProvider:
     def test_anthropic_primary_falls_back_to_openai(self) -> None:
         assert select_fallback_provider("anthropic") == "openai"
@@ -99,6 +101,7 @@ class TestSelectFallbackProvider:
 # AnthropicProvider
 # ---------------------------------------------------------------------------
 
+
 class TestAnthropicProvider:
     def _make_provider(self) -> AnthropicProvider:
         with patch("app.llm.providers.anthropic.anthropic.AsyncAnthropic"):
@@ -120,9 +123,7 @@ class TestAnthropicProvider:
 
         provider._client.messages.create = AsyncMock(return_value=mock_response)
 
-        text, usage = await provider.translate(
-            "Hello", "Translate to French", cache_system=True
-        )
+        text, usage = await provider.translate("Hello", "Translate to French", cache_system=True)
 
         assert text == "Bonjour"
         assert usage == {"input_tokens": 12, "output_tokens": 7}
@@ -148,9 +149,7 @@ class TestAnthropicProvider:
 
         provider._client.messages.create = AsyncMock(return_value=mock_response)
 
-        text, usage = await provider.translate(
-            "Hello", "Translate to French", cache_system=False
-        )
+        text, usage = await provider.translate("Hello", "Translate to French", cache_system=False)
 
         assert text == "Bonjour"
         assert usage == {"input_tokens": 5, "output_tokens": 3}
@@ -207,6 +206,7 @@ class TestAnthropicProvider:
 # ---------------------------------------------------------------------------
 # OpenAIProvider
 # ---------------------------------------------------------------------------
+
 
 class TestOpenAIProvider:
     def _make_provider(self) -> OpenAIProvider:
@@ -302,6 +302,7 @@ class TestOpenAIProvider:
 # OllamaProvider
 # ---------------------------------------------------------------------------
 
+
 class TestOllamaProvider:
     @pytest.mark.asyncio
     async def test_translate_raises_connection_error_on_connect_error(self) -> None:
@@ -385,9 +386,7 @@ class TestDeepLProvider:
 
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
-        mock_resp.json = MagicMock(
-            return_value={"translations": [{"text": "Bonjour le monde"}]}
-        )
+        mock_resp.json = MagicMock(return_value={"translations": [{"text": "Bonjour le monde"}]})
 
         with patch("app.llm.providers.deepl.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
@@ -395,9 +394,7 @@ class TestDeepLProvider:
             mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_client.post = AsyncMock(return_value=mock_resp)
 
-            text, usage = await provider.translate(
-                '{"hello": "Hello, world"}', "fr-FR"
-            )
+            text, usage = await provider.translate('{"hello": "Hello, world"}', "fr-FR")
 
         # Parsed translation roundtrips as JSON.
         import json as _json
@@ -409,6 +406,7 @@ class TestDeepLProvider:
 # ---------------------------------------------------------------------------
 # LLMRegistry
 # ---------------------------------------------------------------------------
+
 
 class TestLLMRegistry:
     def test_get_raises_key_error_for_unknown_provider(self) -> None:
@@ -427,19 +425,23 @@ class TestLLMRegistry:
 # OpenRouterProvider
 # ---------------------------------------------------------------------------
 
+
 class TestOpenRouterProvider:
     def test_provider_name(self) -> None:
         from app.llm.providers.openrouter import OpenRouterProvider
+
         p = OpenRouterProvider(api_key="or-test")
         assert p.provider_name == "openrouter"
 
     def test_default_model_uses_openrouter_namespace(self) -> None:
         from app.llm.providers.openrouter import OpenRouterProvider
+
         p = OpenRouterProvider(api_key="or-test")
         assert p.model_id == "anthropic/claude-sonnet-4-6"
 
     def test_custom_model(self) -> None:
         from app.llm.providers.openrouter import OpenRouterProvider
+
         p = OpenRouterProvider(api_key="or-test", model="openai/gpt-4o")
         assert p.model_id == "openai/gpt-4o"
 

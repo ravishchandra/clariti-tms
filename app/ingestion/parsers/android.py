@@ -162,9 +162,7 @@ def _parse_string_element(
 
     placeholders = extract_placeholders(source_text, file_format)
     # Use our common detector but also check raw text for HTML
-    has_tags = detect_structural_tags(source_text, file_format) or bool(
-        _RE_HTML_INLINE.search(source_text)
-    )
+    has_tags = detect_structural_tags(source_text, file_format) or bool(_RE_HTML_INLINE.search(source_text))
 
     stype = infer_string_type(name, source_text, has_structural_tags=has_tags)
     risk = infer_risk_class(name, source_text, stype, placeholders=placeholders)
@@ -219,9 +217,7 @@ def _parse_plurals_element(
     source_text = quantities.get("other") or next(iter(quantities.values()))
 
     placeholders = extract_placeholders(source_text, file_format)
-    has_tags = detect_structural_tags(source_text, file_format) or bool(
-        _RE_HTML_INLINE.search(source_text)
-    )
+    has_tags = detect_structural_tags(source_text, file_format) or bool(_RE_HTML_INLINE.search(source_text))
 
     stype = infer_string_type(name, source_text, has_structural_tags=has_tags)
     risk = infer_risk_class(name, source_text, stype, placeholders=placeholders)

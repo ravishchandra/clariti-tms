@@ -406,12 +406,7 @@ class TestLocaleConsistencyEval:
 
     @pytest.mark.asyncio
     async def test_fenced_json_response(self):
-        raw = (
-            "```json\n"
-            '{"naturalness": 4, "consistency": 3, "accuracy": 4,'
-            ' "issue": "register mismatch"}\n'
-            "```"
-        )
+        raw = '```json\n{"naturalness": 4, "consistency": 3, "accuracy": 4, "issue": "register mismatch"}\n```'
         evaluate_fn = AsyncMock(return_value=(raw, _ZERO_USAGE))
         result = await locale_consistency_eval(
             source="Delete",

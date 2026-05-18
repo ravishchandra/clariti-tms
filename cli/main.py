@@ -48,10 +48,7 @@ def _detect_format(filename: str) -> str | None:
 def _load_tms_yml(cwd: Path) -> dict:
     p = cwd / TMS_YML_NAME
     if not p.exists():
-        err.print(
-            f"[red]No {TMS_YML_NAME} found in {cwd}.[/red]\n"
-            "Run [bold]loc init[/bold] to set up this repository."
-        )
+        err.print(f"[red]No {TMS_YML_NAME} found in {cwd}.[/red]\nRun [bold]loc init[/bold] to set up this repository.")
         raise typer.Exit(1)
     import yaml  # lazy — only needed when tms.yml exists
 
@@ -147,7 +144,7 @@ def init(
         "target_locales:",
         *[f"  - {loc}" for loc in config["target_locales"]],
         f"server: {config['server']}",
-        f"domain_description: \"{config['domain_description']}\"",
+        f'domain_description: "{config["domain_description"]}"',
         "llm:",
         f"  provider: {config['llm']['provider']}",
         f"  fallback_provider: {config['llm']['fallback_provider']}",
@@ -212,10 +209,7 @@ async def _ingest_file(
 
     if dry_run:
         # Show a preview table
-        console.print(
-            f"\n[bold]Dry run:[/bold] {file_path.name} "
-            f"({fmt}, {key_count} keys)\n"
-        )
+        console.print(f"\n[bold]Dry run:[/bold] {file_path.name} ({fmt}, {key_count} keys)\n")
         table = Table("Key", "Component", "Risk", "Structural", "ICU", show_header=True)
         for k in result.keys[:20]:
             table.add_row(
@@ -256,9 +250,7 @@ async def _ingest_direct(result, repo_name: str, key_count: int) -> None:
             db.add(org)
             await db.flush()
 
-        project = await db.scalar(
-            select(Project).where(Project.slug == "dev-project")
-        )
+        project = await db.scalar(select(Project).where(Project.slug == "dev-project"))
         if project is None:
             project = Project(
                 organization_id=org.id,
@@ -566,9 +558,7 @@ async def _add_key(
                 err.print(f"[red]Repository '{repo_name}' not found in project '{project_slug}'.[/red]")
                 raise typer.Exit(1)
         else:
-            repository = await db.scalar(
-                select(Repository).where(Repository.project_id == project.id)
-            )
+            repository = await db.scalar(select(Repository).where(Repository.project_id == project.id))
             if repository is None:
                 err.print(f"[red]No repositories found for project '{project_slug}'.[/red]")
                 raise typer.Exit(1)
@@ -784,6 +774,7 @@ async def _eval(reference: str, prompt_version: str, provider_name: str, output:
 
     if output:
         import json as _json
+
         Path(output).write_text(_json.dumps(results, indent=2, ensure_ascii=False))
         console.print(f"\n[green]✓[/green] Results saved to {output}")
 

@@ -60,7 +60,7 @@ class Tenant:
     org_id: uuid.UUID
     project_id: uuid.UUID
     repository_id: uuid.UUID
-    key_id: uuid.UUID                 # a `Key` row id
+    key_id: uuid.UUID  # a `Key` row id
     translation_id: uuid.UUID
     batch_id: uuid.UUID
     glossary_term_id: uuid.UUID
@@ -74,7 +74,7 @@ class Tenant:
 class Fixture:
     org_a: Tenant
     org_b: Tenant
-    admin_key_raw: str                # an is_org_admin key inside org_a
+    admin_key_raw: str  # an is_org_admin key inside org_a
     admin_key_id: uuid.UUID
 
 
@@ -226,31 +226,29 @@ async def fixture() -> Fixture:
         for project_id in (fx.org_a.project_id, fx.org_b.project_id):
             # Find translation ids in this project so we can remove their history.
             t_ids = (
-                await db.execute(
-                    select(Translation.id)
-                    .join(Key, Key.id == Translation.key_id)
-                    .where(Key.project_id == project_id)
+                (
+                    await db.execute(
+                        select(Translation.id)
+                        .join(Key, Key.id == Translation.key_id)
+                        .where(Key.project_id == project_id)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             if t_ids:
-                await db.execute(
-                    delete(TranslationHistory).where(TranslationHistory.translation_id.in_(t_ids))
-                )
+                await db.execute(delete(TranslationHistory).where(TranslationHistory.translation_id.in_(t_ids)))
 
             batch_ids = (
-                await db.execute(
-                    select(TranslationBatch.id).where(TranslationBatch.project_id == project_id)
-                )
-            ).scalars().all()
+                (await db.execute(select(TranslationBatch.id).where(TranslationBatch.project_id == project_id)))
+                .scalars()
+                .all()
+            )
             if batch_ids:
                 await db.execute(delete(MtRun).where(MtRun.batch_id.in_(batch_ids)))
                 # Detach translations from batches before deleting batches.
-                await db.execute(
-                    delete(Translation).where(Translation.batch_id.in_(batch_ids))
-                )
-                await db.execute(
-                    delete(TranslationBatch).where(TranslationBatch.id.in_(batch_ids))
-                )
+                await db.execute(delete(Translation).where(Translation.batch_id.in_(batch_ids)))
+                await db.execute(delete(TranslationBatch).where(TranslationBatch.id.in_(batch_ids)))
         # Now the org cascade can run cleanly.
         for org_id in (fx.org_a.org_id, fx.org_b.org_id):
             org = await db.get(Organization, org_id)
@@ -276,9 +274,7 @@ def _headers(raw_key: str) -> dict[str, str]:
 
 
 class TestOrganizationsIsolation:
-    async def test_1_list_orgs_returns_only_callers_org(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_1_list_orgs_returns_only_callers_org(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get("/api/v1/organizations", headers=_headers(fixture.org_a.api_key_raw))
         assert r.status_code == 200
         body = r.json()
@@ -288,18 +284,14 @@ class TestOrganizationsIsolation:
         # Non-admin keys see exactly one org — their own.
         assert len(body["items"]) == 1
 
-    async def test_2_get_other_org_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_2_get_other_org_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/organizations/{fixture.org_b.org_id}",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 404
 
-    async def test_3_patch_other_org_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_3_patch_other_org_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.patch(
             f"/api/v1/organizations/{fixture.org_b.org_id}",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -309,9 +301,7 @@ class TestOrganizationsIsolation:
 
 
 class TestProjectsIsolation:
-    async def test_4_list_projects_under_other_org_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_4_list_projects_under_other_org_404(self, client: AsyncClient, fixture: Fixture) -> None:
         # Projects are listed at /organizations/{org_id}/projects — accessing
         # under org_b should 404 through the ScopedOrganization dep.
         r = await client.get(
@@ -320,9 +310,7 @@ class TestProjectsIsolation:
         )
         assert r.status_code == 404
 
-    async def test_5_get_other_orgs_project_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_5_get_other_orgs_project_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         # Try with the wrong org_id in the path (org_a) but org_b's project_id.
         r = await client.get(
             f"/api/v1/organizations/{fixture.org_a.org_id}/projects/{fixture.org_b.project_id}",
@@ -339,9 +327,7 @@ class TestProjectsIsolation:
 
 
 class TestRepositoriesIsolation:
-    async def test_6_get_other_orgs_repo_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_6_get_other_orgs_repo_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/projects/{fixture.org_b.project_id}/repositories/{fixture.org_b.repository_id}",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -350,18 +336,14 @@ class TestRepositoriesIsolation:
 
 
 class TestKeysIsolation:
-    async def test_7_get_other_orgs_key_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_7_get_other_orgs_key_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/keys/{fixture.org_b.key_id}",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 404
 
-    async def test_list_keys_cross_org_project_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_list_keys_cross_org_project_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         # Passing org_b's project_id as a query filter -> 404, not silent empty.
         r = await client.get(
             f"/api/v1/keys?project_id={fixture.org_b.project_id}",
@@ -371,18 +353,14 @@ class TestKeysIsolation:
 
 
 class TestTranslationsIsolation:
-    async def test_8_get_other_orgs_translation_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_8_get_other_orgs_translation_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/translations/{fixture.org_b.translation_id}",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 404
 
-    async def test_9_list_translations_for_other_orgs_project(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_9_list_translations_for_other_orgs_project(self, client: AsyncClient, fixture: Fixture) -> None:
         # Spec acceptance: "returns 404 or empty (your choice)". We chose 404
         # for consistency with the project lookup raising 404.
         r = await client.get(
@@ -393,9 +371,7 @@ class TestTranslationsIsolation:
         if r.status_code == 200:
             assert r.json()["items"] == []
 
-    async def test_16_patch_other_orgs_translation_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_16_patch_other_orgs_translation_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.patch(
             f"/api/v1/translations/{fixture.org_b.translation_id}",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -405,9 +381,7 @@ class TestTranslationsIsolation:
 
 
 class TestBatchesIsolation:
-    async def test_10_get_other_orgs_batch_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_10_get_other_orgs_batch_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/batches/{fixture.org_b.batch_id}",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -416,9 +390,7 @@ class TestBatchesIsolation:
 
 
 class TestGlossaryIsolation:
-    async def test_11_list_glossary_under_other_orgs_project_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_11_list_glossary_under_other_orgs_project_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/projects/{fixture.org_b.project_id}/glossary",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -449,9 +421,7 @@ class TestComponentContextsIsolation:
 
 
 class TestApiKeysOrgIdIgnored:
-    async def test_14_post_api_keys_ignores_body_org_id(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_14_post_api_keys_ignores_body_org_id(self, client: AsyncClient, fixture: Fixture) -> None:
         # The body deliberately contains the legacy `org_id` field. The spec
         # requires the field to be ignored (not honored) — the resulting key
         # must belong to the caller's org, never to org_b.
@@ -466,9 +436,7 @@ class TestApiKeysOrgIdIgnored:
         # And freshly minted keys must not silently be admins.
         assert body["is_org_admin"] is False
 
-    async def test_post_api_keys_with_unknown_field_succeeds(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_post_api_keys_with_unknown_field_succeeds(self, client: AsyncClient, fixture: Fixture) -> None:
         # Schema is permissive (default Pydantic) — unknown fields are silently
         # ignored, which is exactly what we want for the `org_id` field.
         r = await client.post(
@@ -481,9 +449,7 @@ class TestApiKeysOrgIdIgnored:
 
 
 class TestPublicationIsolation:
-    async def test_15_publish_other_orgs_repo_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_15_publish_other_orgs_repo_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             f"/api/v1/repositories/{fixture.org_b.repository_id}/publish",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -596,9 +562,7 @@ class TestPositiveControls:
         term_ids = [t["id"] for t in r.json()["items"]]
         assert str(fixture.org_a.glossary_term_id) in term_ids
 
-    async def test_list_own_locale_configs(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_list_own_locale_configs(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/projects/{fixture.org_a.project_id}/locale-configs",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -607,9 +571,7 @@ class TestPositiveControls:
         ids = [lc["id"] for lc in r.json()["items"]]
         assert str(fixture.org_a.locale_config_id) in ids
 
-    async def test_list_own_component_contexts(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_list_own_component_contexts(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/repositories/{fixture.org_a.repository_id}/component-contexts",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -625,9 +587,7 @@ class TestPositiveControls:
 
 
 class TestOrgAdminGate:
-    async def test_non_admin_cannot_create_org(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_non_admin_cannot_create_org(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             "/api/v1/organizations",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -635,18 +595,14 @@ class TestOrgAdminGate:
         )
         assert r.status_code == 403
 
-    async def test_non_admin_cannot_delete_org(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_non_admin_cannot_delete_org(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.delete(
             f"/api/v1/organizations/{fixture.org_a.org_id}",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 403
 
-    async def test_admin_can_create_org(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_admin_can_create_org(self, client: AsyncClient, fixture: Fixture) -> None:
         slug = f"new-{uuid.uuid4().hex[:10]}"
         r = await client.post(
             "/api/v1/organizations",
@@ -663,9 +619,7 @@ class TestOrgAdminGate:
         )
         assert r2.status_code == 204
 
-    async def test_admin_lists_all_orgs(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_admin_lists_all_orgs(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             "/api/v1/organizations",
             headers=_headers(fixture.admin_key_raw),

@@ -112,9 +112,7 @@ def plural_prompt_instruction(locale: str, plural_format: str | None) -> str | N
         )
 
     if plural_format == "android-xml":
-        qty_items = " ".join(
-            f'<item quantity="{c}">…</item>' for c in categories
-        )
+        qty_items = " ".join(f'<item quantity="{c}">…</item>' for c in categories)
         return (
             f"This string uses Android XML plurals. "
             f"The target locale ({locale}) requires these CLDR categories: {cat_list}. "

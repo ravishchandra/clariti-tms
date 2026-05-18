@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,19 +14,19 @@ class KeyRead(BaseModel):
     project_id: uuid.UUID
     key: str
     source_text: str
-    string_type: Optional[str]
-    plural_format: Optional[str]
-    context: Optional[str] = None
-    max_length: Optional[int]
-    file_format: Optional[str] = None
+    string_type: str | None
+    plural_format: str | None
+    context: str | None = None
+    max_length: int | None
+    file_format: str | None = None
     risk_class: str
     is_active: bool
     created_at: datetime
 
 
 class KeyUpdate(BaseModel):
-    source_text: Optional[str] = None
-    context: Optional[str] = None
-    max_length: Optional[int] = None
-    risk_class: Optional[str] = None
-    is_active: Optional[bool] = None
+    source_text: str | None = None
+    context: str | None = None
+    max_length: int | None = None
+    risk_class: str | None = None
+    is_active: bool | None = None

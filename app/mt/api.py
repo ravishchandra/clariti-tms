@@ -102,9 +102,7 @@ async def mark_translations_published(
     del published_at  # see docstring — apply_transition stamps its own.
     if not translation_ids:
         return
-    rows = await db.execute(
-        select(Translation).where(Translation.id.in_(translation_ids))
-    )
+    rows = await db.execute(select(Translation).where(Translation.id.in_(translation_ids)))
     for translation in rows.scalars():
         try:
             apply_transition(translation, TranslationStatus.published)

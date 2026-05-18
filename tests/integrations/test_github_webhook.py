@@ -19,7 +19,6 @@ import pytest
 from app.integrations.github import webhook as gh_webhook
 from app.models import Repository
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -161,9 +160,7 @@ class TestHandleGithubPushInstallationResolution:
         client_cls_mock.assert_called_once_with(token="ghs_from_payload_install")
 
     @pytest.mark.asyncio
-    async def test_skips_when_no_installation_id_anywhere(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    async def test_skips_when_no_installation_id_anywhere(self, caplog: pytest.LogCaptureFixture) -> None:
         repo = _make_repository(installation_id=None)
         payload = _push_payload(installation_id=None)
 
@@ -188,9 +185,7 @@ class TestHandleGithubPushInstallationResolution:
         token_mock.assert_not_awaited()
         client_cls_mock.assert_not_called()
         # Structured error logged so operators can find the gap.
-        assert any(
-            "no installation_id available" in rec.message for rec in caplog.records
-        )
+        assert any("no installation_id available" in rec.message for rec in caplog.records)
 
     @pytest.mark.asyncio
     async def test_webhook_secret_is_not_passed_as_bearer_token(self) -> None:
@@ -258,9 +253,7 @@ class TestVerifyGithubSignature:
         assert gh_webhook.verify_github_signature(body, f"sha256={sig}", secret)
 
     def test_wrong_signature_rejected(self) -> None:
-        assert not gh_webhook.verify_github_signature(
-            b'{"x":1}', "sha256=deadbeef", "topsecret"
-        )
+        assert not gh_webhook.verify_github_signature(b'{"x":1}', "sha256=deadbeef", "topsecret")
 
     def test_missing_prefix_rejected(self) -> None:
         assert not gh_webhook.verify_github_signature(b"{}", "deadbeef", "s")

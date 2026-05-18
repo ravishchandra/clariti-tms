@@ -8,9 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import GlossaryTerm
 
 
-async def load_glossary(
-    db: AsyncSession, project_id: str, locale: str
-) -> list[dict]:
+async def load_glossary(db: AsyncSession, project_id: str, locale: str) -> list[dict]:
     rows = await db.scalars(
         select(GlossaryTerm)
         .where(
@@ -40,6 +38,6 @@ def format_glossary_for_prompt(terms: list[dict]) -> str:
         else:
             line = f'"{t["source_term"]}" → "{t["target_term"]}"'
             if t.get("notes"):
-                line += f' [{t["notes"]}]'
+                line += f" [{t['notes']}]"
         lines.append(line)
     return "\n".join(lines)

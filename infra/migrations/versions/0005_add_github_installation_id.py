@@ -10,9 +10,10 @@ Revises: 0003
 Create Date: 2026-05-17 00:00:00.000000
 
 """
+
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
@@ -20,9 +21,9 @@ from alembic import op
 revision: str = "0005"
 # Chained after C1's 0003 (api_key is_org_admin). C3 added no migration
 # (Fernet encryption was data-layer only). Rebased from "0002" at merge time.
-down_revision: Union[str, None] = "0003"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "0003"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

@@ -48,9 +48,7 @@ async def locale_consistency_eval(
     tm_neighbors: list[dict],
     evaluate_fn: EvaluateFn,
 ) -> dict:
-    examples = "\n".join(
-        f'  {n["source_text"]} → {n["target_text"]}' for n in tm_neighbors[:5]
-    ) or "  (none yet)"
+    examples = "\n".join(f"  {n['source_text']} → {n['target_text']}" for n in tm_neighbors[:5]) or "  (none yet)"
     raw, _usage = await evaluate_fn(
         f"You are a {locale} language quality evaluator for {domain_description}.\n\n"
         f'Source (en-US): "{source}"\n'

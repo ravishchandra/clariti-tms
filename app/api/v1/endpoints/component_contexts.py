@@ -66,9 +66,7 @@ async def list_component_contexts(db: DB, repo: ScopedRepository) -> dict:
 
 
 @router.get("/{repo_id}/component-contexts/{ctx_id}", response_model=ComponentContextRead)
-async def get_component_context(
-    repo: ScopedRepository, ctx: ScopedComponentContext
-) -> ComponentContextRead:
+async def get_component_context(repo: ScopedRepository, ctx: ScopedComponentContext) -> ComponentContextRead:
     _assert_ctx_in_repo(ctx, repo)
     return ComponentContextRead.model_validate(ctx)
 
@@ -93,9 +91,7 @@ async def update_component_context(
 
 
 @router.delete("/{repo_id}/component-contexts/{ctx_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_component_context(
-    db: DB, repo: ScopedRepository, ctx: ScopedComponentContext
-) -> None:
+async def delete_component_context(db: DB, repo: ScopedRepository, ctx: ScopedComponentContext) -> None:
     _assert_ctx_in_repo(ctx, repo)
     await db.delete(ctx)
     await db.flush()

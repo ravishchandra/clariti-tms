@@ -40,9 +40,7 @@ async def receive_contentful_webhook(
         )
 
     result = await db.execute(
-        select(Repository)
-        .where(Repository.contentful_space_id == space_id)
-        .options(selectinload(Repository.project))
+        select(Repository).where(Repository.contentful_space_id == space_id).options(selectinload(Repository.project))
     )
     repository = result.scalar_one_or_none()
 

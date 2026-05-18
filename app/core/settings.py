@@ -81,10 +81,7 @@ class Settings(BaseSettings):
           random value and a warning is logged. Historical placeholders are
           tolerated in dev for backwards compatibility but still warned.
         """
-        generate_hint = (
-            'Generate one with: python -c "import secrets; '
-            'print(secrets.token_urlsafe(32))"'
-        )
+        generate_hint = 'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
         stripped = self.SECRET_KEY.strip()
 
         if not self.DEBUG:
@@ -138,15 +135,15 @@ class Settings(BaseSettings):
     FERNET_KEY: str = ""
 
 
-def _validate_fernet_key(settings: "Settings") -> None:
+def _validate_fernet_key(settings: Settings) -> None:
     """Enforce FERNET_KEY presence in non-DEBUG mode; warn-and-generate in DEBUG."""
     if settings.FERNET_KEY:
         return
     if not settings.DEBUG:
         raise RuntimeError(
             "FERNET_KEY is required when DEBUG=False. Generate one with "
-            "`python -c \"from cryptography.fernet import Fernet; "
-            "print(Fernet.generate_key().decode())\"` and set it in the "
+            '`python -c "from cryptography.fernet import Fernet; '
+            'print(Fernet.generate_key().decode())"` and set it in the '
             "environment."
         )
     # Dev convenience: mint an ephemeral key so the app boots without one.

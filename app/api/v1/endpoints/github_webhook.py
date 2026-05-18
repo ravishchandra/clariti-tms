@@ -35,9 +35,7 @@ async def receive_github_webhook(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing repository.full_name")
 
     result = await db.execute(
-        select(Repository)
-        .where(Repository.github_repo == full_name)
-        .options(selectinload(Repository.project))
+        select(Repository).where(Repository.github_repo == full_name).options(selectinload(Repository.project))
     )
     repository = result.scalar_one_or_none()
     if repository is None:

@@ -111,9 +111,7 @@ def test_debug_placeholder_tolerated_with_warning(
 ) -> None:
     """DEBUG=True must tolerate the legacy placeholder but warn."""
     with caplog.at_level("WARNING", logger="app.core.settings"):
-        settings = _make_settings(
-            DEBUG=True, SECRET_KEY="dev-secret-change-in-production"
-        )
+        settings = _make_settings(DEBUG=True, SECRET_KEY="dev-secret-change-in-production")
     assert settings.SECRET_KEY == "dev-secret-change-in-production"
     assert any("historical placeholder" in rec.message for rec in caplog.records)
 

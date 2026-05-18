@@ -20,9 +20,7 @@ class OpenAIProvider(LLMProviderBase):
             **({"base_url": base_url} if base_url else {}),
         )
 
-    async def translate(
-        self, prompt: str, system: str, *, cache_system: bool = False
-    ) -> tuple[str, TokenUsage]:
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[

@@ -49,9 +49,7 @@ async def create_api_key(body: ApiKeyCreate, db: DB, current_key: CurrentKey) ->
 
 @router.get("", response_model=dict)
 async def list_api_keys(db: DB, current_key: CurrentKey) -> dict:
-    result = await db.execute(
-        select(ApiKey).where(ApiKey.organization_id == current_key.organization_id)
-    )
+    result = await db.execute(select(ApiKey).where(ApiKey.organization_id == current_key.organization_id))
     keys = result.scalars().all()
     return {"items": [ApiKeyRead.model_validate(k) for k in keys], "total": len(keys)}
 

@@ -81,14 +81,16 @@ async def run_eval(
             pass
         sim_scores.append(sim)
 
-        results.append({
-            "key": item["key"],
-            "source": source,
-            "reference": ref_translation,
-            "hypothesis": hyp_text,
-            "bleu": round(bleu, 4),
-            "semantic_similarity": round(sim, 4),
-        })
+        results.append(
+            {
+                "key": item["key"],
+                "source": source,
+                "reference": ref_translation,
+                "hypothesis": hyp_text,
+                "bleu": round(bleu, 4),
+                "semantic_similarity": round(sim, 4),
+            }
+        )
 
     n = len(results) or 1
     return {

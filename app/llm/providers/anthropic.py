@@ -10,9 +10,7 @@ class AnthropicProvider(LLMProviderBase):
         self._model = model
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
 
-    async def translate(
-        self, prompt: str, system: str, *, cache_system: bool = False
-    ) -> tuple[str, TokenUsage]:
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
         if cache_system:
             system_arg: list[dict] | str = [
                 {
@@ -42,9 +40,7 @@ class AnthropicProvider(LLMProviderBase):
         return response.content[0].text, _extract_usage(response)
 
     async def embed(self, text: str) -> list[float]:
-        raise NotImplementedError(
-            "Anthropic does not support embeddings — use OpenAIProvider for TM retrieval"
-        )
+        raise NotImplementedError("Anthropic does not support embeddings — use OpenAIProvider for TM retrieval")
 
     @property
     def model_id(self) -> str:

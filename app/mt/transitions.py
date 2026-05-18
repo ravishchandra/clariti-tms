@@ -81,9 +81,7 @@ _REVIEWER_CLEAR_EDGES: Final[frozenset[tuple[str, str]]] = frozenset(
 # reviewer_action is a closed set per docs/04-data-model.md:236.
 # Excel import (docs/07) uses a slightly different alphabet (yes/no/edit/
 # needs_more_context) that gets mapped to this canonical set at import time.
-ALLOWED_REVIEWER_ACTIONS: Final[frozenset[str]] = frozenset(
-    {"accept", "edit", "reject", "needs_more_context"}
-)
+ALLOWED_REVIEWER_ACTIONS: Final[frozenset[str]] = frozenset({"accept", "edit", "reject", "needs_more_context"})
 
 
 class IllegalTransitionError(Exception):

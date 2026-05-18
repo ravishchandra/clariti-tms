@@ -36,9 +36,7 @@ def zero_usage() -> TokenUsage:
 
 @runtime_checkable
 class LLMProvider(Protocol):
-    async def translate(
-        self, prompt: str, system: str, *, cache_system: bool = False
-    ) -> tuple[str, TokenUsage]: ...
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]: ...
 
     async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]: ...
 
@@ -64,9 +62,7 @@ class LLMProvider(Protocol):
 
 class LLMProviderBase(ABC):
     @abstractmethod
-    async def translate(
-        self, prompt: str, system: str, *, cache_system: bool = False
-    ) -> tuple[str, TokenUsage]: ...
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]: ...
 
     @abstractmethod
     async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]: ...

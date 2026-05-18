@@ -58,9 +58,7 @@ class TestCostFromUsage:
     def test_anthropic_shaped_pricing(self) -> None:
         # 1000 input @ $0.003 + 500 output @ $0.015 = $0.003 + $0.0075 = $0.0105
         provider = self._provider(0.003, 0.015)
-        cost = _cost_from_usage(
-            provider, {"input_tokens": 1000, "output_tokens": 500}
-        )
+        cost = _cost_from_usage(provider, {"input_tokens": 1000, "output_tokens": 500})
         assert cost == 0.0105
 
     def test_zero_usage_returns_zero(self) -> None:
@@ -72,9 +70,7 @@ class TestCostFromUsage:
         # Ollama / DeepL / OpenRouter: price 0.0 → cost 0.0 regardless of
         # tokens. Documents the "unknown / not billed per token" branch.
         provider = self._provider(0.0, 0.0)
-        cost = _cost_from_usage(
-            provider, {"input_tokens": 5000, "output_tokens": 2000}
-        )
+        cost = _cost_from_usage(provider, {"input_tokens": 5000, "output_tokens": 2000})
         assert cost == 0.0
 
     def test_rounded_to_six_decimals(self) -> None:

@@ -5,7 +5,6 @@ import uuid
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 # =========================================================================
 # Raw-SQL literal helpers (M1)
 # =========================================================================
@@ -71,9 +70,7 @@ def _vector_literal(embedding: list[float]) -> str:
         If ``embedding`` is empty.
     """
     if not isinstance(embedding, list):
-        raise TypeError(
-            f"embedding must be list[float], got {type(embedding).__name__}"
-        )
+        raise TypeError(f"embedding must be list[float], got {type(embedding).__name__}")
     if len(embedding) < _EMBEDDING_MIN_LEN:
         raise ValueError("embedding must be non-empty")
     for v in embedding:
@@ -82,10 +79,7 @@ def _vector_literal(embedding: list[float]) -> str:
         # ``float(True) == 1.0`` works — we coerce via ``float()`` below
         # which raises on non-numeric anyway.
         if not isinstance(v, (int, float)):
-            raise TypeError(
-                "embedding elements must be int or float, got "
-                f"{type(v).__name__}"
-            )
+            raise TypeError(f"embedding elements must be int or float, got {type(v).__name__}")
     # ``repr(float(...))`` would round-trip safely but is more verbose than
     # needed; ``str(float(...))`` is sufficient because we've already
     # type-checked the inputs. ``float()`` coerces ``int`` cleanly.
@@ -113,18 +107,12 @@ def _uuid_array_exclude_clause(exclude_ids: list[uuid.UUID]) -> str:
         If ``exclude_ids`` is not a list of ``uuid.UUID``.
     """
     if not isinstance(exclude_ids, list):
-        raise TypeError(
-            f"exclude_ids must be list[uuid.UUID], got "
-            f"{type(exclude_ids).__name__}"
-        )
+        raise TypeError(f"exclude_ids must be list[uuid.UUID], got {type(exclude_ids).__name__}")
     if not exclude_ids:
         return ""
     for u in exclude_ids:
         if not isinstance(u, uuid.UUID):
-            raise TypeError(
-                "exclude_ids elements must be uuid.UUID, got "
-                f"{type(u).__name__}"
-            )
+            raise TypeError(f"exclude_ids elements must be uuid.UUID, got {type(u).__name__}")
     # ``uuid.UUID.__str__`` always produces ``'xxxxxxxx-xxxx-...-xxxxxxxxxxxx'``
     # with no whitespace or special characters — safe to wrap in single quotes.
     inner = ",".join(f"'{u}'" for u in exclude_ids)

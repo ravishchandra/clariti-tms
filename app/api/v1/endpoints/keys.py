@@ -72,9 +72,7 @@ async def list_keys(
 async def get_key(key: ScopedKey, db: DB) -> dict[str, Any]:
     # ScopedKey already enforced org membership. Reload with eager-loaded
     # translations for the response payload.
-    result = await db.execute(
-        select(Key).options(selectinload(Key.translations)).where(Key.id == key.id)
-    )
+    result = await db.execute(select(Key).options(selectinload(Key.translations)).where(Key.id == key.id))
     full_key = result.scalar_one()
     return {
         **KeyRead.model_validate(full_key).model_dump(),

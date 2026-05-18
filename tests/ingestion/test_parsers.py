@@ -29,7 +29,7 @@ from app.ingestion.parsers.react import (
     parse_namespace_json,
     parse_react_file,
 )
-from app.ingestion.parsers.types import ParsedKey, ParseResult
+from app.ingestion.parsers.types import ParseResult
 
 # ===========================================================================
 # Common utilities
@@ -490,7 +490,10 @@ class TestIosDispatcher:
         assert result[0].key == "k"
 
     def test_dispatches_xcstrings(self):
-        content = '{"sourceLanguage":"en","strings":{"k":{"localizations":{"en":{"stringUnit":{"state":"new","value":"v"}}}}}}'
+        content = (
+            '{"sourceLanguage":"en","strings":{"k":'
+            '{"localizations":{"en":{"stringUnit":{"state":"new","value":"v"}}}}}}'
+        )
         result = parse_ios_file(content, "Localizable.xcstrings")
         assert result[0].key == "k"
 

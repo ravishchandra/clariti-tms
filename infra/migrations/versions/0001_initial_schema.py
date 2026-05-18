@@ -5,9 +5,10 @@ Revises:
 Create Date: 2026-05-17 00:00:00.000000
 
 """
+
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
@@ -15,9 +16,9 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "0001"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -33,48 +34,82 @@ def upgrade() -> None:
     # autogenerate can detect them on future runs.
     # ------------------------------------------------------------------
     platform_type = sa.Enum(
-        "ios", "android", "web", "backend", "other",
+        "ios",
+        "android",
+        "web",
+        "backend",
+        "other",
         name="platform_type",
     )
     platform_type.create(op.get_bind(), checkfirst=True)
 
     file_format_type = sa.Enum(
-        "i18next", "icu", "ios-strings", "ios-xcstrings",
-        "android-xml", "gettext-po", "flat-json",
+        "i18next",
+        "icu",
+        "ios-strings",
+        "ios-xcstrings",
+        "android-xml",
+        "gettext-po",
+        "flat-json",
         name="file_format_type",
     )
     file_format_type.create(op.get_bind(), checkfirst=True)
 
     plural_convention = sa.Enum(
-        "icu", "i18next-suffix", "stringsdict", "android-xml",
+        "icu",
+        "i18next-suffix",
+        "stringsdict",
+        "android-xml",
         name="plural_convention",
     )
     plural_convention.create(op.get_bind(), checkfirst=True)
 
     string_type = sa.Enum(
-        "button", "title", "label", "placeholder", "error", "success",
-        "help_text", "notification", "permission", "tooltip",
-        "trans_component", "other",
+        "button",
+        "title",
+        "label",
+        "placeholder",
+        "error",
+        "success",
+        "help_text",
+        "notification",
+        "permission",
+        "tooltip",
+        "trans_component",
+        "other",
         name="string_type",
     )
     string_type.create(op.get_bind(), checkfirst=True)
 
     batch_status = sa.Enum(
-        "pending", "mt_running", "mt_complete", "needs_review",
-        "approved", "published",
+        "pending",
+        "mt_running",
+        "mt_complete",
+        "needs_review",
+        "approved",
+        "published",
         name="batch_status",
     )
     batch_status.create(op.get_bind(), checkfirst=True)
 
     translation_status = sa.Enum(
-        "draft", "mt_proposed", "needs_review", "needs_more_context",
-        "approved", "rejected", "published",
+        "draft",
+        "mt_proposed",
+        "needs_review",
+        "needs_more_context",
+        "approved",
+        "rejected",
+        "published",
         name="translation_status",
     )
     translation_status.create(op.get_bind(), checkfirst=True)
 
     user_role = sa.Enum(
-        "developer", "translator", "reviewer", "admin", "org_admin",
+        "developer",
+        "translator",
+        "reviewer",
+        "admin",
+        "org_admin",
         name="user_role",
     )
     user_role.create(op.get_bind(), checkfirst=True)
@@ -156,9 +191,7 @@ def upgrade() -> None:
         ),
         sa.Column("name", sa.Text, nullable=False),
         sa.Column("slug", sa.Text, nullable=False),
-        sa.Column(
-            "source_locale", sa.Text, nullable=False, server_default="en-US"
-        ),
+        sa.Column("source_locale", sa.Text, nullable=False, server_default="en-US"),
         sa.Column(
             "target_locales",
             postgresql.ARRAY(sa.Text),
@@ -206,15 +239,11 @@ def upgrade() -> None:
         sa.Column("source_file", sa.Text, nullable=True),
         sa.Column("context_notes", sa.Text, nullable=True),
         sa.Column("contentful_space_id", sa.Text, nullable=True),
-        sa.Column(
-            "contentful_env", sa.Text, nullable=True, server_default="master"
-        ),
+        sa.Column("contentful_env", sa.Text, nullable=True, server_default="master"),
         sa.Column("contentful_token_encrypted", sa.Text, nullable=True),
         sa.Column("contentful_webhook_secret_encrypted", sa.Text, nullable=True),
         sa.Column("webhook_secret_encrypted", sa.Text, nullable=True),
-        sa.Column(
-            "default_branch", sa.Text, nullable=False, server_default="main"
-        ),
+        sa.Column("default_branch", sa.Text, nullable=False, server_default="main"),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -244,9 +273,7 @@ def upgrade() -> None:
         sa.Column("component", sa.Text, nullable=False),
         sa.Column("screen", sa.Text, nullable=True),
         sa.Column("description", sa.Text, nullable=False),
-        sa.Column(
-            "default_risk_class", sa.Text, nullable=False, server_default="standard"
-        ),
+        sa.Column("default_risk_class", sa.Text, nullable=False, server_default="standard"),
         sa.Column("default_max_length", sa.Integer, nullable=True),
         sa.Column("notes", sa.Text, nullable=True),
         sa.Column(
@@ -255,9 +282,7 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
-        sa.UniqueConstraint(
-            "repository_id", "component", "screen", name="uq_component_context"
-        ),
+        sa.UniqueConstraint("repository_id", "component", "screen", name="uq_component_context"),
     )
 
     # ------------------------------------------------------------------
@@ -281,9 +306,7 @@ def upgrade() -> None:
         sa.Column("formality", sa.Text, nullable=False, server_default="formal"),
         sa.Column("register", sa.Text, nullable=True),
         sa.Column("notes", sa.Text, nullable=True),
-        sa.Column(
-            "is_bootstrapped", sa.Boolean, nullable=False, server_default="false"
-        ),
+        sa.Column("is_bootstrapped", sa.Boolean, nullable=False, server_default="false"),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -330,14 +353,10 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("'[]'::jsonb"),
         ),
-        sa.Column(
-            "has_structural_tags", sa.Boolean, nullable=False, server_default="false"
-        ),
+        sa.Column("has_structural_tags", sa.Boolean, nullable=False, server_default="false"),
         sa.Column("icu_shape", sa.Text, nullable=True),
         sa.Column("plural_format", sa.Text, nullable=True),
-        sa.Column(
-            "risk_class", sa.Text, nullable=False, server_default="standard"
-        ),
+        sa.Column("risk_class", sa.Text, nullable=False, server_default="standard"),
         sa.Column(
             "tags",
             postgresql.ARRAY(sa.Text),
@@ -363,9 +382,7 @@ def upgrade() -> None:
     )
 
     op.create_index("idx_keys_project_active", "keys", ["project_id", "is_active"])
-    op.create_index(
-        "idx_keys_repository", "keys", ["repository_id", "component", "screen"]
-    )
+    op.create_index("idx_keys_repository", "keys", ["repository_id", "component", "screen"])
     op.create_index("idx_keys_source_hash", "keys", ["source_hash"])
 
     # ------------------------------------------------------------------
@@ -394,9 +411,7 @@ def upgrade() -> None:
         sa.Column("locale", sa.Text, nullable=False),
         sa.Column("component", sa.Text, nullable=False),
         sa.Column("screen", sa.Text, nullable=True),
-        sa.Column(
-            "status", sa.String(50), nullable=False, server_default="pending"
-        ),
+        sa.Column("status", sa.String(50), nullable=False, server_default="pending"),
         sa.Column("mt_model", sa.Text, nullable=True),
         sa.Column("mt_prompt_version", sa.Text, nullable=True),
         sa.Column("ran_at", sa.DateTime(timezone=True), nullable=True),
@@ -439,9 +454,7 @@ def upgrade() -> None:
         ),
         sa.Column("locale", sa.Text, nullable=False),
         sa.Column("value", sa.Text, nullable=True),
-        sa.Column(
-            "status", sa.String(50), nullable=False, server_default="draft"
-        ),
+        sa.Column("status", sa.String(50), nullable=False, server_default="draft"),
         sa.Column("source_hash_at_translation", sa.Text, nullable=True),
         sa.Column("mt_value", sa.Text, nullable=True),
         sa.Column("mt_model", sa.Text, nullable=True),
@@ -449,9 +462,7 @@ def upgrade() -> None:
         sa.Column("mt_run_at", sa.DateTime(timezone=True), nullable=True),
         # QA scores
         sa.Column("back_translation", sa.Text, nullable=True),
-        sa.Column(
-            "back_translation_similarity", sa.Numeric(5, 4), nullable=True
-        ),
+        sa.Column("back_translation_similarity", sa.Numeric(5, 4), nullable=True),
         sa.Column("qa_naturalness", sa.SmallInteger, nullable=True),
         sa.Column("qa_consistency", sa.SmallInteger, nullable=True),
         sa.Column("qa_accuracy", sa.SmallInteger, nullable=True),
@@ -473,15 +484,11 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
-        sa.UniqueConstraint(
-            "key_id", "locale", name="uq_translation_key_locale"
-        ),
+        sa.UniqueConstraint("key_id", "locale", name="uq_translation_key_locale"),
     )
 
     op.create_index("idx_translations_status", "translations", ["status"])
-    op.create_index(
-        "idx_translations_locale_status", "translations", ["locale", "status"]
-    )
+    op.create_index("idx_translations_locale_status", "translations", ["locale", "status"])
     op.create_index("idx_translations_batch", "translations", ["batch_id"])
 
     # ------------------------------------------------------------------
@@ -547,12 +554,8 @@ def upgrade() -> None:
         sa.Column("source_term", sa.Text, nullable=False),
         sa.Column("locale", sa.Text, nullable=False),
         sa.Column("target_term", sa.Text, nullable=False),
-        sa.Column(
-            "case_sensitive", sa.Boolean, nullable=False, server_default="false"
-        ),
-        sa.Column(
-            "do_not_translate", sa.Boolean, nullable=False, server_default="false"
-        ),
+        sa.Column("case_sensitive", sa.Boolean, nullable=False, server_default="false"),
+        sa.Column("do_not_translate", sa.Boolean, nullable=False, server_default="false"),
         sa.Column("notes", sa.Text, nullable=True),
         sa.Column(
             "created_by",
@@ -566,14 +569,10 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
-        sa.UniqueConstraint(
-            "project_id", "source_term", "locale", name="uq_glossary_term"
-        ),
+        sa.UniqueConstraint("project_id", "source_term", "locale", name="uq_glossary_term"),
     )
 
-    op.create_index(
-        "idx_glossary_project_locale", "glossary_terms", ["project_id", "locale"]
-    )
+    op.create_index("idx_glossary_project_locale", "glossary_terms", ["project_id", "locale"])
 
     # ------------------------------------------------------------------
     # translation_memory  (pgvector column)
@@ -629,20 +628,11 @@ def upgrade() -> None:
     )
 
     # Alter source_embedding to the real vector type after the extension is loaded
-    op.execute(
-        "ALTER TABLE translation_memory "
-        "ALTER COLUMN source_embedding TYPE vector(1536) "
-        "USING NULL::vector"
-    )
+    op.execute("ALTER TABLE translation_memory ALTER COLUMN source_embedding TYPE vector(1536) USING NULL::vector")
 
-    op.create_index(
-        "idx_tm_project_locale", "translation_memory", ["project_id", "locale"]
-    )
+    op.create_index("idx_tm_project_locale", "translation_memory", ["project_id", "locale"])
     # HNSW index for approximate nearest-neighbour vector search
-    op.execute(
-        "CREATE INDEX idx_tm_embedding ON translation_memory "
-        "USING hnsw (source_embedding vector_cosine_ops)"
-    )
+    op.execute("CREATE INDEX idx_tm_embedding ON translation_memory USING hnsw (source_embedding vector_cosine_ops)")
 
     # ------------------------------------------------------------------
     # screenshots
@@ -714,9 +704,7 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("status", sa.Text, nullable=False),
-        sa.Column(
-            "rollback_expires_at", sa.DateTime(timezone=True), nullable=True
-        ),
+        sa.Column("rollback_expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "applied_changes",
             postgresql.JSONB(astext_type=sa.Text()),

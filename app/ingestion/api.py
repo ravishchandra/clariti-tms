@@ -57,9 +57,7 @@ async def list_keys_for_repo(
     Used by reconciliation, which needs to see deactivated keys so it can
     detect drift between source-of-truth and DB state.
     """
-    rows = await db.execute(
-        select(Key).where(Key.repository_id == repository_id)
-    )
+    rows = await db.execute(select(Key).where(Key.repository_id == repository_id))
     return list(rows.scalars().all())
 
 
@@ -77,7 +75,5 @@ async def deactivate_keys(
     ids = list(key_ids)
     if not ids:
         return 0
-    result = await db.execute(
-        update(Key).where(Key.id.in_(ids)).values(is_active=False)
-    )
+    result = await db.execute(update(Key).where(Key.id.in_(ids)).values(is_active=False))
     return result.rowcount or 0

@@ -13,9 +13,7 @@ class DeepLProvider(LLMProviderBase):
         self._base_url = "https://api.deepl.com/v2" if pro else "https://api-free.deepl.com/v2"
         self._headers = {"Authorization": f"DeepL-Auth-Key {api_key}"}
 
-    async def translate(
-        self, prompt: str, system: str, *, cache_system: bool = False
-    ) -> tuple[str, TokenUsage]:
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
         # prompt is a JSON string of {key: source_text, ...}; system is the target locale
         texts: dict[str, str] = json.loads(prompt)
         # DeepL uses language codes without region subtag (fr-FR → FR)

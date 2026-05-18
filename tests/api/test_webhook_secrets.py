@@ -100,9 +100,7 @@ async def app(engine: Any) -> AsyncIterator[Any]:
     test_app = FastAPI()
     test_app.include_router(repositories_router, prefix="/api/v1/projects")
     test_app.include_router(github_webhook_router, prefix="/api/v1/webhooks/github")
-    test_app.include_router(
-        contentful_webhook_router, prefix="/api/v1/webhooks/contentful"
-    )
+    test_app.include_router(contentful_webhook_router, prefix="/api/v1/webhooks/contentful")
     test_app.dependency_overrides[_real_get_db] = _override_get_db
     try:
         yield test_app
@@ -309,9 +307,7 @@ async def _create_repo_with_webhook_secret(
     return resp.json()["id"]
 
 
-async def test_github_webhook_valid_signature_succeeds(
-    client: AsyncClient, seeded: dict[str, Any]
-) -> None:
+async def test_github_webhook_valid_signature_succeeds(client: AsyncClient, seeded: dict[str, Any]) -> None:
     secret = "test-webhook-secret-valid"
     repo_full_name = f"acme/gh-{seeded['suffix']}"
     await _create_repo_with_webhook_secret(client, seeded, secret, repo_full_name)
@@ -336,9 +332,7 @@ async def test_github_webhook_valid_signature_succeeds(
     assert resp.json() == {"status": "ok"}
 
 
-async def test_github_webhook_wrong_signature_returns_401(
-    client: AsyncClient, seeded: dict[str, Any]
-) -> None:
+async def test_github_webhook_wrong_signature_returns_401(client: AsyncClient, seeded: dict[str, Any]) -> None:
     secret = "test-webhook-secret-correct"
     repo_full_name = f"acme/gh-bad-{seeded['suffix']}"
     await _create_repo_with_webhook_secret(client, seeded, secret, repo_full_name)
@@ -421,7 +415,6 @@ async def test_github_webhook_undecryptable_secret_returns_401(
     stop retrying, the operator sees a stuck webhook + a structured log, and
     can re-rotate the secret or fix FERNET_KEY.
     """
-    from app.models import Repository
 
     # Bypass the API and write a garbage value directly into the encrypted
     # column to simulate a key-rotation / migration mishap.
@@ -441,10 +434,7 @@ async def test_github_webhook_undecryptable_secret_returns_401(
     repo_id = uuid.UUID(resp.json()["id"])
 
     await db.execute(
-        text(
-            "UPDATE repositories SET webhook_secret_encrypted = "
-            "'not-actually-fernet-ciphertext' WHERE id = :rid"
-        ),
+        text("UPDATE repositories SET webhook_secret_encrypted = 'not-actually-fernet-ciphertext' WHERE id = :rid"),
         {"rid": repo_id},
     )
     await db.commit()
@@ -456,9 +446,7 @@ async def test_github_webhook_undecryptable_secret_returns_401(
         "commits": [],
     }
     payload_bytes = json.dumps(payload_obj).encode()
-    bogus_sig = "sha256=" + hmac.new(
-        b"any-key", payload_bytes, hashlib.sha256
-    ).hexdigest()
+    bogus_sig = "sha256=" + hmac.new(b"any-key", payload_bytes, hashlib.sha256).hexdigest()
     resp = await client.post(
         "/api/v1/webhooks/github",
         content=payload_bytes,
@@ -558,9 +546,7 @@ async def test_patch_null_clears_each_secret(
     assert payload[boolean_field] is False
     # The other two booleans must still be True — partial-update means only
     # the targeted column is cleared.
-    other_flags = {"has_webhook_secret", "has_contentful_token", "has_contentful_webhook_secret"} - {
-        boolean_field
-    }
+    other_flags = {"has_webhook_secret", "has_contentful_token", "has_contentful_webhook_secret"} - {boolean_field}
     for other in other_flags:
         assert payload[other] is True, f"PATCH null on {clear_field} should not touch {other}"
 
@@ -612,9 +598,7 @@ async def test_patch_partial_update_preserves_unset_fields(
     assert resp.status_code == 200, resp.text
 
     # Refresh from DB and assert every other field is unchanged.
-    row_result = await db.execute(
-        select(Repository).where(Repository.id == uuid.UUID(repo_id))
-    )
+    row_result = await db.execute(select(Repository).where(Repository.id == uuid.UUID(repo_id)))
     repo = row_result.scalar_one()
     assert repo.context_notes == "now with feeling"
     assert repo.default_branch == "main"
@@ -627,9 +611,7 @@ async def test_patch_partial_update_preserves_unset_fields(
     assert decrypt(repo.contentful_webhook_secret_encrypted) == "cf-secret-v1"
 
 
-async def test_patch_empty_body_is_no_op(
-    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
-) -> None:
+async def test_patch_empty_body_is_no_op(client: AsyncClient, seeded: dict[str, Any], db: AsyncSession) -> None:
     """F5: PATCH with `{}` returns 200 and changes nothing.
 
     A "ping the row to make sure it still parses" call has to be a clean
@@ -695,9 +677,7 @@ async def _cleanup(db: AsyncSession):
     # Drop any org slugs we created. CASCADE handles projects/repos/api keys.
     from app.models import Organization
 
-    result = await db.execute(
-        select(Organization).where(Organization.slug.like("c3-%"))
-    )
+    result = await db.execute(select(Organization).where(Organization.slug.like("c3-%")))
     for org in result.scalars().all():
         await db.delete(org)
     await db.commit()

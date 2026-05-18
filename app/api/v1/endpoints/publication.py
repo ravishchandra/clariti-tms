@@ -18,9 +18,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _permanent_detail_for_installation(
-    installation_id: int, exc: GitHubPermanentError
-) -> str:
+def _permanent_detail_for_installation(installation_id: int, exc: GitHubPermanentError) -> str:
     """Operator-actionable message for a permanent (4xx) install-token failure.
 
     Tailors the wording for the two cases GitHub actually produces here:
@@ -50,9 +48,7 @@ def _permanent_detail_for_installation(
     )
 
 
-def _permanent_detail_for_publish(
-    installation_id: int, exc: GitHubPermanentError
-) -> str:
+def _permanent_detail_for_publish(installation_id: int, exc: GitHubPermanentError) -> str:
     """Operator-actionable message for a permanent 4xx during PR creation.
 
     The most common cause here is 404 (the App lost access to the repo or

@@ -31,4 +31,5 @@ class ApiKeyRead(BaseModel):
 
 class ApiKeyCreated(ApiKeyRead):
     """Returned only once at creation time — includes the raw key."""
+
     raw_key: str

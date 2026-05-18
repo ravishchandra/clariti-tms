@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,18 +20,18 @@ class LocaleConfigCreate(BaseModel):
 
     locale: str
     formality: str = "formal"
-    register_value: Optional[str] = Field(default=None, **_REGISTER_ALIASES)
-    notes: Optional[str] = None
+    register_value: str | None = Field(default=None, **_REGISTER_ALIASES)
+    notes: str | None = None
     is_bootstrapped: bool = False
 
 
 class LocaleConfigUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    formality: Optional[str] = None
-    register_value: Optional[str] = Field(default=None, **_REGISTER_ALIASES)
-    notes: Optional[str] = None
-    is_bootstrapped: Optional[bool] = None
+    formality: str | None = None
+    register_value: str | None = Field(default=None, **_REGISTER_ALIASES)
+    notes: str | None = None
+    is_bootstrapped: bool | None = None
 
 
 class LocaleConfigRead(BaseModel):
@@ -42,7 +41,7 @@ class LocaleConfigRead(BaseModel):
     project_id: uuid.UUID
     locale: str
     formality: str
-    register_value: Optional[str] = Field(default=None, **_REGISTER_ALIASES)
-    notes: Optional[str]
+    register_value: str | None = Field(default=None, **_REGISTER_ALIASES)
+    notes: str | None
     is_bootstrapped: bool
     created_at: datetime

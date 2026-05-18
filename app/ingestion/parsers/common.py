@@ -194,16 +194,10 @@ def infer_risk_class(
     if any(tok in lower for tok in _HUMAN_ONLY_TOKENS):
         return "human_only"
 
-    if string_type in ("error", "permission") or any(
-        tok in lower for tok in _HIGH_RISK_TOKENS
-    ):
+    if string_type in ("error", "permission") or any(tok in lower for tok in _HIGH_RISK_TOKENS):
         return "high_risk"
 
-    if (
-        string_type == "button"
-        and len(source_text) < 20
-        and not (placeholders or [])
-    ):
+    if string_type == "button" and len(source_text) < 20 and not (placeholders or []):
         return "auto_publish"
 
     return "standard"

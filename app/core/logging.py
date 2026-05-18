@@ -102,9 +102,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 
 # Context variable holding the merged dict of fields bound for the
 # current task / request.  Always a plain dict — never None.
-_context_fields: ContextVar[dict[str, Any]] = ContextVar(
-    "clariti_log_context", default={}
-)
+_context_fields: ContextVar[dict[str, Any]] = ContextVar("clariti_log_context", default={})
 
 # Standard LogRecord attributes we *don't* want to copy into the JSON
 # record's extra fields.  Anything else attached via ``extra=`` (or via

@@ -12,9 +12,7 @@ router = APIRouter()
 
 
 @router.post("/{project_id}/glossary", response_model=GlossaryTermRead, status_code=status.HTTP_201_CREATED)
-async def create_glossary_term(
-    body: GlossaryTermCreate, db: DB, project: ScopedProject
-) -> GlossaryTermRead:
+async def create_glossary_term(body: GlossaryTermCreate, db: DB, project: ScopedProject) -> GlossaryTermRead:
     term = GlossaryTerm(
         project_id=project.id,
         source_term=body.source_term,
@@ -62,9 +60,7 @@ def _assert_term_in_project(term: GlossaryTerm, project) -> None:
 
 
 @router.get("/{project_id}/glossary/{term_id}", response_model=GlossaryTermRead)
-async def get_glossary_term(
-    project: ScopedProject, term: ScopedGlossaryTerm
-) -> GlossaryTermRead:
+async def get_glossary_term(project: ScopedProject, term: ScopedGlossaryTerm) -> GlossaryTermRead:
     _assert_term_in_project(term, project)
     return GlossaryTermRead.model_validate(term)
 
@@ -82,9 +78,7 @@ async def update_glossary_term(
 
 
 @router.delete("/{project_id}/glossary/{term_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_glossary_term(
-    db: DB, project: ScopedProject, term: ScopedGlossaryTerm
-) -> None:
+async def delete_glossary_term(db: DB, project: ScopedProject, term: ScopedGlossaryTerm) -> None:
     _assert_term_in_project(term, project)
     await db.delete(term)
     await db.flush()

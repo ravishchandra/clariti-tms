@@ -6,8 +6,7 @@ requests, and they generate a throwaway RSA keypair so tests are hermetic.
 
 from __future__ import annotations
 
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import jwt
@@ -17,7 +16,6 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from app.core.settings import get_settings
 from app.integrations.github import auth as gh_auth
-
 
 # ---------------------------------------------------------------------------
 # Test fixtures / helpers
@@ -33,10 +31,14 @@ def rsa_keypair() -> tuple[str, str]:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode("ascii")
-    public_pem = key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("ascii")
+    public_pem = (
+        key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("ascii")
+    )
     return private_pem, public_pem
 
 
@@ -61,7 +63,7 @@ def configured_settings(monkeypatch: pytest.MonkeyPatch, rsa_keypair: tuple[str,
 
 def _expires_at_iso(seconds_from_now: int) -> str:
     """ISO-8601 UTC timestamp ``seconds_from_now`` in the future."""
-    dt = datetime.now(timezone.utc) + timedelta(seconds=seconds_from_now)
+    dt = datetime.now(UTC) + timedelta(seconds=seconds_from_now)
     # GitHub returns "...Z" without microseconds; mimic that.
     return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -72,15 +74,11 @@ def _expires_at_iso(seconds_from_now: int) -> str:
 
 
 class TestGenerateAppJwt:
-    def test_produces_valid_rs256_jwt_with_expected_claims(
-        self, rsa_keypair: tuple[str, str]
-    ) -> None:
+    def test_produces_valid_rs256_jwt_with_expected_claims(self, rsa_keypair: tuple[str, str]) -> None:
         private_pem, public_pem = rsa_keypair
         now = 1_700_000_000
 
-        token = gh_auth.generate_app_jwt(
-            app_id="987654", private_key=private_pem, now=now
-        )
+        token = gh_auth.generate_app_jwt(app_id="987654", private_key=private_pem, now=now)
 
         # Header advertises RS256.
         header = jwt.get_unverified_header(token)
@@ -144,14 +142,10 @@ class TestLoadPrivateKey:
 
         assert gh_auth._load_private_key() == private_pem
 
-    def test_missing_both_raises(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path
-    ) -> None:
+    def test_missing_both_raises(self, monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
         settings = get_settings()
         monkeypatch.setattr(settings, "GITHUB_APP_PRIVATE_KEY", "")
-        monkeypatch.setattr(
-            settings, "GITHUB_APP_PRIVATE_KEY_PATH", str(tmp_path / "missing.pem")
-        )
+        monkeypatch.setattr(settings, "GITHUB_APP_PRIVATE_KEY_PATH", str(tmp_path / "missing.pem"))
         with pytest.raises(RuntimeError, match="GitHub App private key is not configured"):
             gh_auth._load_private_key()
 
@@ -183,9 +177,7 @@ class TestGetInstallationToken:
             token = await gh_auth.get_installation_token(7777, http_client=client)
 
         assert token == "ghs_installtoken_abc"
-        assert seen_url == [
-            "https://api.github.com/app/installations/7777/access_tokens"
-        ]
+        assert seen_url == ["https://api.github.com/app/installations/7777/access_tokens"]
         assert len(seen_auth) == 1
         assert seen_auth[0].startswith("Bearer ")
 
@@ -247,9 +239,7 @@ class TestGetInstallationToken:
         assert call_count == 2
 
     @pytest.mark.asyncio
-    async def test_different_installations_get_separate_tokens(
-        self, configured_settings
-    ) -> None:
+    async def test_different_installations_get_separate_tokens(self, configured_settings) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             # Extract installation id from URL path: /app/installations/{id}/...
             install_id = request.url.path.split("/")[3]
@@ -307,13 +297,13 @@ class TestParseGithubTimestamp:
         ts = "2026-05-17T18:30:00Z"
         parsed = gh_auth._parse_github_timestamp(ts)
         # 2026-05-17T18:30:00Z in unix seconds.
-        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=timezone.utc).timestamp()
+        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=UTC).timestamp()
         assert parsed == pytest.approx(expected, abs=1.0)
 
     def test_handles_offset_suffix(self) -> None:
         ts = "2026-05-17T18:30:00+00:00"
         parsed = gh_auth._parse_github_timestamp(ts)
-        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=timezone.utc).timestamp()
+        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=UTC).timestamp()
         assert parsed == pytest.approx(expected, abs=1.0)
 
     def test_non_utc_offset_is_converted_not_relabelled(self) -> None:
@@ -324,12 +314,12 @@ class TestParseGithubTimestamp:
         ts = "2026-05-17T18:30:00+02:00"
         parsed = gh_auth._parse_github_timestamp(ts)
         # The right answer is 16:30:00 UTC, not 18:30:00 UTC.
-        expected = datetime(2026, 5, 17, 16, 30, 0, tzinfo=timezone.utc).timestamp()
+        expected = datetime(2026, 5, 17, 16, 30, 0, tzinfo=UTC).timestamp()
         assert parsed == pytest.approx(expected, abs=1.0)
 
     def test_handles_naive_timestamp_as_utc(self) -> None:
         """Naive (no-tz) timestamps treated as UTC, matching GitHub's docs."""
         ts = "2026-05-17T18:30:00"
         parsed = gh_auth._parse_github_timestamp(ts)
-        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=timezone.utc).timestamp()
+        expected = datetime(2026, 5, 17, 18, 30, 0, tzinfo=UTC).timestamp()
         assert parsed == pytest.approx(expected, abs=1.0)

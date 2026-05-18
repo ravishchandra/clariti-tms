@@ -112,9 +112,7 @@ def _parse_retry_after(response: httpx.Response) -> int:
     return max(value, 0)
 
 
-def classify_http_status_error(
-    exc: httpx.HTTPStatusError, *, context: str
-) -> GitHubError:
+def classify_http_status_error(exc: httpx.HTTPStatusError, *, context: str) -> GitHubError:
     """Map an ``httpx.HTTPStatusError`` to a classified ``GitHubError``.
 
     ``context`` is a short operator-facing description of the operation that
@@ -142,16 +140,12 @@ def classify_http_status_error(
     )
 
 
-def classify_request_error(
-    exc: httpx.RequestError, *, context: str
-) -> GitHubNetworkError:
+def classify_request_error(exc: httpx.RequestError, *, context: str) -> GitHubNetworkError:
     """Map an ``httpx.RequestError`` (no response received) to a network error."""
     # httpx.RequestError covers TimeoutException, ConnectError, ReadError,
     # WriteError, ProtocolError, ProxyError, etc. The exception class name
     # carries the most useful operator hint.
-    return GitHubNetworkError(
-        f"network failure while {context}: {type(exc).__name__}: {exc}"
-    )
+    return GitHubNetworkError(f"network failure while {context}: {type(exc).__name__}: {exc}")
 
 
 __all__ = [

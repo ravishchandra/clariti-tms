@@ -17,10 +17,7 @@ def _reject_blank_secret(v: str | None) -> str | None:
     if v is None:
         return None
     if not v.strip():
-        raise ValueError(
-            "secret cannot be empty or whitespace-only; omit the field to "
-            "leave it unchanged"
-        )
+        raise ValueError("secret cannot be empty or whitespace-only; omit the field to leave it unchanged")
     return v
 
 
@@ -44,9 +41,9 @@ class RepositoryCreate(BaseModel):
     contentful_token: str | None = None
     contentful_webhook_secret: str | None = None
 
-    _strip_blank_secrets = field_validator(
-        "webhook_secret", "contentful_token", "contentful_webhook_secret"
-    )(_reject_blank_secret)
+    _strip_blank_secrets = field_validator("webhook_secret", "contentful_token", "contentful_webhook_secret")(
+        _reject_blank_secret
+    )
 
 
 # Set of PATCH fields backed by NOT NULL columns on `repositories`.
@@ -86,9 +83,9 @@ class RepositoryUpdate(BaseModel):
     contentful_token: str | None = None
     contentful_webhook_secret: str | None = None
 
-    _strip_blank_secrets = field_validator(
-        "webhook_secret", "contentful_token", "contentful_webhook_secret"
-    )(_reject_blank_secret)
+    _strip_blank_secrets = field_validator("webhook_secret", "contentful_token", "contentful_webhook_secret")(
+        _reject_blank_secret
+    )
 
     @model_validator(mode="after")
     def _reject_null_on_required(self) -> RepositoryUpdate:
@@ -100,9 +97,7 @@ class RepositoryUpdate(BaseModel):
         "omit" from "explicit null" (F5).
         """
         bad = [
-            name
-            for name in _NON_NULLABLE_PATCH_FIELDS
-            if name in self.model_fields_set and getattr(self, name) is None
+            name for name in _NON_NULLABLE_PATCH_FIELDS if name in self.model_fields_set and getattr(self, name) is None
         ]
         if bad:
             raise ValueError(
@@ -164,9 +159,7 @@ class RepositoryRead(BaseModel):
         if isinstance(data, dict):
             data = dict(data)
             data.setdefault("has_webhook_secret", _truthy(data, "webhook_secret_encrypted"))
-            data.setdefault(
-                "has_contentful_token", _truthy(data, "contentful_token_encrypted")
-            )
+            data.setdefault("has_contentful_token", _truthy(data, "contentful_token_encrypted"))
             data.setdefault(
                 "has_contentful_webhook_secret",
                 _truthy(data, "contentful_webhook_secret_encrypted"),
@@ -192,7 +185,5 @@ class RepositoryRead(BaseModel):
             "created_at": data.created_at,
             "has_webhook_secret": _truthy(data, "webhook_secret_encrypted"),
             "has_contentful_token": _truthy(data, "contentful_token_encrypted"),
-            "has_contentful_webhook_secret": _truthy(
-                data, "contentful_webhook_secret_encrypted"
-            ),
+            "has_contentful_webhook_secret": _truthy(data, "contentful_webhook_secret_encrypted"),
         }

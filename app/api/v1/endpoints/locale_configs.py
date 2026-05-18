@@ -22,9 +22,7 @@ def _assert_config_in_project(lc: LocaleConfig, project) -> None:
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_locale_config(
-    body: LocaleConfigCreate, db: DB, project: ScopedProject
-) -> LocaleConfigRead:
+async def create_locale_config(body: LocaleConfigCreate, db: DB, project: ScopedProject) -> LocaleConfigRead:
     lc = LocaleConfig(
         project_id=project.id,
         locale=body.locale,
@@ -55,10 +53,7 @@ async def list_locale_configs(db: DB, project: ScopedProject) -> dict:
     configs = result.scalars().all()
     # `by_alias=True` keeps the JSON field as `register` per L2 alias contract.
     return {
-        "items": [
-            LocaleConfigRead.model_validate(lc).model_dump(by_alias=True)
-            for lc in configs
-        ],
+        "items": [LocaleConfigRead.model_validate(lc).model_dump(by_alias=True) for lc in configs],
         "total": total,
     }
 
@@ -68,9 +63,7 @@ async def list_locale_configs(db: DB, project: ScopedProject) -> dict:
     response_model=LocaleConfigRead,
     response_model_by_alias=True,
 )
-async def get_locale_config(
-    project: ScopedProject, lc: ScopedLocaleConfig
-) -> LocaleConfigRead:
+async def get_locale_config(project: ScopedProject, lc: ScopedLocaleConfig) -> LocaleConfigRead:
     _assert_config_in_project(lc, project)
     return LocaleConfigRead.model_validate(lc)
 
@@ -97,9 +90,7 @@ async def update_locale_config(
 
 
 @router.delete("/{project_id}/locale-configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_locale_config(
-    db: DB, project: ScopedProject, lc: ScopedLocaleConfig
-) -> None:
+async def delete_locale_config(db: DB, project: ScopedProject, lc: ScopedLocaleConfig) -> None:
     _assert_config_in_project(lc, project)
     await db.delete(lc)
     await db.flush()

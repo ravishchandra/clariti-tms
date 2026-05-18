@@ -23,7 +23,6 @@ from app.integrations.github import auth as gh_auth
 from app.integrations.github import errors as gh_errors
 from app.integrations.github.client import GitHubClient
 
-
 # ---------------------------------------------------------------------------
 # classify_http_status_error
 # ---------------------------------------------------------------------------
@@ -33,9 +32,7 @@ def _build_status_error(status_code: int, headers: dict | None = None) -> httpx.
     """Build an httpx.HTTPStatusError with a given status / headers."""
     request = httpx.Request("GET", "https://api.github.com/whatever")
     response = httpx.Response(status_code, request=request, headers=headers or {})
-    return httpx.HTTPStatusError(
-        f"{status_code} test", request=request, response=response
-    )
+    return httpx.HTTPStatusError(f"{status_code} test", request=request, response=response)
 
 
 class TestClassifyHttpStatusError:
@@ -78,9 +75,7 @@ class TestClassifyHttpStatusError:
 
     def test_context_is_embedded_in_message(self) -> None:
         exc = _build_status_error(404)
-        result = gh_errors.classify_http_status_error(
-            exc, context="minting installation token for installation 99"
-        )
+        result = gh_errors.classify_http_status_error(exc, context="minting installation token for installation 99")
         assert "minting installation token for installation 99" in str(result)
 
 
@@ -120,10 +115,14 @@ def rsa_keypair() -> tuple[str, str]:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode("ascii")
-    public_pem = key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("ascii")
+    public_pem = (
+        key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("ascii")
+    )
     return private_pem, public_pem
 
 
@@ -150,6 +149,7 @@ class TestGetInstallationTokenErrorClassification:
         """404 means the installation id is bad (revoked / never installed).
         Surfaces as GitHubPermanentError → 422 at the endpoint.
         """
+
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(404, json={"message": "Not Found"})
 
@@ -163,6 +163,7 @@ class TestGetInstallationTokenErrorClassification:
     @pytest.mark.asyncio
     async def test_401_raises_permanent_error(self, configured_settings) -> None:
         """401 means the App credentials were rejected (App revoked / key rotated)."""
+
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(401, json={"message": "Bad credentials"})
 
@@ -225,9 +226,7 @@ class TestGitHubClientErrorClassification:
     """
 
     @pytest.mark.asyncio
-    async def test_get_branch_sha_500_maps_to_retryable(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_get_branch_sha_500_maps_to_retryable(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(500, json={"message": "boom"})
 
@@ -248,9 +247,7 @@ class TestGitHubClientErrorClassification:
         assert exc_info.value.status_code == 500
 
     @pytest.mark.asyncio
-    async def test_create_pull_request_404_maps_to_permanent(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_create_pull_request_404_maps_to_permanent(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(404, json={"message": "Not Found"})
 
@@ -275,9 +272,7 @@ class TestGitHubClientErrorClassification:
         assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_create_branch_network_failure_maps_to_network_error(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_create_branch_network_failure_maps_to_network_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             raise httpx.ReadTimeout("read timeout")
 

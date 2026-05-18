@@ -16,9 +16,7 @@ class OllamaProvider(LLMProviderBase):
         self._model = model
         self._embed_model = embed_model
 
-    async def translate(
-        self, prompt: str, system: str, *, cache_system: bool = False
-    ) -> tuple[str, TokenUsage]:
+    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.post(

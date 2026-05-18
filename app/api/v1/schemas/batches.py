@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -15,11 +14,11 @@ class BatchRead(BaseModel):
     repository_id: uuid.UUID
     locale: str
     component: str
-    screen: Optional[str]
+    screen: str | None
     status: str
-    mt_model: Optional[str]
-    mt_prompt_version: Optional[str]
-    ran_at: Optional[datetime]
+    mt_model: str | None
+    mt_prompt_version: str | None
+    ran_at: datetime | None
     created_at: datetime
 
 

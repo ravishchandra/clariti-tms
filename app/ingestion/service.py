@@ -179,11 +179,7 @@ async def assemble_batches(
         db.add(batch)
         await db.flush()
 
-        await db.execute(
-            update(Translation)
-            .where(Translation.id.in_(translation_ids))
-            .values(batch_id=batch.id)
-        )
+        await db.execute(update(Translation).where(Translation.id.in_(translation_ids)).values(batch_id=batch.id))
         batch_count += 1
 
     await db.commit()

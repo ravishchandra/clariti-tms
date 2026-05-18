@@ -10,9 +10,7 @@ class PreProcessResult:
     tag_map: dict[str, dict[str, str]]  # key_id → {placeholder → original_tag}
 
 
-def substitute_structural_tags(
-    key: str, text: str, file_format: str
-) -> tuple[str, dict[str, str]]:
+def substitute_structural_tags(key: str, text: str, file_format: str) -> tuple[str, dict[str, str]]:
     sub_map: dict[str, str] = {}
 
     if file_format == "i18next":

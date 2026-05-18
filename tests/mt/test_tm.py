@@ -48,7 +48,9 @@ class TestStoreTmEntry:
 
     @pytest.mark.asyncio
     async def test_update_backfills_repository_id(
-        self, db_session, sample_batch,
+        self,
+        db_session,
+        sample_batch,
     ):
         repo: Repository = sample_batch["repo"]
         project: Project = sample_batch["project"]

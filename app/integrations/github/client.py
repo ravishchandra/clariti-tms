@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
 
 import httpx
 
@@ -11,10 +10,8 @@ from app.integrations.github.errors import (
     classify_request_error,
 )
 
-T = TypeVar("T")
 
-
-async def _classify(context: str, op: Callable[[], Awaitable[T]]) -> T:
+async def _classify[T](context: str, op: Callable[[], Awaitable[T]]) -> T:
     """Run ``op`` and re-raise any httpx error as a typed ``GitHubError``.
 
     Single point where the raw ``httpx`` exceptions are turned into the

@@ -45,11 +45,7 @@ async def on_startup() -> None:
             host_with_port = parsed.hostname or ""
             if parsed.port:
                 host_with_port += f":{parsed.port}"
-            netloc = (
-                f"{parsed.username or ''}:***@{host_with_port}"
-                if parsed.username
-                else f":***@{host_with_port}"
-            )
+            netloc = f"{parsed.username or ''}:***@{host_with_port}" if parsed.username else f":***@{host_with_port}"
             masked = urlunparse(parsed._replace(netloc=netloc))
         else:
             masked = db_url

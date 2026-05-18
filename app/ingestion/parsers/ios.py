@@ -127,12 +127,10 @@ def parse_strings_file(content: str, filename: str) -> list[ParsedKey]:
     events.sort(key=lambda e: e[0])
 
     last_comment: str | None = None
-    last_comment_end: int = -1
 
-    for pos, kind, text in events:
+    for _pos, kind, text in events:
         if kind == "comment":
             last_comment = text[2:-2].strip()  # strip /* and */
-            last_comment_end = pos + len(text)
             # Ignore "No comment provided by engineer."
             if last_comment.lower() in (
                 "no comment provided by engineer.",
@@ -173,13 +171,7 @@ def parse_strings_file(content: str, filename: str) -> list[ParsedKey]:
 
 def _unescape(s: str) -> str:
     """Unescape common .strings escape sequences."""
-    return (
-        s.replace('\\"', '"')
-        .replace("\\n", "\n")
-        .replace("\\t", "\t")
-        .replace("\\\\", "\\")
-        .replace("\\'", "'")
-    )
+    return s.replace('\\"', '"').replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\").replace("\\'", "'")
 
 
 # ---------------------------------------------------------------------------
@@ -242,10 +234,7 @@ def parse_xcstrings_file(content: str, filename: str) -> list[ParsedKey]:
                 is_plural = True
                 # Use "other" as canonical; fall back to first available
                 other = plural_map.get("other", {})
-                source_text = (
-                    other.get("stringUnit", {}).get("value", "")
-                    or _first_variation_value(plural_map)
-                )
+                source_text = other.get("stringUnit", {}).get("value", "") or _first_variation_value(plural_map)
         elif "stringUnit" in src_loc:
             source_text = src_loc["stringUnit"].get("value", "")
         else:

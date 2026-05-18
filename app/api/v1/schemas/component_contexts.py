@@ -2,27 +2,26 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
 
 class ComponentContextCreate(BaseModel):
     component: str
-    screen: Optional[str] = None
+    screen: str | None = None
     description: str
     default_risk_class: str = "standard"
-    default_max_length: Optional[int] = None
-    notes: Optional[str] = None
+    default_max_length: int | None = None
+    notes: str | None = None
 
 
 class ComponentContextUpdate(BaseModel):
-    component: Optional[str] = None
-    screen: Optional[str] = None
-    description: Optional[str] = None
-    default_risk_class: Optional[str] = None
-    default_max_length: Optional[int] = None
-    notes: Optional[str] = None
+    component: str | None = None
+    screen: str | None = None
+    description: str | None = None
+    default_risk_class: str | None = None
+    default_max_length: int | None = None
+    notes: str | None = None
 
 
 class ComponentContextRead(BaseModel):
@@ -31,9 +30,9 @@ class ComponentContextRead(BaseModel):
     id: uuid.UUID
     repository_id: uuid.UUID
     component: str
-    screen: Optional[str]
+    screen: str | None
     description: str
     default_risk_class: str
-    default_max_length: Optional[int]
-    notes: Optional[str]
+    default_max_length: int | None
+    notes: str | None
     created_at: datetime

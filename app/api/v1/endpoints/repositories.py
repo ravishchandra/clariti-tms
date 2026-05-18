@@ -21,9 +21,7 @@ _SECRET_FIELD_TO_COLUMN: dict[str, str] = {
 
 
 @router.post("/{project_id}/repositories", response_model=RepositoryRead, status_code=status.HTTP_201_CREATED)
-async def create_repository(
-    body: RepositoryCreate, db: DB, project: ScopedProject
-) -> RepositoryRead:
+async def create_repository(body: RepositoryCreate, db: DB, project: ScopedProject) -> RepositoryRead:
     repo = Repository(
         project_id=project.id,
         name=body.name,
@@ -75,9 +73,7 @@ async def get_repository(repo: ScopedRepository) -> RepositoryRead:
 
 
 @router.patch("/{project_id}/repositories/{repo_id}", response_model=RepositoryRead)
-async def update_repository(
-    body: RepositoryUpdate, db: DB, repo: ScopedRepository
-) -> RepositoryRead:
+async def update_repository(body: RepositoryUpdate, db: DB, repo: ScopedRepository) -> RepositoryRead:
     # F5: use `exclude_unset=True` (not `exclude_none=True`) so the handler can
     # distinguish "field omitted" from "field explicitly set to null". Omitted
     # fields stay as-is; explicit null on a nullable column clears it. Explicit

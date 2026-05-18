@@ -182,9 +182,7 @@ async def seeded(db: AsyncSession) -> dict[str, Any]:
     }
 
 
-async def _latest_history_row(
-    db: AsyncSession, translation_id: uuid.UUID
-) -> dict[str, Any]:
+async def _latest_history_row(db: AsyncSession, translation_id: uuid.UUID) -> dict[str, Any]:
     """Return the most recent translation_history row for a given translation."""
     result = await db.execute(
         text(
@@ -237,9 +235,7 @@ async def test_api_patch_stamps_change_source_api(
 # ---------------------------------------------------------------------------
 
 
-async def test_system_transition_falls_back_to_system(
-    seeded: dict[str, Any], engine: Any
-) -> None:
+async def test_system_transition_falls_back_to_system(seeded: dict[str, Any], engine: Any) -> None:
     """A system-driven transition that never installs the GUC must produce
     change_source='system'. This models the MT worker / ingestion / CLI
     paths, which mint their own AsyncSession via AsyncSessionLocal() and
@@ -282,9 +278,7 @@ async def test_system_transition_falls_back_to_system(
 # ---------------------------------------------------------------------------
 
 
-async def test_guc_does_not_leak_across_transactions(
-    seeded: dict[str, Any], engine: Any
-) -> None:
+async def test_guc_does_not_leak_across_transactions(seeded: dict[str, Any], engine: Any) -> None:
     """SET LOCAL (and ``set_config(..., true)``) must scope to the current
     transaction. Otherwise an 'api' attribution from one request would
     bleed into a subsequent system-driven transaction on the same pooled
@@ -320,9 +314,7 @@ async def test_guc_does_not_leak_across_transactions(
     async with session_factory() as read_db:
         row = await _latest_history_row(read_db, t_id)
 
-    assert row["change_source"] == "system", (
-        "GUC from the prior transaction leaked into the system-driven one"
-    )
+    assert row["change_source"] == "system", "GUC from the prior transaction leaked into the system-driven one"
     assert row["new_status"] == "published"
 
 

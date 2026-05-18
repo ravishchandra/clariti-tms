@@ -288,9 +288,7 @@ async def test_publish_network_error_returns_503() -> None:
     repo = _FakeRepository()
     app = _build_app(
         repo,
-        publish_side_effect=GitHubNetworkError(
-            "network failure while opening pull request: ConnectError: dns fail"
-        ),
+        publish_side_effect=GitHubNetworkError("network failure while opening pull request: ConnectError: dns fail"),
     )
     async with await _client_for(app) as client:
         resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")

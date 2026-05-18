@@ -29,6 +29,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 
 import httpx
@@ -140,9 +141,7 @@ def generate_app_jwt(
     settings = get_settings()
     app_id = app_id if app_id is not None else settings.GITHUB_APP_ID
     if not app_id:
-        raise RuntimeError(
-            "GITHUB_APP_ID is not configured — cannot mint App JWT."
-        )
+        raise RuntimeError("GITHUB_APP_ID is not configured — cannot mint App JWT.")
 
     pem = private_key if private_key is not None else _load_private_key()
 
@@ -218,15 +217,15 @@ def _parse_github_timestamp(ts: str) -> float:
         and would have produced a time 2h skewed for non-UTC responses)
       - naive timestamps (no tz at all) — treated as UTC by GitHub convention
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
     dt = datetime.fromisoformat(ts)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     else:
-        dt = dt.astimezone(timezone.utc)
+        dt = dt.astimezone(UTC)
     return dt.timestamp()
 
 
@@ -252,9 +251,7 @@ async def get_installation_token(
     Raises ``ValueError`` if ``installation_id`` is falsy.
     """
     if not installation_id:
-        raise ValueError(
-            "installation_id is required to mint a GitHub installation token"
-        )
+        raise ValueError("installation_id is required to mint a GitHub installation token")
 
     cached = _token_cache.get(installation_id)
     now = time.time()
@@ -270,9 +267,7 @@ async def get_installation_token(
             return cached.token
 
         app_jwt = generate_app_jwt()
-        fresh = await _exchange_jwt_for_installation_token(
-            installation_id, app_jwt, http_client=http_client
-        )
+        fresh = await _exchange_jwt_for_installation_token(installation_id, app_jwt, http_client=http_client)
         _token_cache[installation_id] = fresh
         logger.info(
             "minted github installation token for installation_id=%s (expires %ds from now)",

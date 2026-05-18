@@ -17,9 +17,7 @@ def parse_llm_json_output(raw: str, expected_keys: list[str]) -> dict[str, str]:
     try:
         data = json.loads(cleaned.strip())
     except json.JSONDecodeError as e:
-        raise ValueError(
-            f"LLM output is not valid JSON: {e}\nRaw: {raw[:200]}"
-        ) from e
+        raise ValueError(f"LLM output is not valid JSON: {e}\nRaw: {raw[:200]}") from e
     missing = [k for k in expected_keys if k not in data]
     if missing:
         raise ValueError(f"LLM output missing keys: {missing}")

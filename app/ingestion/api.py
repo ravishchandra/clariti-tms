@@ -76,4 +76,6 @@ async def deactivate_keys(
     if not ids:
         return 0
     result = await db.execute(update(Key).where(Key.id.in_(ids)).values(is_active=False))
-    return result.rowcount or 0
+    # `rowcount` is on `CursorResult` (subclass of `Result`); the async
+    # execute() return is typed loosely as `Result`. Read via getattr.
+    return int(getattr(result, "rowcount", 0) or 0)

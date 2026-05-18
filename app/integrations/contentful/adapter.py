@@ -103,16 +103,18 @@ class ContentfulAdapter:
 
         for locale, key_values in translations_by_locale.items():
             for key, value in key_values.items():
-                entry = entry_by_key.get(key)
-                if entry is None:
+                # Distinct name from the outer loop's `entry` so mypy doesn't
+                # see a redefinition (line 94 binds entry as non-Optional dict).
+                target_entry = entry_by_key.get(key)
+                if target_entry is None:
                     logger.warning(
                         "contentful.publish_translations.key_not_found",
                         extra={"key": key, "locale": locale},
                     )
                     continue
 
-                entry_id = entry["sys"]["id"]
-                version = entry["sys"]["version"]
+                entry_id = target_entry["sys"]["id"]
+                version = target_entry["sys"]["version"]
 
                 await self._client.update_entry_field(
                     entry_id=entry_id,

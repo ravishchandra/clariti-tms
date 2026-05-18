@@ -16,7 +16,7 @@ Clariti TMS is pre-1.0 and ships breaking changes on `main`. Only the latest rel
 Use one of these channels instead, in order of preference:
 
 1. **GitHub Security Advisory** (preferred) — go to https://github.com/ravishchandra/clariti-tms/security/advisories/new and submit a private advisory. Only repo maintainers and people you explicitly add to the advisory can view it. This also gives us a CVE-issuance path if the issue qualifies.
-2. **Direct email** to the maintainer at the address on the maintainer's GitHub profile. Use the subject prefix `[clariti-tms security]`.
+2. **Direct email** to **hello@claritifinance.com**. Use the subject prefix `[clariti-tms security]`.
 
 Please include:
 

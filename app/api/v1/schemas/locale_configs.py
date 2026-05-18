@@ -9,10 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field
 # field stays `register` via aliases so the REST API is unchanged. The
 # rename only sidesteps Pydantic's UserWarning about shadowing
 # `ABCMeta.register`; the DB column in `app/models.py` is unaffected.
-_REGISTER_ALIASES = dict(
-    validation_alias="register",
-    serialization_alias="register",
-)
+#
+# The alias kwargs are inlined per-field rather than spread from a shared
+# dict so mypy can pick the matching `Field(...)` overload — `**dict`
+# unpacking blocks overload resolution.
 
 
 class LocaleConfigCreate(BaseModel):
@@ -20,7 +20,11 @@ class LocaleConfigCreate(BaseModel):
 
     locale: str
     formality: str = "formal"
-    register_value: str | None = Field(default=None, **_REGISTER_ALIASES)
+    register_value: str | None = Field(
+        default=None,
+        validation_alias="register",
+        serialization_alias="register",
+    )
     notes: str | None = None
     is_bootstrapped: bool = False
 
@@ -29,7 +33,11 @@ class LocaleConfigUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     formality: str | None = None
-    register_value: str | None = Field(default=None, **_REGISTER_ALIASES)
+    register_value: str | None = Field(
+        default=None,
+        validation_alias="register",
+        serialization_alias="register",
+    )
     notes: str | None = None
     is_bootstrapped: bool | None = None
 
@@ -41,7 +49,11 @@ class LocaleConfigRead(BaseModel):
     project_id: uuid.UUID
     locale: str
     formality: str
-    register_value: str | None = Field(default=None, **_REGISTER_ALIASES)
+    register_value: str | None = Field(
+        default=None,
+        validation_alias="register",
+        serialization_alias="register",
+    )
     notes: str | None
     is_bootstrapped: bool
     created_at: datetime

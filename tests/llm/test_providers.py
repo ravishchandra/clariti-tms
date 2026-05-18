@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from anthropic.types import TextBlock
 
 from app.llm.providers.anthropic import AnthropicProvider
 from app.llm.providers.ollama import OllamaProvider
@@ -112,7 +113,7 @@ class TestAnthropicProvider:
     async def test_translate_cache_system_true_sends_list_with_cache_control(self) -> None:
         provider = self._make_provider()
 
-        mock_content = MagicMock()
+        mock_content = MagicMock(spec=TextBlock)
         mock_content.text = "Bonjour"
         mock_usage = MagicMock()
         mock_usage.input_tokens = 12
@@ -138,7 +139,7 @@ class TestAnthropicProvider:
     async def test_translate_cache_system_false_sends_plain_string(self) -> None:
         provider = self._make_provider()
 
-        mock_content = MagicMock()
+        mock_content = MagicMock(spec=TextBlock)
         mock_content.text = "Bonjour"
         mock_usage = MagicMock()
         mock_usage.input_tokens = 5
@@ -165,7 +166,7 @@ class TestAnthropicProvider:
         raising."""
         provider = self._make_provider()
 
-        mock_content = MagicMock()
+        mock_content = MagicMock(spec=TextBlock)
         mock_content.text = "Bonjour"
         mock_response = MagicMock()
         mock_response.content = [mock_content]
@@ -181,7 +182,7 @@ class TestAnthropicProvider:
     async def test_evaluate_returns_text_and_usage(self) -> None:
         provider = self._make_provider()
 
-        mock_content = MagicMock()
+        mock_content = MagicMock(spec=TextBlock)
         mock_content.text = '{"naturalness": 5}'
         mock_usage = MagicMock()
         mock_usage.input_tokens = 100

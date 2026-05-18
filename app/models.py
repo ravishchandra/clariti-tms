@@ -63,7 +63,7 @@ class PluralConvention(str, enum.Enum):  # noqa: UP042 — StrEnum changes __str
 
 class StringType(str, enum.Enum):  # noqa: UP042 — StrEnum changes __str__ semantics; keep explicit (str, Enum) for SQLAlchemy native_enum + Pydantic JSON serialization stability
     button = "button"
-    title = "title"
+    title = "title"  # type: ignore[assignment]  # member name shadows str.title; runtime is fine
     label = "label"
     placeholder = "placeholder"
     error = "error"
@@ -109,13 +109,15 @@ class UserRole(str, enum.Enum):  # noqa: UP042 — StrEnum changes __str__ seman
 # columns — this ensures a single CREATE TYPE statement in Alembic.
 # ---------------------------------------------------------------------------
 
-sa_platform_type = enum.Enum("PlatformType", {e.value: e.value for e in PlatformType})
-sa_file_format_type = enum.Enum("FileFormatType", {e.value: e.value for e in FileFormatType})
-sa_plural_convention = enum.Enum("PluralConvention", {e.value: e.value for e in PluralConvention})
-sa_string_type = enum.Enum("StringType", {e.value: e.value for e in StringType})
-sa_batch_status = enum.Enum("BatchStatus", {e.value: e.value for e in BatchStatus})
-sa_translation_status = enum.Enum("TranslationStatus", {e.value: e.value for e in TranslationStatus})
-sa_user_role = enum.Enum("UserRole", {e.value: e.value for e in UserRole})
+# mypy can't statically reason about Enum() built from a dict comprehension,
+# but it's the right runtime shape for SQLAlchemy's native-enum column type.
+sa_platform_type = enum.Enum("PlatformType", {e.value: e.value for e in PlatformType})  # type: ignore[misc]
+sa_file_format_type = enum.Enum("FileFormatType", {e.value: e.value for e in FileFormatType})  # type: ignore[misc]
+sa_plural_convention = enum.Enum("PluralConvention", {e.value: e.value for e in PluralConvention})  # type: ignore[misc]
+sa_string_type = enum.Enum("StringType", {e.value: e.value for e in StringType})  # type: ignore[misc]
+sa_batch_status = enum.Enum("BatchStatus", {e.value: e.value for e in BatchStatus})  # type: ignore[misc]
+sa_translation_status = enum.Enum("TranslationStatus", {e.value: e.value for e in TranslationStatus})  # type: ignore[misc]
+sa_user_role = enum.Enum("UserRole", {e.value: e.value for e in UserRole})  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------

@@ -79,6 +79,9 @@ async def handle_github_push(
     token = await get_installation_token(install_id)
     client = GitHubClient(token=token)
 
+    if repository.github_repo is None:
+        raise RuntimeError(f"Repository {repository.id} has no github_repo — cannot ingest from webhook")
+
     content = await client.get_file_content(
         repo=repository.github_repo,
         path=source_file,

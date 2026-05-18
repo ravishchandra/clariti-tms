@@ -1,8 +1,26 @@
 from __future__ import annotations
 
+from typing import cast
+
 import anthropic
+from anthropic.types import TextBlock, TextBlockParam
 
 from app.llm.protocol import LLMProviderBase, TokenUsage
+
+
+def _first_text(content: list[object]) -> str:
+    """Pull the text out of the first TextBlock in an Anthropic response.
+
+    `response.content` is a list of `ContentBlock` (a union of `TextBlock`,
+    `ThinkingBlock`, `ToolUseBlock`, ...). Only `TextBlock` has `.text`. For
+    a plain translate/evaluate call we don't request tools or thinking, so
+    the first block is always a TextBlock — but mypy still needs the
+    isinstance narrowing.
+    """
+    for block in content:
+        if isinstance(block, TextBlock):
+            return block.text
+    raise RuntimeError("Anthropic response contained no TextBlock")
 
 
 class AnthropicProvider(LLMProviderBase):
@@ -11,13 +29,17 @@ class AnthropicProvider(LLMProviderBase):
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
 
     async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
+        system_arg: str | list[TextBlockParam]
         if cache_system:
-            system_arg: list[dict] | str = [
-                {
-                    "type": "text",
-                    "text": system,
-                    "cache_control": {"type": "ephemeral"},
-                }
+            system_arg = [
+                cast(
+                    TextBlockParam,
+                    {
+                        "type": "text",
+                        "text": system,
+                        "cache_control": {"type": "ephemeral"},
+                    },
+                )
             ]
         else:
             system_arg = system
@@ -28,7 +50,7 @@ class AnthropicProvider(LLMProviderBase):
             system=system_arg,
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.content[0].text, _extract_usage(response)
+        return _first_text(list(response.content)), _extract_usage(response)
 
     async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
         response = await self._client.messages.create(
@@ -37,7 +59,7 @@ class AnthropicProvider(LLMProviderBase):
             system="",
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.content[0].text, _extract_usage(response)
+        return _first_text(list(response.content)), _extract_usage(response)
 
     async def embed(self, text: str) -> list[float]:
         raise NotImplementedError("Anthropic does not support embeddings — use OpenAIProvider for TM retrieval")

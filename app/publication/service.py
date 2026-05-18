@@ -30,6 +30,10 @@ async def publish_repository(
     translations_by_locale: dict[str, dict[str, str]] = defaultdict(dict)
     translation_ids: list = []
     for translation, key in pairs:
+        # list_approved_translations already filters value IS NOT NULL, but the
+        # column is `Optional[str]` so mypy still needs the narrowing.
+        if translation.value is None:
+            continue
         translations_by_locale[translation.locale][key.key] = translation.value
         translation_ids.append(translation.id)
 

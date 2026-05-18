@@ -31,7 +31,9 @@ async def select_bootstrap_sample(
             Key.is_active.is_(True),
         )
     )
-    pairs = rows.all()
+    # Convert SQLAlchemy Row objects to plain tuples so `random.sample`
+    # gets the `Sequence[tuple[...]]` shape it advertises.
+    pairs: list[tuple[Key, Translation]] = [(k, t) for k, t in rows.all()]
 
     # Bucket by risk class, then sample proportionally
     buckets: dict[str, list] = {}

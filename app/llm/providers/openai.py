@@ -15,10 +15,12 @@ class OpenAIProvider(LLMProviderBase):
     ) -> None:
         self._model = model
         self._embedding_model = embedding_model
-        self._client = openai.AsyncOpenAI(
-            api_key=api_key,
-            **({"base_url": base_url} if base_url else {}),
-        )
+        # `**{conditional-dict}` confuses mypy on the multi-overload AsyncOpenAI
+        # constructor — pass base_url explicitly instead.
+        if base_url:
+            self._client = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
+        else:
+            self._client = openai.AsyncOpenAI(api_key=api_key)
 
     async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
@@ -28,7 +30,13 @@ class OpenAIProvider(LLMProviderBase):
                 {"role": "user", "content": prompt},
             ],
         )
-        return response.choices[0].message.content, _extract_usage(response)
+        # OpenAI types `.message.content` as `Optional[str]` (the SDK allows
+        # `None` when content was filtered or refused). For our translate path
+        # we treat that as a provider failure rather than silently returning "".
+        content = response.choices[0].message.content
+        if content is None:
+            raise RuntimeError("OpenAI returned no content (filtered or refused)")
+        return content, _extract_usage(response)
 
     async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
@@ -37,7 +45,10 @@ class OpenAIProvider(LLMProviderBase):
                 {"role": "user", "content": prompt},
             ],
         )
-        return response.choices[0].message.content, _extract_usage(response)
+        content = response.choices[0].message.content
+        if content is None:
+            raise RuntimeError("OpenAI returned no content (filtered or refused)")
+        return content, _extract_usage(response)
 
     async def embed(self, text: str) -> list[float]:
         response = await self._client.embeddings.create(

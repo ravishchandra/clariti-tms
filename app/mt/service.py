@@ -561,9 +561,16 @@ async def translate_batch(
     batch.status = BatchStatus.mt_running
     await db.flush()
 
-    # Load project, repo, locale config
+    # Load project, repo, locale config. project and repo are guaranteed
+    # non-None by FK constraints on TranslationBatch — assertions narrow the
+    # type for mypy and surface the impossible case if it ever happens.
     project = await db.get(Project, batch.project_id)
     repo = await db.get(Repository, batch.repository_id)
+    if project is None or repo is None:
+        raise RuntimeError(
+            f"Batch {batch.id} references missing project={batch.project_id} "
+            f"or repository={batch.repository_id} — FK constraint violated."
+        )
     locale_cfg = await db.scalar(
         select(LocaleConfig).where(
             LocaleConfig.project_id == batch.project_id,

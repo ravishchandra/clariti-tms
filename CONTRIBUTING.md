@@ -18,7 +18,7 @@ Thanks for your interest! Clariti TMS is an open-source translation management s
 
 These are non-negotiable for code that lands on `main`. They exist for reasons documented in `CLAUDE.md` and the audit history (`docs/11-audit-followups.md`):
 
-- **Python:** type hints everywhere; `ruff check .` and `ruff format --check .` must pass; `mypy app cli` must pass.
+- **Python:** type hints everywhere; `ruff check .` and `ruff format --check .` must pass. `mypy app cli` runs in CI as **informational** today (~71 pre-existing errors carried from before the mypy config was relaxed) — please don't add new mypy errors. The goal is to ratchet mypy back to a required check once the backlog clears; small per-PR fixes are welcome.
 - **Async I/O:** `asyncio` via FastAPI defaults. No blocking I/O in request handlers.
 - **DB migrations:** Alembic, one migration per logical change. **Never edit a committed migration** — always add a new one.
 - **Secrets:** never in code, never in DB plaintext. `.env` is gitignored. Fernet-encrypted at rest via `app/core/crypto.py`. Operator gets `FERNET_KEY` and `SECRET_KEY` from a real KMS in production.

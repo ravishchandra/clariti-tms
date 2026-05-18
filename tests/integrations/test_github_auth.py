@@ -277,14 +277,24 @@ class TestGetInstallationToken:
             await gh_auth.get_installation_token(None)  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
-    async def test_github_5xx_raises(self, configured_settings) -> None:
+    async def test_github_5xx_raises_retryable(self, configured_settings) -> None:
+        """F6: GitHub 5xx surfaces as the typed `GitHubRetryableError` (not the
+        raw `httpx.HTTPStatusError`) so the publication endpoint can map it
+        cleanly onto a 503 + Retry-After response.
+        """
+        from app.integrations.github.errors import GitHubRetryableError
+
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(500, json={"message": "boom"})
 
         transport = httpx.MockTransport(handler)
         async with httpx.AsyncClient(transport=transport) as client:
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(GitHubRetryableError) as exc_info:
                 await gh_auth.get_installation_token(55, http_client=client)
+
+        # The raw httpx error is preserved on __cause__ for log forensics.
+        assert exc_info.value.status_code == 500
+        assert isinstance(exc_info.value.__cause__, httpx.HTTPStatusError)
 
 
 # ---------------------------------------------------------------------------

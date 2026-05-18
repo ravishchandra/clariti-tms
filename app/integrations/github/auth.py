@@ -35,6 +35,10 @@ import httpx
 import jwt
 
 from app.core.settings import get_settings
+from app.integrations.github.errors import (
+    classify_http_status_error,
+    classify_request_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -179,9 +183,18 @@ async def _exchange_jwt_for_installation_token(
 
     owns_client = http_client is None
     client = http_client or httpx.AsyncClient()
+    # Wrap GitHub failures into the typed hierarchy from `errors.py` so the
+    # publication endpoint (F6) can map them onto stable HTTP responses
+    # without re-encoding the classification logic at the call site.
+    context = f"minting installation token for installation {installation_id}"
     try:
-        resp = await client.post(url, headers=headers)
-        resp.raise_for_status()
+        try:
+            resp = await client.post(url, headers=headers)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise classify_http_status_error(exc, context=context) from exc
+        except httpx.RequestError as exc:
+            raise classify_request_error(exc, context=context) from exc
         data = resp.json()
     finally:
         if owns_client:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import openai
 
-from app.llm.protocol import LLMProviderBase
+from app.llm.protocol import LLMProviderBase, TokenUsage
 
 
 class OpenAIProvider(LLMProviderBase):
@@ -20,7 +20,9 @@ class OpenAIProvider(LLMProviderBase):
             **({"base_url": base_url} if base_url else {}),
         )
 
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> str:
+    async def translate(
+        self, prompt: str, system: str, *, cache_system: bool = False
+    ) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
@@ -28,16 +30,16 @@ class OpenAIProvider(LLMProviderBase):
                 {"role": "user", "content": prompt},
             ],
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content, _extract_usage(response)
 
-    async def evaluate(self, prompt: str) -> str:
+    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
                 {"role": "user", "content": prompt},
             ],
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content, _extract_usage(response)
 
     async def embed(self, text: str) -> list[float]:
         response = await self._client.embeddings.create(
@@ -62,3 +64,24 @@ class OpenAIProvider(LLMProviderBase):
     @property
     def price_per_1k_output(self) -> float:
         return 0.01
+
+
+def _extract_usage(response: object) -> TokenUsage:
+    """Pull ``prompt_tokens`` / ``completion_tokens`` off an OpenAI response.
+
+    The OpenAI Python SDK (v1.x) Chat Completions response exposes
+    ``response.usage.prompt_tokens`` and ``completion_tokens``. OpenRouter
+    proxies the same field names so this helper covers both providers (the
+    OpenRouter subclass reuses ``translate`` / ``evaluate`` unchanged).
+
+    Zero defaults handle the case where the upstream provider omits the
+    usage block — under-counted cost is preferable to a crashed translate
+    call.
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return {"input_tokens": 0, "output_tokens": 0}
+    return {
+        "input_tokens": int(getattr(usage, "prompt_tokens", 0) or 0),
+        "output_tokens": int(getattr(usage, "completion_tokens", 0) or 0),
+    }

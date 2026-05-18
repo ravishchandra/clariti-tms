@@ -28,15 +28,31 @@ request_id_middleware(app)
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    """Log a masked DB URL on startup to confirm settings loaded."""
+    """Log a masked DB URL on startup to confirm settings loaded.
+
+    Masking rebuilds the URL from urlparse components rather than running
+    str.replace on the password — the latter would also mask any other
+    occurrence of the password substring (e.g. when the password equals the
+    user/db name, as in our dev `tms:tms@host/tms`).
+    """
     db_url = settings.DATABASE_URL
-    # Mask credentials: postgresql+asyncpg://user:PASS@host/db
     try:
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, urlunparse
 
         parsed = urlparse(db_url)
         masked_host = parsed.hostname or "<unknown>"
-        masked = db_url.replace(parsed.password or "", "***") if parsed.password else db_url
+        if parsed.password:
+            host_with_port = parsed.hostname or ""
+            if parsed.port:
+                host_with_port += f":{parsed.port}"
+            netloc = (
+                f"{parsed.username or ''}:***@{host_with_port}"
+                if parsed.username
+                else f":***@{host_with_port}"
+            )
+            masked = urlunparse(parsed._replace(netloc=netloc))
+        else:
+            masked = db_url
     except Exception:
         masked = "<masked>"
         masked_host = "<unknown>"

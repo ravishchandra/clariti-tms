@@ -57,6 +57,16 @@ In service code that already has the ids in scope, pass them as
 
     logger.info("mt.run.completed", extra={"translation_id": str(tid)})
 
+Operator hygiene
+----------------
+
+This formatter does not filter fields. Anything passed via ``extra=`` or
+bound via ``bind(...)`` lands in the JSON output verbatim. Do not pass
+API keys, passwords, decrypted secrets, raw user content, or PII as
+``extra`` fields — log structured *identifiers* (ids, hashes) and short
+event names. Add log-shipping side filters if your platform handles PII
+at the sink.
+
 JSON record shape::
 
     {"ts": "2026-05-17T10:11:12.345678+00:00",

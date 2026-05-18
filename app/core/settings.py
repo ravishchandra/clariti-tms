@@ -115,8 +115,43 @@ class Settings(BaseSettings):
             )
         return self
 
+    # Fernet symmetric encryption key for per-repository secrets stored in the DB
+    # (webhook_secret_encrypted, contentful_token_encrypted,
+    # contentful_webhook_secret_encrypted). Must be a 32-byte url-safe base64
+    # string — generate one with `python -c "from cryptography.fernet import
+    # Fernet; print(Fernet.generate_key().decode())"`.
+    #
+    # When DEBUG is False, this MUST be set in the environment; otherwise the app
+    # refuses to start. In DEBUG mode an unset key triggers a transient in-process
+    # key (cipher cannot be decrypted across restarts — dev only).
+    FERNET_KEY: str = ""
+
+
+def _validate_fernet_key(settings: "Settings") -> None:
+    """Enforce FERNET_KEY presence in non-DEBUG mode; warn-and-generate in DEBUG."""
+    if settings.FERNET_KEY:
+        return
+    if not settings.DEBUG:
+        raise RuntimeError(
+            "FERNET_KEY is required when DEBUG=False. Generate one with "
+            "`python -c \"from cryptography.fernet import Fernet; "
+            "print(Fernet.generate_key().decode())\"` and set it in the "
+            "environment."
+        )
+    # Dev convenience: mint an ephemeral key so the app boots without one.
+    # Anything encrypted with this key cannot be decrypted after a restart.
+    from cryptography.fernet import Fernet  # local import — avoids hard dep at import time
+
+    settings.FERNET_KEY = Fernet.generate_key().decode()
+    logger.warning(
+        "FERNET_KEY not set; generated a transient key for DEBUG mode. "
+        "Encrypted column values will not survive an app restart."
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return cached Settings instance. Call once at import time is fine."""
-    return Settings()
+    settings = Settings()
+    _validate_fernet_key(settings)
+    return settings

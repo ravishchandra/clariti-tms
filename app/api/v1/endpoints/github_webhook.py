@@ -7,6 +7,7 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from sqlalchemy import select
 
 from app.api.deps import DB
+from app.core.crypto import InvalidToken, decrypt
 from app.integrations.github.webhook import handle_github_push, verify_github_signature
 from app.models import Repository
 
@@ -37,18 +38,35 @@ async def receive_github_webhook(
     if repository is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not registered")
 
-    # Sanity: the resolved repository must have a project FK. NOT NULL enforces this
-    # at the DB level, but assert here so any drift surfaces as a 500, not as
-    # silently-misrouted writes against a foreign tenant.
+    # C1: sanity-check project FK before any downstream cross-module write.
+    # NOT NULL enforces this at the DB level; this guard surfaces drift as a
+    # 500 rather than silently misrouting writes against a foreign tenant.
     if repository.project_id is None:
-        logger.error("github.webhook.repository_missing_project_id", extra={"repo_id": str(repository.id)})
+        logger.error(
+            "github.webhook.repository_missing_project_id",
+            extra={"repo_id": str(repository.id)},
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Repository state inconsistent",
         )
 
-    # TODO: decrypt webhook_secret_encrypted with Fernet before comparing
-    secret = repository.webhook_secret_encrypted or ""
+    # C3: decrypt the at-rest Fernet ciphertext before HMAC comparison.
+    # If the column holds a legacy plaintext or was encrypted with a different
+    # FERNET_KEY, decrypt raises InvalidToken. Treat that as 401 (same as a
+    # mismatched signature) so GitHub won't retry forever; log loudly so the
+    # operator can fix FERNET_KEY or re-rotate the secret.
+    try:
+        secret = decrypt(repository.webhook_secret_encrypted) or ""
+    except InvalidToken:
+        logger.error(
+            "github.webhook.secret_decrypt_failed",
+            extra={"repository_id": str(repository.id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Webhook secret unreadable on server; check FERNET_KEY",
+        ) from None
     if secret and not verify_github_signature(payload_bytes, x_hub_signature_256 or "", secret):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
 

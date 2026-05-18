@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB
+from app.core.crypto import InvalidToken, decrypt
 from app.integrations.contentful.webhook import handle_contentful_publish, verify_contentful_signature
 from app.models import Repository
 
@@ -49,9 +50,7 @@ async def receive_contentful_webhook(
         # Return 200 so Contentful does not retry for unknown spaces.
         return {"status": "ignored", "reason": "no repository configured for this space"}
 
-    # Sanity: the resolved repository must have a project FK. NOT NULL enforces
-    # this at the DB level, but assert defensively so any drift fails loudly
-    # instead of routing writes against the wrong tenant.
+    # C1: sanity-check project FK before any downstream cross-module write.
     if repository.project_id is None:
         logger.error(
             "contentful.webhook.repository_missing_project_id",
@@ -62,7 +61,19 @@ async def receive_contentful_webhook(
             detail="Repository state inconsistent",
         )
 
-    secret = repository.contentful_webhook_secret_encrypted
+    # C3: decrypt the at-rest Fernet ciphertext before the shared-secret comparison.
+    # See github_webhook.py for the rationale on InvalidToken -> 401.
+    try:
+        secret = decrypt(repository.contentful_webhook_secret_encrypted)
+    except InvalidToken:
+        logger.error(
+            "contentful.webhook.secret_decrypt_failed",
+            extra={"repository_id": str(repository.id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Webhook secret unreadable on server; check FERNET_KEY",
+        ) from None
     if secret:
         if not x_contentful_webhook_secret or not verify_contentful_signature(
             payload_bytes, x_contentful_webhook_secret, secret

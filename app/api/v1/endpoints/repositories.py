@@ -6,9 +6,18 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, ScopedProject, ScopedRepository
 from app.api.v1.schemas.repositories import RepositoryCreate, RepositoryRead, RepositoryUpdate
+from app.core.crypto import encrypt
 from app.models import Repository
 
 router = APIRouter()
+
+# Map of write-only secret fields on the input schema -> Repository column name.
+# Anything in this map is encrypted at the API boundary, never persisted plain.
+_SECRET_FIELD_TO_COLUMN: dict[str, str] = {
+    "webhook_secret": "webhook_secret_encrypted",
+    "contentful_token": "contentful_token_encrypted",
+    "contentful_webhook_secret": "contentful_webhook_secret_encrypted",
+}
 
 
 @router.post("/{project_id}/repositories", response_model=RepositoryRead, status_code=status.HTTP_201_CREATED)
@@ -28,6 +37,10 @@ async def create_repository(
         contentful_space_id=body.contentful_space_id,
         contentful_env=body.contentful_env,
         default_branch=body.default_branch,
+        # Encrypt incoming secrets before they touch the DB. `encrypt(None) == None`.
+        webhook_secret_encrypted=encrypt(body.webhook_secret),
+        contentful_token_encrypted=encrypt(body.contentful_token),
+        contentful_webhook_secret_encrypted=encrypt(body.contentful_webhook_secret),
     )
     db.add(repo)
     try:
@@ -64,7 +77,12 @@ async def get_repository(repo: ScopedRepository) -> RepositoryRead:
 async def update_repository(
     body: RepositoryUpdate, db: DB, repo: ScopedRepository
 ) -> RepositoryRead:
-    for field, value in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    # C3: pull off any incoming secrets, encrypt, and route to the *_encrypted column.
+    for field, column in _SECRET_FIELD_TO_COLUMN.items():
+        if field in updates:
+            setattr(repo, column, encrypt(updates.pop(field)))
+    for field, value in updates.items():
         setattr(repo, field, value)
     try:
         await db.flush()

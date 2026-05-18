@@ -712,13 +712,150 @@ def export(
 
 @app.command(name="import")
 def import_file(
-    file: str = typer.Option(..., "--file"),
-    dry_run: bool = typer.Option(False, "--dry-run"),
-    commit: bool = typer.Option(False, "--commit"),
-    rollback: str = typer.Option(None, "--rollback"),
+    file: str = typer.Option(None, "--file", help="Path to .xlsx (required for --dry-run / --commit)"),
+    project: str = typer.Option(None, "--project", help="Project slug (required for --dry-run / --commit)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview only, no DB writes"),
+    commit: bool = typer.Option(False, "--commit", help="Apply changes (writes to DB)"),
+    rollback: str = typer.Option(None, "--rollback", help="Import job UUID to roll back"),
+    force_overwrite: bool = typer.Option(False, "--force-overwrite", help="Apply conflicted rows anyway (admin)"),
 ) -> None:
-    """Import translations from Excel. (Phase 5)"""
-    console.print("[dim]loc import — Phase 5[/dim]")
+    """Import translations from Excel — dry-run, commit, or rollback.
+
+    Examples:
+        loc import --file ./review.xlsx --project clariti-web --dry-run
+        loc import --file ./review.xlsx --project clariti-web --commit
+        loc import --rollback <job_id>
+    """
+    asyncio.run(_import_cmd(file, project, dry_run, commit, rollback, force_overwrite))
+
+
+async def _import_cmd(
+    file: str | None,
+    project_slug: str | None,
+    dry_run: bool,
+    commit_flag: bool,
+    rollback_job_id: str | None,
+    force_overwrite: bool,
+) -> None:
+    import uuid as _uuid
+
+    from app.core.database import AsyncSessionLocal
+    from app.export_import.commit import (
+        ExcelImportError,
+        commit_import,
+        preview_import,
+        rollback_import,
+    )
+    from app.models import Project, User
+
+    # Mode dispatch. Exactly one mode must be selected.
+    mode_count = sum([dry_run, commit_flag, bool(rollback_job_id)])
+    if mode_count == 0:
+        err.print("[red]Pick exactly one: --dry-run, --commit, or --rollback <id>.[/red]")
+        raise typer.Exit(1)
+    if mode_count > 1:
+        err.print("[red]--dry-run, --commit, and --rollback are mutually exclusive.[/red]")
+        raise typer.Exit(1)
+
+    if rollback_job_id is not None:
+        try:
+            job_uuid = _uuid.UUID(rollback_job_id)
+        except ValueError:
+            err.print(f"[red]--rollback expects a UUID, got: {rollback_job_id!r}[/red]")
+            raise typer.Exit(1)
+
+        async with AsyncSessionLocal() as db:
+            try:
+                job = await rollback_import(db=db, job_id=job_uuid)
+            except ExcelImportError as exc:
+                err.print(f"[red]Rollback failed:[/red] {exc}")
+                raise typer.Exit(1)
+            await db.commit()
+        console.print(f"[green]✓[/green] Rolled back import job [bold]{job.id}[/bold]")
+        return
+
+    # dry-run / commit paths share the same parsing + project resolution.
+    if not file:
+        err.print("[red]--file is required for --dry-run / --commit.[/red]")
+        raise typer.Exit(1)
+    if not project_slug:
+        err.print("[red]--project is required for --dry-run / --commit.[/red]")
+        raise typer.Exit(1)
+
+    file_path = Path(file).resolve()
+    if not file_path.exists():
+        err.print(f"[red]File not found:[/red] {file}")
+        raise typer.Exit(1)
+
+    async with AsyncSessionLocal() as db:
+        project_obj = await db.scalar(select(Project).where(Project.slug == project_slug))
+        if project_obj is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+
+        user = await db.scalar(
+            select(User)
+            .where(User.organization_id == project_obj.organization_id, User.is_active.is_(True))
+            .order_by(User.created_at)
+        )
+        if user is None:
+            err.print(
+                "[red]No active user in this organization — cannot record uploaded_by.[/red] Create a user first."
+            )
+            raise typer.Exit(1)
+
+        try:
+            job = await preview_import(
+                db=db,
+                project_id=project_obj.id,
+                file_path=str(file_path),
+                filename=file_path.name,
+                uploaded_by=user.id,
+            )
+        except ExcelImportError as exc:
+            err.print(f"[red]Preview failed:[/red] {exc}")
+            raise typer.Exit(1)
+
+        await db.commit()
+
+        summary = job.dry_run_summary or {}
+        counts = summary.get("counts", {})
+        console.print(f"\n[bold]Import preview — {file_path.name}[/bold]")
+        console.print(f"  schema_version: {summary.get('schema_version')}")
+        console.print(f"  total_rows:     {summary.get('total_rows')}")
+        console.print(f"  approve(yes):   {counts.get('approve', 0)}")
+        console.print(f"  edit:           {counts.get('edit', 0)}")
+        console.print(f"  reject(no):     {counts.get('reject', 0)}")
+        console.print(f"  needs_more_ctx: {counts.get('needs_more_context', 0)}")
+        console.print(f"  skip (blank):   {counts.get('skip', 0)}")
+        console.print(f"  unknown:        {counts.get('unknown', 0)}")
+        console.print(f"  validation errors: {summary.get('validation_error_count', 0)}")
+        conflicts = summary.get("conflicts", {})
+        console.print(
+            f"  conflicts:      source_changed={conflicts.get('source_changed', 0)}, "
+            f"modified_externally={conflicts.get('translation_modified_externally', 0)}"
+        )
+        console.print(f"\n  import_job_id: [bold]{job.id}[/bold]\n")
+
+        if dry_run:
+            return
+
+        # --commit: apply.
+        try:
+            committed = await commit_import(db=db, job_id=job.id, force_overwrite=force_overwrite)
+        except ExcelImportError as exc:
+            err.print(f"[red]Commit failed:[/red] {exc}")
+            raise typer.Exit(1)
+        await db.commit()
+
+        applied = (committed.applied_changes or {}).get("changes", [])
+        skipped = (committed.applied_changes or {}).get("skipped", [])
+        console.print(f"[green]✓[/green] Committed {len(applied)} change(s) · skipped {len(skipped)}")
+        if committed.rollback_expires_at:
+            console.print(
+                f"  Rollback available until {committed.rollback_expires_at.isoformat()} "
+                f"via [bold]loc import --rollback {committed.id}[/bold]"
+            )
 
 
 # ---------------------------------------------------------------------------

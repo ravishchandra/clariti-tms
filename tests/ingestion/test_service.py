@@ -81,6 +81,9 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 _WIPE_TABLES: tuple[str, ...] = (
     "translation_history",
     "mt_runs",
+    # import_jobs / users added so cross-suite runs with Phase 5 tests don't
+    # leave dangling FKs that block the projects DELETE below.
+    "import_jobs",
     "translation_memory",
     "translations",
     "translation_batches",
@@ -90,6 +93,7 @@ _WIPE_TABLES: tuple[str, ...] = (
     "glossary_terms",
     "repositories",
     "projects",
+    "users",
     "organizations",
 )
 

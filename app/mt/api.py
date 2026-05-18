@@ -109,3 +109,21 @@ async def mark_translations_published(
         except IllegalTransitionError:
             # Not in `approved` — skip, matching the prior WHERE-filter semantics.
             continue
+
+
+async def fetch_translations_by_ids(
+    db: AsyncSession,
+    translation_ids: list[uuid.UUID],
+) -> list[Translation]:
+    """Load a set of translations by id, in arbitrary order.
+
+    Public reader for cross-module use. The Excel-import module uses this
+    instead of selecting from ``translations`` directly so the module-
+    boundary rule (CLAUDE.md, "Module boundaries") stays enforceable in
+    review: any other module reading translation rows must do it through
+    here.
+    """
+    if not translation_ids:
+        return []
+    result = await db.execute(select(Translation).where(Translation.id.in_(translation_ids)))
+    return list(result.scalars().all())

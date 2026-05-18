@@ -173,10 +173,66 @@ def apply_transition(
         translation.published_at = now
 
 
+def rollback_to(
+    translation: Translation,
+    *,
+    target_status: str | TranslationStatus,
+    prior_value: str | None,
+    prior_reviewer_action: str | None,
+    prior_reviewer_notes: str | None,
+) -> None:
+    """Restore a translation to a snapshotted prior state, bypassing edges.
+
+    Used **only** by the Excel-import rollback flow (see
+    ``app.export_import.commit.rollback_import``). A rollback must be able
+    to reach states the forward state machine wouldn't normally allow from
+    the current state — e.g., reversing an ``approved -> published``
+    transition needs to write ``approved`` over ``published``, which is not
+    in ``LEGAL_TRANSITIONS``.
+
+    This helper deliberately:
+
+    * Does not validate against ``LEGAL_TRANSITIONS``. The whole point is
+      to take a non-forward edge.
+    * Bumps ``updated_at`` so the Postgres history trigger fires — the
+      audit trail records "rollback" as just another change row. Callers
+      should ``SET LOCAL app.change_source = 'xlsx_rollback'`` before the
+      UPDATE so the trigger stamps the source correctly.
+    * Clears the published_at timestamp when stepping out of ``published``
+      so the published_at invariant ("set when status crosses to
+      published") holds going forward.
+    * Restores ``value`` / ``reviewer_action`` / ``reviewer_notes`` from
+      the caller's snapshot. ``mt_value`` is *not* in this list because
+      the codebase invariant (docs/04:425) says ``mt_value`` is
+      append-only and never overwritten — so it wasn't changed by the
+      import in the first place and doesn't need restoring.
+
+    The audit-log story is "this is a documented escape hatch, callable
+    only from app.export_import; every call should be paired with a
+    SET LOCAL change_source attribution and an import_jobs row that
+    records the snapshot". See docs/07-excel-roundtrip.md:156-202.
+    """
+    target = _coerce(target_status)
+    now = datetime.now(tz=UTC)
+    prior_status = _coerce(translation.status)
+
+    translation.status = target
+    translation.value = prior_value
+    translation.reviewer_action = prior_reviewer_action
+    translation.reviewer_notes = prior_reviewer_notes
+    translation.updated_at = now
+
+    # If we're walking back from `published`, clear the published_at stamp
+    # so the invariant "published_at set iff status == published" holds.
+    if prior_status == _S.published.value and target != _S.published.value:
+        translation.published_at = None
+
+
 __all__ = [
     "ALLOWED_REVIEWER_ACTIONS",
     "IllegalTransitionError",
     "InvalidReviewerActionError",
     "LEGAL_TRANSITIONS",
     "apply_transition",
+    "rollback_to",
 ]

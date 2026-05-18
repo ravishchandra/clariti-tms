@@ -9,7 +9,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import get_db, set_request_attribution
 from app.models import (
     ApiKey,
     ComponentContext,
@@ -46,6 +46,12 @@ async def _get_api_key(
     if previous is None or now - previous >= _LAST_USED_DEBOUNCE:
         api_key.last_used_at = now
         await db.flush()
+
+    # F4 — stamp per-request attribution onto the session so the
+    # `record_translation_history` trigger records `change_source='api'`
+    # (and a future user_id once user-session auth lands in Phase 6).
+    # ApiKey carries no user_id today, so changed_by is left NULL.
+    await set_request_attribution(db, source="api", user_id=None)
     return api_key
 
 

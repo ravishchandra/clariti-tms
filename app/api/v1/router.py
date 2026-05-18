@@ -62,3 +62,13 @@ try:
     router.include_router(contentful_webhook_router, prefix="/webhooks/contentful", tags=["Contentful"])
 except ImportError:
     pass
+
+# Phase 5 — Excel export. The import endpoints live in a parallel module
+# (``imports.py``) owned by the import agent; both are tolerant of each other's
+# absence so the app boots even if only one half has merged.
+try:
+    from app.api.v1.endpoints.exports import router as exports_router
+
+    router.include_router(exports_router, prefix="/exports", tags=["Exports"])
+except ImportError:
+    pass

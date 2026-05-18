@@ -5,6 +5,14 @@ import math
 import re
 from collections.abc import Awaitable, Callable
 
+from app.llm.protocol import TokenUsage
+
+# Type alias for clarity — ``evaluate_fn`` is supplied by an LLMProvider
+# whose ``evaluate()`` returns ``(text, usage)`` per D2 (token-counting).
+# QA paths discard ``usage`` for now; aggregating QA-call tokens into
+# ``mt_runs`` is tracked separately.
+EvaluateFn = Callable[[str], Awaitable[tuple[str, TokenUsage]]]
+
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b))
@@ -19,10 +27,10 @@ async def back_translation_qa(
     source: str,
     translated: str,
     locale: str,
-    evaluate_fn: Callable[[str], Awaitable[str]],
+    evaluate_fn: EvaluateFn,
     embed_fn: Callable[[str], Awaitable[list[float]]],
 ) -> tuple[str, float]:
-    back = await evaluate_fn(
+    back, _usage = await evaluate_fn(
         f"Translate this {locale} text back to English.\n"
         f"Output only the English translation. No explanation.\n\n"
         f"Text: {translated}"
@@ -38,12 +46,12 @@ async def locale_consistency_eval(
     domain_description: str,
     locale_notes: str | None,
     tm_neighbors: list[dict],
-    evaluate_fn: Callable[[str], Awaitable[str]],
+    evaluate_fn: EvaluateFn,
 ) -> dict:
     examples = "\n".join(
         f'  {n["source_text"]} → {n["target_text"]}' for n in tm_neighbors[:5]
     ) or "  (none yet)"
-    raw = await evaluate_fn(
+    raw, _usage = await evaluate_fn(
         f"You are a {locale} language quality evaluator for {domain_description}.\n\n"
         f'Source (en-US): "{source}"\n'
         f'Translation ({locale}): "{translated}"\n\n'

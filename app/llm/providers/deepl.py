@@ -4,7 +4,7 @@ import json
 
 import httpx
 
-from app.llm.protocol import LLMProviderBase
+from app.llm.protocol import LLMProviderBase, TokenUsage, zero_usage
 
 
 class DeepLProvider(LLMProviderBase):
@@ -13,7 +13,9 @@ class DeepLProvider(LLMProviderBase):
         self._base_url = "https://api.deepl.com/v2" if pro else "https://api-free.deepl.com/v2"
         self._headers = {"Authorization": f"DeepL-Auth-Key {api_key}"}
 
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> str:
+    async def translate(
+        self, prompt: str, system: str, *, cache_system: bool = False
+    ) -> tuple[str, TokenUsage]:
         # prompt is a JSON string of {key: source_text, ...}; system is the target locale
         texts: dict[str, str] = json.loads(prompt)
         # DeepL uses language codes without region subtag (fr-FR → FR)
@@ -34,9 +36,14 @@ class DeepLProvider(LLMProviderBase):
                 resp.raise_for_status()
                 translated[key] = resp.json()["translations"][0]["text"]
 
-        return json.dumps(translated, ensure_ascii=False)
+        # DeepL bills per character, not per token; the API doesn't expose a
+        # per-call usage block. Returning zeros documents "unknown" cleanly
+        # (see ``TokenUsage`` docstring); accurate cost tracking would
+        # require summing characters and applying the DeepL char rate, which
+        # is out of scope for D2.
+        return json.dumps(translated, ensure_ascii=False), zero_usage()
 
-    async def evaluate(self, prompt: str) -> str:
+    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
         raise NotImplementedError("DeepL does not support evaluation")
 
     async def embed(self, text: str) -> list[float]:

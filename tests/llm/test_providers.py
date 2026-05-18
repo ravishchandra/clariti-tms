@@ -111,14 +111,21 @@ class TestAnthropicProvider:
 
         mock_content = MagicMock()
         mock_content.text = "Bonjour"
+        mock_usage = MagicMock()
+        mock_usage.input_tokens = 12
+        mock_usage.output_tokens = 7
         mock_response = MagicMock()
         mock_response.content = [mock_content]
+        mock_response.usage = mock_usage
 
         provider._client.messages.create = AsyncMock(return_value=mock_response)
 
-        result = await provider.translate("Hello", "Translate to French", cache_system=True)
+        text, usage = await provider.translate(
+            "Hello", "Translate to French", cache_system=True
+        )
 
-        assert result == "Bonjour"
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 12, "output_tokens": 7}
         call_kwargs = provider._client.messages.create.call_args.kwargs
         system_arg = call_kwargs["system"]
         assert isinstance(system_arg, list)
@@ -132,18 +139,63 @@ class TestAnthropicProvider:
 
         mock_content = MagicMock()
         mock_content.text = "Bonjour"
+        mock_usage = MagicMock()
+        mock_usage.input_tokens = 5
+        mock_usage.output_tokens = 3
         mock_response = MagicMock()
         mock_response.content = [mock_content]
+        mock_response.usage = mock_usage
 
         provider._client.messages.create = AsyncMock(return_value=mock_response)
 
-        result = await provider.translate("Hello", "Translate to French", cache_system=False)
+        text, usage = await provider.translate(
+            "Hello", "Translate to French", cache_system=False
+        )
 
-        assert result == "Bonjour"
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 5, "output_tokens": 3}
         call_kwargs = provider._client.messages.create.call_args.kwargs
         system_arg = call_kwargs["system"]
         assert isinstance(system_arg, str)
         assert system_arg == "Translate to French"
+
+    @pytest.mark.asyncio
+    async def test_translate_missing_usage_returns_zero_tokens(self) -> None:
+        """Defensive: if the SDK shape changes and ``usage`` is missing, the
+        call still succeeds with under-counted (zero) tokens rather than
+        raising."""
+        provider = self._make_provider()
+
+        mock_content = MagicMock()
+        mock_content.text = "Bonjour"
+        mock_response = MagicMock()
+        mock_response.content = [mock_content]
+        mock_response.usage = None
+
+        provider._client.messages.create = AsyncMock(return_value=mock_response)
+
+        text, usage = await provider.translate("Hello", "sys")
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 0, "output_tokens": 0}
+
+    @pytest.mark.asyncio
+    async def test_evaluate_returns_text_and_usage(self) -> None:
+        provider = self._make_provider()
+
+        mock_content = MagicMock()
+        mock_content.text = '{"naturalness": 5}'
+        mock_usage = MagicMock()
+        mock_usage.input_tokens = 100
+        mock_usage.output_tokens = 50
+        mock_response = MagicMock()
+        mock_response.content = [mock_content]
+        mock_response.usage = mock_usage
+
+        provider._client.messages.create = AsyncMock(return_value=mock_response)
+
+        text, usage = await provider.evaluate("Score this translation")
+        assert text == '{"naturalness": 5}'
+        assert usage == {"input_tokens": 100, "output_tokens": 50}
 
     @pytest.mark.asyncio
     async def test_embed_raises_not_implemented(self) -> None:
@@ -183,6 +235,68 @@ class TestOpenAIProvider:
             input="translation memory query",
         )
 
+    @pytest.mark.asyncio
+    async def test_translate_returns_text_and_usage(self) -> None:
+        """OpenAI maps ``prompt_tokens`` → ``input_tokens`` and
+        ``completion_tokens`` → ``output_tokens``."""
+        provider = self._make_provider()
+
+        mock_message = MagicMock()
+        mock_message.content = "Bonjour"
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = 42
+        mock_usage.completion_tokens = 9
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = mock_usage
+
+        provider._client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        text, usage = await provider.translate("Hello", "Translate to French")
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 42, "output_tokens": 9}
+
+    @pytest.mark.asyncio
+    async def test_evaluate_returns_text_and_usage(self) -> None:
+        provider = self._make_provider()
+
+        mock_message = MagicMock()
+        mock_message.content = '{"naturalness": 4}'
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = 200
+        mock_usage.completion_tokens = 15
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = mock_usage
+
+        provider._client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        text, usage = await provider.evaluate("Score this")
+        assert text == '{"naturalness": 4}'
+        assert usage == {"input_tokens": 200, "output_tokens": 15}
+
+    @pytest.mark.asyncio
+    async def test_translate_missing_usage_returns_zero_tokens(self) -> None:
+        provider = self._make_provider()
+
+        mock_message = MagicMock()
+        mock_message.content = "Bonjour"
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = None
+
+        provider._client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        text, usage = await provider.translate("Hello", "sys")
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 0, "output_tokens": 0}
+
 
 # ---------------------------------------------------------------------------
 # OllamaProvider
@@ -201,6 +315,95 @@ class TestOllamaProvider:
 
             with pytest.raises(ConnectionError, match="Ollama not running at"):
                 await provider.translate("Hello", "Translate to French")
+
+    @pytest.mark.asyncio
+    async def test_translate_extracts_tokens_from_prompt_eval_and_eval_count(self) -> None:
+        """Ollama's ``/api/chat`` returns ``prompt_eval_count`` (input tokens) and
+        ``eval_count`` (output tokens) at the top level of the response."""
+        provider = OllamaProvider(base_url="http://localhost:11434", model="llama3.2")
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json = MagicMock(
+            return_value={
+                "message": {"content": "Bonjour"},
+                "prompt_eval_count": 30,
+                "eval_count": 4,
+            }
+        )
+
+        with patch("app.llm.providers.ollama.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(return_value=mock_resp)
+
+            text, usage = await provider.translate("Hello", "Translate to French")
+
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 30, "output_tokens": 4}
+
+    @pytest.mark.asyncio
+    async def test_translate_missing_eval_counts_returns_zero_tokens(self) -> None:
+        """Some local model runners omit eval counts — we default to zeros so
+        the call still succeeds with an under-counted (free) cost."""
+        provider = OllamaProvider(base_url="http://localhost:11434", model="llama3.2")
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json = MagicMock(return_value={"message": {"content": "Bonjour"}})
+
+        with patch("app.llm.providers.ollama.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(return_value=mock_resp)
+
+            text, usage = await provider.translate("Hello", "sys")
+
+        assert text == "Bonjour"
+        assert usage == {"input_tokens": 0, "output_tokens": 0}
+
+
+# ---------------------------------------------------------------------------
+# DeepLProvider
+# ---------------------------------------------------------------------------
+
+
+class TestDeepLProvider:
+    @pytest.mark.asyncio
+    async def test_translate_returns_zero_usage(self) -> None:
+        """DeepL bills per character; per-token usage is not exposed.
+
+        The provider must still satisfy the ``(text, usage)`` Protocol shape
+        introduced by D2 — zero counts here mean ``mt_runs.cost_usd`` will
+        be 0.0 for DeepL paths, consistent with "cost unknown" semantics.
+        """
+        from app.llm.providers.deepl import DeepLProvider
+
+        provider = DeepLProvider(api_key="dl-test")
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json = MagicMock(
+            return_value={"translations": [{"text": "Bonjour le monde"}]}
+        )
+
+        with patch("app.llm.providers.deepl.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(return_value=mock_resp)
+
+            text, usage = await provider.translate(
+                '{"hello": "Hello, world"}', "fr-FR"
+            )
+
+        # Parsed translation roundtrips as JSON.
+        import json as _json
+
+        assert _json.loads(text) == {"hello": "Bonjour le monde"}
+        assert usage == {"input_tokens": 0, "output_tokens": 0}
 
 
 # ---------------------------------------------------------------------------

@@ -23,6 +23,11 @@ Audit fixes applied in this revision (2026-05):
 * **M6** — :func:`app.mt.tm.store_tm_entry` now requires
   ``repository_id``; the caller here passes it from the loaded
   :class:`~app.models.Repository`.
+* **D2** — ``mt_runs.input_tokens`` / ``output_tokens`` are populated from
+  each SDK's real usage block (``response.usage``) instead of the M5-era
+  word-count × 1.3 estimate. ``cost_usd`` falls out of those tokens via
+  :func:`_cost_from_usage` and each provider's
+  ``price_per_1k_input`` / ``price_per_1k_output``.
 """
 
 from __future__ import annotations
@@ -40,7 +45,7 @@ from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.llm.protocol import LLMProvider
+from app.llm.protocol import LLMProvider, TokenUsage
 from app.llm.registry import RoutingContext, select_fallback_provider, select_provider
 from app.models import (
     BatchStatus,
@@ -71,8 +76,10 @@ _JINJA_ENV = Environment(loader=FileSystemLoader(str(_PROMPT_DIR)), autoescape=F
 
 PROMPT_VERSION = "translate_v1"
 
-# Per-1K-token pricing now lives on the LLMProvider Protocol (M5). See
-# `app/llm/protocol.py` and each provider in `app/llm/providers/`.
+# Per-1K-token pricing now lives on the LLMProvider Protocol (M5); real
+# token counts come back with every `translate()` / `evaluate()` call as a
+# `TokenUsage` dict (D2). See `app/llm/protocol.py` and each provider in
+# `app/llm/providers/`.
 
 # HTTP status codes worth retrying. 429 = rate limit; 5xx = transient server
 # failures. Anything outside this set (auth, 4xx client errors) is treated as
@@ -174,6 +181,8 @@ def _record_mt_run(
     validators_passed: bool | None = None,
     validator_errors: dict | None = None,
     cost_usd: float = 0.0,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
 ) -> MtRun:
     """Insert an ``mt_runs`` row for a single LLM attempt.
 
@@ -185,6 +194,12 @@ def _record_mt_run(
     Postgres ``current_timestamp``, which is constant across a single
     transaction — that would tie ORDER BY ran_at when we write multiple
     attempts for one batch.
+
+    ``input_tokens`` / ``output_tokens`` are populated from the provider's
+    own usage block (D2). Zeros are written for failed attempts (the
+    provider raised before usage was available) and for providers that
+    don't expose per-call usage (DeepL — billed per character; Ollama
+    when the model runner omits ``prompt_eval_count``).
     """
     mt_run = MtRun(
         batch_id=batch.id,
@@ -196,6 +211,8 @@ def _record_mt_run(
         validator_errors=validator_errors,
         string_count=string_count,
         latency_ms=latency_ms,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
         cost_usd=cost_usd,
         ran_at=datetime.now(tz=UTC),
     )
@@ -203,20 +220,16 @@ def _record_mt_run(
     return mt_run
 
 
-def _estimate_cost(
-    provider: LLMProvider, system_prompt: str, user_prompt: str, raw_output: str
-) -> float:
-    """Rough token-count + price estimate using the provider's own rates (M5).
+def _cost_from_usage(provider: LLMProvider, usage: TokenUsage) -> float:
+    """Compute USD cost from real token counts and the provider's pricing (D2).
 
-    Token counts are still word-count estimates with a 1.3x fudge factor;
-    D2 in `docs/11-audit-followups.md` tracks moving to real usage tokens
-    from each SDK's response.
+    Replaces the M5-era word-count × 1.3 fudge. Returns 0.0 when either
+    usage is zero or the provider's per-1K-token price is 0.0 (Ollama:
+    local; DeepL: per-character; OpenRouter: rate varies per model).
     """
-    estimated_input = len(system_prompt.split()) * 1.3 + len(user_prompt.split()) * 1.3
-    estimated_output = len(raw_output.split()) * 1.3
     return round(
-        (estimated_input / 1000 * provider.price_per_1k_input)
-        + (estimated_output / 1000 * provider.price_per_1k_output),
+        (usage["input_tokens"] / 1000) * provider.price_per_1k_input
+        + (usage["output_tokens"] / 1000) * provider.price_per_1k_output,
         6,
     )
 
@@ -226,22 +239,24 @@ async def _attempt_translation(
     system_prompt: str,
     user_prompt: str,
     expected_keys: list[str],
-) -> tuple[dict[str, str], str]:
+) -> tuple[dict[str, str], str, TokenUsage]:
     """Single LLM call + JSON parse.
 
-    Returns ``(translations_dict, raw_output_text)``. Raises whatever the
-    provider raises (``httpx.HTTPStatusError``, ``httpx.RequestError``,
+    Returns ``(translations_dict, raw_output_text, usage)``. Raises whatever
+    the provider raises (``httpx.HTTPStatusError``, ``httpx.RequestError``,
     auth errors, etc.) and converts JSON parse failures into
     :class:`TranslationError` so the retry/fallback machinery picks them up.
     """
-    raw_output = await provider.translate(user_prompt, system_prompt, cache_system=True)
+    raw_output, usage = await provider.translate(
+        user_prompt, system_prompt, cache_system=True
+    )
     try:
         translations_out = parse_llm_json_output(raw_output, expected_keys)
     except ValueError as exc:
         # Wrap so this is retryable — LLMs occasionally emit malformed JSON
         # that succeeds on a retry.
         raise TranslationError(f"LLM output parse failure: {exc}") from exc
-    return translations_out, raw_output
+    return translations_out, raw_output, usage
 
 
 async def _translate_with_retry_and_fallback(
@@ -273,7 +288,7 @@ async def _translate_with_retry_and_fallback(
     primary_provider = providers[primary_name]
     t0 = time.monotonic()
     try:
-        translations_out, raw_output = await _attempt_translation(
+        translations_out, raw_output, usage = await _attempt_translation(
             primary_provider, system_prompt, user_prompt, expected_keys
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
@@ -285,7 +300,9 @@ async def _translate_with_retry_and_fallback(
             output_text=raw_output,
             string_count=len(translations_out),
             latency_ms=latency_ms,
-            cost_usd=_estimate_cost(primary_provider, system_prompt, user_prompt, raw_output),
+            input_tokens=usage["input_tokens"],
+            output_tokens=usage["output_tokens"],
+            cost_usd=_cost_from_usage(primary_provider, usage),
         )
         return translations_out, raw_output, None, primary_name
     except Exception as exc:
@@ -315,7 +332,7 @@ async def _translate_with_retry_and_fallback(
     await asyncio.sleep(_RETRY_BACKOFF_SECONDS)
     t0 = time.monotonic()
     try:
-        translations_out, raw_output = await _attempt_translation(
+        translations_out, raw_output, usage = await _attempt_translation(
             primary_provider, system_prompt, user_prompt, expected_keys
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
@@ -327,7 +344,9 @@ async def _translate_with_retry_and_fallback(
             output_text=raw_output,
             string_count=len(translations_out),
             latency_ms=latency_ms,
-            cost_usd=_estimate_cost(primary_provider, system_prompt, user_prompt, raw_output),
+            input_tokens=usage["input_tokens"],
+            output_tokens=usage["output_tokens"],
+            cost_usd=_cost_from_usage(primary_provider, usage),
         )
         return translations_out, raw_output, None, primary_name
     except Exception as exc:
@@ -381,7 +400,7 @@ async def _translate_with_retry_and_fallback(
         },
     )
     try:
-        translations_out, raw_output = await _attempt_translation(
+        translations_out, raw_output, usage = await _attempt_translation(
             fallback_provider, system_prompt, user_prompt, expected_keys
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
@@ -393,7 +412,9 @@ async def _translate_with_retry_and_fallback(
             output_text=raw_output,
             string_count=len(translations_out),
             latency_ms=latency_ms,
-            cost_usd=_estimate_cost(fallback_provider, system_prompt, user_prompt, raw_output),
+            input_tokens=usage["input_tokens"],
+            output_tokens=usage["output_tokens"],
+            cost_usd=_cost_from_usage(fallback_provider, usage),
         )
         logger.info(
             "MT fallback to '%s' succeeded for batch %s", fallback_name, batch.id,
@@ -442,14 +463,14 @@ async def _translate_via_deepl(
     """
     deepl_input = json.dumps(pre.processed_strings, ensure_ascii=False)
 
-    async def _attempt() -> tuple[str, int]:
+    async def _attempt() -> tuple[str, TokenUsage, int]:
         t0_inner = time.monotonic()
-        raw = await provider.translate(deepl_input, batch.locale)
-        return raw, int((time.monotonic() - t0_inner) * 1000)
+        raw, usage = await provider.translate(deepl_input, batch.locale)
+        return raw, usage, int((time.monotonic() - t0_inner) * 1000)
 
     # ---- Attempt 1
     try:
-        raw_output, latency_ms = await _attempt()
+        raw_output, usage, latency_ms = await _attempt()
     except Exception as exc:
         latency_ms = 0  # we don't know how long it ran before raising
         _record_mt_run(
@@ -468,7 +489,7 @@ async def _translate_via_deepl(
         logger.warning("DeepL call failed (retryable) for batch %s: %s — retrying", batch.id, exc)
         await asyncio.sleep(_RETRY_BACKOFF_SECONDS)
         try:
-            raw_output, latency_ms = await _attempt()
+            raw_output, usage, latency_ms = await _attempt()
         except Exception as exc2:
             _record_mt_run(
                 db,
@@ -482,7 +503,7 @@ async def _translate_via_deepl(
             logger.error("DeepL retry also failed for batch %s: %s", batch.id, exc2)
             return None, str(exc2)
 
-    # `latency_ms` is set by the successful `_attempt()` call above.
+    # `latency_ms` / `usage` are set by the successful `_attempt()` call above.
     try:
         translations_out = parse_llm_json_output(
             raw_output, list(pre.processed_strings.keys())
@@ -496,6 +517,8 @@ async def _translate_via_deepl(
             output_text=raw_output,
             string_count=None,
             latency_ms=latency_ms,
+            input_tokens=usage["input_tokens"],
+            output_tokens=usage["output_tokens"],
         )
         logger.warning("DeepL output parse failure for batch %s: %s", batch.id, exc)
         return None, str(exc)
@@ -508,6 +531,9 @@ async def _translate_via_deepl(
         output_text=raw_output,
         string_count=len(translations_out),
         latency_ms=latency_ms,
+        input_tokens=usage["input_tokens"],
+        output_tokens=usage["output_tokens"],
+        cost_usd=_cost_from_usage(provider, usage),
     )
     return translations_out, None
 
@@ -598,7 +624,7 @@ async def translate_batch(
             locale=batch.locale,
             batch_embedding=batch_embedding,
             platform=repo.platform,
-            exclude_key_ids=[str(k.id) for k in keys_list],
+            exclude_key_ids=[k.id for k in keys_list],
         )
     except NotImplementedError:
         batch_embedding = None

@@ -344,10 +344,15 @@ class TestCosineSimilarity:
         assert cosine_similarity([0.0, 0.0], [0.0, 0.0]) == 0.0
 
 
+_ZERO_USAGE = {"input_tokens": 0, "output_tokens": 0}
+
+
 class TestBackTranslationQa:
     @pytest.mark.asyncio
     async def test_returns_back_and_similarity(self):
-        evaluate_fn = AsyncMock(return_value="Hello world")
+        # ``evaluate_fn`` now returns ``(text, usage)`` per D2; qa.py
+        # discards the usage portion.
+        evaluate_fn = AsyncMock(return_value=("Hello world", _ZERO_USAGE))
         embed_fn = AsyncMock(
             side_effect=[
                 [1.0, 0.0],  # source embedding
@@ -368,7 +373,7 @@ class TestBackTranslationQa:
 
     @pytest.mark.asyncio
     async def test_identical_embeddings_give_similarity_one(self):
-        evaluate_fn = AsyncMock(return_value="Same")
+        evaluate_fn = AsyncMock(return_value=("Same", _ZERO_USAGE))
         embed_fn = AsyncMock(return_value=[1.0, 0.0])
         _, sim = await back_translation_qa(
             source="Same",
@@ -384,7 +389,7 @@ class TestLocaleConsistencyEval:
     @pytest.mark.asyncio
     async def test_valid_json_response(self):
         raw = '{"naturalness": 5, "consistency": 4, "accuracy": 5, "issue": null}'
-        evaluate_fn = AsyncMock(return_value=raw)
+        evaluate_fn = AsyncMock(return_value=(raw, _ZERO_USAGE))
         result = await locale_consistency_eval(
             source="Save",
             translated="Enregistrer",
@@ -407,7 +412,7 @@ class TestLocaleConsistencyEval:
             ' "issue": "register mismatch"}\n'
             "```"
         )
-        evaluate_fn = AsyncMock(return_value=raw)
+        evaluate_fn = AsyncMock(return_value=(raw, _ZERO_USAGE))
         result = await locale_consistency_eval(
             source="Delete",
             translated="Löschen",
@@ -422,7 +427,7 @@ class TestLocaleConsistencyEval:
 
     @pytest.mark.asyncio
     async def test_malformed_json_returns_fallback(self):
-        evaluate_fn = AsyncMock(return_value="not json at all")
+        evaluate_fn = AsyncMock(return_value=("not json at all", _ZERO_USAGE))
         result = await locale_consistency_eval(
             source="Cancel",
             translated="Annuler",

@@ -1,6 +1,6 @@
 """Integration tests for ``app.mt.service.translate_batch``.
 
-Covers the four audit fixes in this branch:
+Covers the audit fixes in this branch:
 
 * **H4** — DeepL routes through the per-string dict path, gets no QA, and
   flows through validators + structural-tag restoration.
@@ -9,6 +9,8 @@ Covers the four audit fixes in this branch:
   recovers on the fallback provider when the primary fails with a retryable
   error.
 * **M6** — ``translation_memory.repository_id`` is populated.
+* **D2** — ``mt_runs.input_tokens`` / ``output_tokens`` are populated from
+  provider usage (not word-count estimates).
 
 These tests assume a live Postgres at ``DATABASE_URL`` with the migrations
 already applied (see ``tests/mt/conftest.py``).
@@ -44,6 +46,10 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 # ---------------------------------------------------------------------------
 
 
+_ZERO_USAGE = {"input_tokens": 0, "output_tokens": 0}
+_DEFAULT_USAGE = {"input_tokens": 50, "output_tokens": 10}
+
+
 def make_provider(
     *,
     name: str,
@@ -53,16 +59,33 @@ def make_provider(
     evaluate_return: str = '{"naturalness": 5, "consistency": 5, "accuracy": 5, "issue": null}',
     embed_return: list[float] | None = None,
     embed_side_effect: Any = None,
+    translate_usage: dict[str, int] | None = None,
+    evaluate_usage: dict[str, int] | None = None,
 ) -> LLMProvider:
-    """Build a ``MagicMock`` shaped like an LLMProvider."""
+    """Build a ``MagicMock`` shaped like an LLMProvider.
+
+    D2 — ``translate`` / ``evaluate`` now return ``(text, usage)`` tuples.
+    Tests can override the usage dict per call; the defaults are non-zero
+    for ``translate`` so assertions on ``mt_runs.input_tokens`` /
+    ``output_tokens`` have something meaningful to check, and zero for
+    ``evaluate`` since QA-call usage isn't currently aggregated.
+    """
     p = MagicMock(spec=LLMProvider)
     p.provider_name = name
     p.model_id = model_id
+    # M5 pricing — exercise the real-cost calculation in D2 by giving the
+    # mock provider a non-zero rate. Anthropic-shaped (Sonnet) numbers
+    # are convenient; the test doesn't care about the exact rate, just
+    # that the multiplier flows through.
+    p.price_per_1k_input = 0.003
+    p.price_per_1k_output = 0.015
     if translate_side_effect is not None:
         p.translate = AsyncMock(side_effect=translate_side_effect)
     else:
-        p.translate = AsyncMock(return_value=translate_return or "")
-    p.evaluate = AsyncMock(return_value=evaluate_return)
+        usage = translate_usage if translate_usage is not None else _DEFAULT_USAGE
+        p.translate = AsyncMock(return_value=(translate_return or "", usage))
+    eval_usage = evaluate_usage if evaluate_usage is not None else _ZERO_USAGE
+    p.evaluate = AsyncMock(return_value=(evaluate_return, eval_usage))
     if embed_side_effect is not None:
         p.embed = AsyncMock(side_effect=embed_side_effect)
     else:
@@ -408,6 +431,105 @@ class TestM2RetryFallback:
         ).scalars().all()
         assert len(runs) == 1
         assert "ERROR" in runs[0].output_text
+
+
+# ---------------------------------------------------------------------------
+# D2 — mt_runs.input_tokens / output_tokens populated from provider usage
+# ---------------------------------------------------------------------------
+
+
+class TestD2TokenCounts:
+    @pytest.mark.asyncio
+    async def test_successful_translate_records_real_token_counts(
+        self, db_session, sample_batch,
+    ):
+        """Successful translate path stamps ``mt_runs.input_tokens`` /
+        ``output_tokens`` from the provider's usage dict — no more
+        word-count × 1.3 estimate."""
+        anthropic = make_provider(
+            name="anthropic",
+            model_id="claude-test",
+            translate_return=json.dumps({"hello": "Bonjour le monde"}),
+            translate_usage={"input_tokens": 123, "output_tokens": 45},
+            embed_return=[1.0] * 1536,
+        )
+
+        await translate_batch(
+            db=db_session,
+            batch=sample_batch["batch"],
+            providers={"anthropic": anthropic, "openai": anthropic},
+            config_provider="anthropic",
+            embed_provider="anthropic",
+        )
+
+        runs = (
+            await db_session.execute(
+                select(MtRun).where(MtRun.batch_id == sample_batch["batch"].id)
+            )
+        ).scalars().all()
+        assert len(runs) == 1
+        assert runs[0].input_tokens == 123
+        assert runs[0].output_tokens == 45
+        # Cost = real tokens * price_per_1k. price_per_1k_input=0.003,
+        # price_per_1k_output=0.015 (Anthropic-shaped defaults in
+        # ``make_provider``). Expected: 123/1000*0.003 + 45/1000*0.015
+        # = 0.000369 + 0.000675 = 0.001044.
+        assert runs[0].cost_usd is not None
+        assert float(runs[0].cost_usd) == pytest.approx(0.001044, abs=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_failed_attempt_records_zero_tokens(
+        self, db_session, sample_batch, monkeypatch,
+    ):
+        """Failed attempts can't read provider usage (the SDK raised before
+        returning) — those rows record zeros, which is fine: the row's
+        ``output_text`` carries ``ERROR: ...`` so a debugger can still tell
+        a failed attempt from a successful one."""
+        monkeypatch.setattr("app.mt.service._RETRY_BACKOFF_SECONDS", 0)
+
+        def make_503() -> httpx.HTTPStatusError:
+            req = httpx.Request("POST", "http://example/anthropic")
+            resp = httpx.Response(503, request=req)
+            return httpx.HTTPStatusError("503", request=req, response=resp)
+
+        anthropic = make_provider(
+            name="anthropic",
+            model_id="claude-test",
+            translate_side_effect=[make_503(), make_503()],
+            embed_return=[1.0] * 1536,
+        )
+        openai = make_provider(
+            name="openai",
+            model_id="gpt-4o",
+            translate_return=json.dumps({"hello": "Bonjour le monde"}),
+            translate_usage={"input_tokens": 200, "output_tokens": 80},
+            embed_return=[1.0] * 1536,
+        )
+
+        await translate_batch(
+            db=db_session,
+            batch=sample_batch["batch"],
+            providers={"anthropic": anthropic, "openai": openai},
+            config_provider="anthropic",
+            embed_provider="openai",
+        )
+
+        runs = (
+            await db_session.execute(
+                select(MtRun)
+                .where(MtRun.batch_id == sample_batch["batch"].id)
+                .order_by(MtRun.ran_at)
+            )
+        ).scalars().all()
+        assert len(runs) == 3
+        # First two attempts raised before usage was knowable.
+        assert runs[0].input_tokens == 0
+        assert runs[0].output_tokens == 0
+        assert runs[1].input_tokens == 0
+        assert runs[1].output_tokens == 0
+        # Fallback succeeded — its usage is recorded verbatim.
+        assert runs[2].input_tokens == 200
+        assert runs[2].output_tokens == 80
 
 
 # ---------------------------------------------------------------------------

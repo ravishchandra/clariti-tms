@@ -93,3 +93,12 @@ try:
     router.include_router(screenshots_router, prefix="/screenshots", tags=["Screenshots"])
 except ImportError:
     pass
+
+# Phase 7 — OTA locale delivery for mobile. Public read-only endpoint;
+# no X-API-Key.
+try:
+    from app.api.v1.endpoints.ota import router as ota_router
+
+    router.include_router(ota_router, prefix="/ota", tags=["OTA"])
+except ImportError:
+    pass

@@ -1,0 +1,203 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Clariti TMS design system — see docs/DESIGN.md for the full rationale.
+ * Reference products: Linear, Vercel dashboard, GitHub PR review.
+ * Anti-references: Lokalise (too blue), Notion (too much whitespace).
+ *
+ * shadcn semantic tokens (background, foreground, primary, etc.) are kept
+ * so shadcn components render correctly. The Clariti-specific tokens
+ * (status, qa, app-bg) sit alongside for review-table colour coding and
+ * the dense data surfaces from docs/DESIGN.md.
+ */
+
+@theme inline {
+  /* Foundation tokens used by shadcn components */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Geist font names must be literal in @theme inline — Tailwind v4 resolves
+     this at parse time, so a runtime CSS var wouldn't resolve. */
+  --font-sans: "Inter", "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-heading: "Inter", "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Clariti app-surface tokens (docs/DESIGN.md "Color tokens") */
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-elevated: var(--app-elevated);
+  --color-app-input: var(--app-input);
+  --color-app-border: var(--app-border);
+  --color-app-border-focus: var(--app-border-focus);
+  --color-app-text: var(--app-text);
+  --color-app-text-secondary: var(--app-text-secondary);
+  --color-app-text-muted: var(--app-text-muted);
+
+  /* Translation-status tokens — also drives the review-table left-border
+     colour coding (docs/DESIGN.md "Review table"). */
+  --color-status-needs-review: var(--status-needs-review);
+  --color-status-approved: var(--status-approved);
+  --color-status-rejected: var(--status-rejected);
+  --color-status-draft: var(--status-draft);
+  --color-status-bootstrapping: var(--status-bootstrapping);
+  --color-status-more-context: var(--status-more-context);
+
+  /* QA score tokens — used by the score-pill component */
+  --color-qa-high: var(--qa-high);
+  --color-qa-mid: var(--qa-mid);
+  --color-qa-low: var(--qa-low);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Light theme — kept for completeness, but the product defaults to dark
+ * (DESIGN.md: "developer tool, not a marketing product. Calm, dense, legible.").
+ * The `dark` class is applied on <html> in layout.tsx.
+ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+/*
+ * Dark theme — the product default. Hex values from docs/DESIGN.md
+ * are passed through as-is so designers can paste-and-update.
+ */
+.dark {
+  --app-bg: #0f1117;
+  --app-surface: #1a1d27;
+  --app-elevated: #22263a;
+  --app-input: #2a2f45;
+  --app-border: #2e3347;
+  --app-border-focus: #4d5680;
+  --app-text: #e8eaf0;
+  --app-text-secondary: #8b91a8;
+  --app-text-muted: #4a506a;
+
+  --status-needs-review: #f59e0b;
+  --status-approved: #22c55e;
+  --status-rejected: #ef4444;
+  --status-draft: #6b7280;
+  --status-bootstrapping: #8b5cf6;
+  --status-more-context: #f97316;
+
+  --qa-high: #22c55e;
+  --qa-mid: #f59e0b;
+  --qa-low: #ef4444;
+
+  /* shadcn semantic tokens mapped onto the Clariti palette so Card / Button
+     / Dialog inherit the right surface and accent colors out of the box. */
+  --background: #0f1117;
+  --foreground: #e8eaf0;
+  --card: #1a1d27;
+  --card-foreground: #e8eaf0;
+  --popover: #22263a;
+  --popover-foreground: #e8eaf0;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #22263a;
+  --secondary-foreground: #e8eaf0;
+  --muted: #1a1d27;
+  --muted-foreground: #8b91a8;
+  --accent: #22263a;
+  --accent-foreground: #e8eaf0;
+  --destructive: #ef4444;
+  --border: #2e3347;
+  --input: #2a2f45;
+  --ring: #4d5680;
+  --chart-1: #6366f1;
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+  --sidebar: #1a1d27;
+  --sidebar-foreground: #e8eaf0;
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #22263a;
+  --sidebar-accent-foreground: #e8eaf0;
+  --sidebar-border: #2e3347;
+  --sidebar-ring: #4d5680;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+}

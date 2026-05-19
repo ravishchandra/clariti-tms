@@ -24,9 +24,16 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+# Match the loop-scope used by tests/api/test_tenant_isolation.py so the two
+# real-DB suites can coexist under CI's `pytest -x -q` run. Mixing
+# function-scoped async fixtures with module-scoped fixtures from sibling
+# files trips pytest-asyncio's "Future attached to a different loop" guard.
+pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault(
@@ -37,21 +44,21 @@ os.environ.setdefault(
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="module")
 async def engine() -> AsyncIterator[Any]:
     eng = create_async_engine(DATABASE_URL, echo=False)
     yield eng
     await eng.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="module")
 async def db(engine: Any) -> AsyncIterator[AsyncSession]:
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
         yield session
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="module")
 async def app(engine: Any) -> AsyncIterator[Any]:
     from fastapi import FastAPI
 
@@ -78,14 +85,14 @@ async def app(engine: Any) -> AsyncIterator[Any]:
         test_app.dependency_overrides.pop(_real_get_db, None)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="module")
 async def client(app: Any) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
 
 
-@pytest.fixture
+@pytest_asyncio.fixture(loop_scope="module")
 async def seeded(db: AsyncSession) -> dict[str, Any]:
     """Seed an org, project, repo, two keys, and two published fr-FR translations.
 
@@ -355,7 +362,7 @@ async def test_repeat_calls_return_same_etag(client: AsyncClient, seeded: dict[s
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, loop_scope="module")
 async def _cleanup(db: AsyncSession) -> AsyncIterator[None]:
     yield
     await db.execute(

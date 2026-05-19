@@ -7,7 +7,7 @@
 
 A self-hosted translation management system (TMS) for web and mobile apps, built for teams whose UI text lives in GitHub and Contentful, with English (en-US) as the base language.
 
-This repo contains the research, decisions, and build plan for the platform. It is the result of a research session evaluating Transifex, Lokalise, Crowdin, Phrase, Weblate, and Tolgee, then deciding what to build vs. buy.
+The project shipped Phases 1–6 plus three Phase 7 extensions (XLIFF, OTA delivery, screenshot SDK) — a working end-to-end platform: FastAPI backend, Next.js review UI, REST API, CLI, Excel + XLIFF round-trip, and GitHub + Contentful publication. The research that motivated the build (vs. Transifex / Lokalise / Crowdin / Phrase / Weblate / Tolgee) is preserved in `docs/01-research-summary.md`.
 
 ## Why this exists
 
@@ -27,8 +27,10 @@ Read in this order:
 6. **[docs/06-human-review-workflow.md](docs/06-human-review-workflow.md)** — review states, routing, screen-based UI.
 7. **[docs/07-excel-roundtrip.md](docs/07-excel-roundtrip.md)** — bulk export/import format and validation.
 8. **[docs/08-git-and-contentful-integration.md](docs/08-git-and-contentful-integration.md)** — how source strings flow in and translations flow back out.
-9. **[docs/09-build-phases.md](docs/09-build-phases.md)** — phased delivery plan ordered for ease of build with Claude Code.
+9. **[docs/09-build-phases.md](docs/09-build-phases.md)** — phased delivery plan; cross-reference for what's shipped vs. what's still on the menu.
 10. **[docs/10-build-vs-buy-alternatives.md](docs/10-build-vs-buy-alternatives.md)** — intermediate options (self-hosted Weblate/Tolgee + custom LLM provider) and when to pick them.
+11. **[docs/11-audit-followups.md](docs/11-audit-followups.md)** — post-audit cleanup backlog (mostly closed; remaining items are non-blocking).
+12. **[docs/12-ota.md](docs/12-ota.md)** — over-the-air locale delivery contract for mobile clients (Phase 7).
 
 ## What we're NOT building
 
@@ -41,7 +43,7 @@ These are explicitly out of scope. They are well-served by existing tools, or th
 
 ## Design system
 
-**[docs/DESIGN.md](docs/DESIGN.md)** — color tokens, typography, component rules, responsive breakpoints, and accessibility baseline for the web review UI. All Phase 6 implementation calibrates against this.
+**[docs/DESIGN.md](docs/DESIGN.md)** — color tokens, typography, component rules, responsive breakpoints, and accessibility baseline for the web review UI. The shipped Phase 6 UI (`web/`) is calibrated against this; future UI work should stay aligned.
 
 ## Tech stack (decided)
 
@@ -80,6 +82,16 @@ loc ingest-file path/to/locales/en/common.json --repo my-web
 loc translate --project <slug> --locale fr-FR
 ```
 
+To run the web review UI:
+
+```bash
+# In another terminal — needs Node 20+ and pnpm
+cd web && pnpm install && pnpm dev
+# Visit http://localhost:3000 — sign in with the API key from `loc api-key`
+```
+
+The UI runs keyboard-first: `a` approve, `e` edit, `r` reject, `f` flag, `j`/`k` navigate, `⇧A` approve-all, `⌘↵` save edit, `?` help. See `docs/06-human-review-workflow.md` for the full review-state design.
+
 See **[GETTING_STARTED.md](GETTING_STARTED.md)** for the full walkthrough, troubleshooting, and how to wire up your own repo. Full conventions and the broader contributor workflow are in [CONTRIBUTING.md](CONTRIBUTING.md). Tests: `pytest`.
 
 ## Connect to GitHub (for automatic PR-back)
@@ -108,7 +120,13 @@ Without `github_installation_id` set, `POST /api/v1/repositories/{id}/publish` r
 
 ## Project status
 
-Phases 1–4 are on `main` (foundation, LLM pipeline, REST API + SDKs, GitHub + Contentful adapters). Phase 5 (Excel round-trip) is the next milestone. See `docs/09-build-phases.md` for the full plan and `docs/11-audit-followups.md` for the cleanup state.
+**Phases 1–6 are on `main`** (foundation, LLM pipeline, REST API + SDKs, GitHub + Contentful adapters, Excel round-trip, web review UI). Plus three Phase 7 extensions:
+
+- **XLIFF round-trip** (`loc export-xliff` / `loc import-xliff`) — for LSP exchange.
+- **OTA delivery** (`GET /api/v1/ota/{slug}/{locale}.json`) — mobile apps fetch locale updates at runtime. See [docs/12-ota.md](docs/12-ota.md).
+- **Screenshot capture SDK** (`screenshot-sdk/`) — browser library that auto-captures contextual screenshots of rendered strings.
+
+What's left from the Phase 7 menu (none required for MVP): Swift AST screen grouping, Android layout XML grouping, GitLab adapter, additional CMS adapters (Sanity/Strapi/Prismic), in-context Chrome extension, Slack notifications, analytics dashboard. See `docs/09-build-phases.md` for the full plan, `docs/11-audit-followups.md` for closed audit items, and `IDEAS.md` for parked ideas (e.g. sales/SE documentation).
 
 ## Contributing
 

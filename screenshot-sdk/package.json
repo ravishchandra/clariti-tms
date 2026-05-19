@@ -1,0 +1,51 @@
+{
+  "name": "@clariti-tms/screenshot-sdk",
+  "version": "0.1.0",
+  "description": "Auto-capture screenshots of UI strings in your staging app and upload them to Clariti TMS.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "html-to-image": "^1.11.11"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "translation",
+    "i18n",
+    "l10n",
+    "screenshot",
+    "tms",
+    "clariti"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clariti-tms/clariti-tms.git",
+    "directory": "screenshot-sdk"
+  }
+}

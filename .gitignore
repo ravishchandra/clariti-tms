@@ -43,6 +43,11 @@ out/
 infra/postgres-data/
 infra/pgdata/
 
+# Screenshot capture SDK uploads (Phase 7). The v1 backend writes images
+# to local disk under infra/screenshots/{key_id}/{uuid}.{ext}. Treated as
+# user data — never committed.
+infra/screenshots/
+
 # OS
 .DS_Store
 Thumbs.db

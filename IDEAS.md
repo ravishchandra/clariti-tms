@@ -26,3 +26,36 @@ Owners: TBD. Probably sits alongside `docs/` as `docs/sales/` or in a separate `
 Why it matters: the OSS surface is strong; the commercial surface is invisible. Without it, no sales motion can start.
 
 Why it's parked: needs a non-engineering owner to draft the buyer-language version (current docs are correct but written for builders). Engineering can supply facts and screenshots but shouldn't drive the positioning.
+
+---
+
+## Product
+
+### Brand voice / tone-of-voice control system
+
+Today the only tone control we have is the free-text `projects.style_guide` field ("A professional mobile and web application"), `locale_configs.formality` ("formal" / "informal"), `locale_configs.register_value` ("standard" / "professional" / "informal"), and the per-screen `component_contexts.description`. All of these get serialized into the system prompt and rely on the LLM to honor them.
+
+That works on the easy cases — "make this French formal, use *vous* not *tu*" — and fails on everything subtler. There's no way to:
+
+- Say "our brand voice is irreverent like Wendy's Twitter, not corporate like IBM" with examples that anchor what that means
+- Override tone per string type — error messages should always be serious even if the rest of the app is playful
+- Verify that a returned translation actually matches the requested tone (no eval, no scoring, no regression catch)
+- A/B test tone variants ("does the French queue clear faster with formal or familiar register?")
+- Distinguish between "tone we want" and "tone we got" — the system has no closed loop on tone consistency
+
+**Shape of the feature, rough cut:**
+
+1. A `brand_voice` profile attached to a project. Not a single string — a structured set of attributes (formality, warmth, directness, humor allowance, irony allowance, sentence-length preference, contraction policy) plus a corpus of 5-10 example strings showing what the voice sounds like in en-US source. Few-shot examples in the prompt beat adjectives every time.
+2. **Per-string-type overrides.** The schema already has `string_type` (button / error / notification / permission / etc.). Wire a `voice_override` per type. Errors are always plain. Marketing taglines lean into the brand voice. Permissions are always neutral and clear.
+3. **Per-locale voice adjustments.** Some brand voices don't translate. Wendy's-style irony in fr-FR isn't the same as in en-US. Operators need to mark "for ja-JP, dial irony back to 0, dial formality up to keigo level 2."
+4. **A tone-consistency eval.** Third QA pass alongside back-translation similarity and locale-consistency: "does this translation match the requested brand voice on a 1-5 scale?" Reuses the existing QA infrastructure in `app/mt/qa.py`.
+5. **Tone drift detection.** Over time, if a reviewer keeps editing strings the same way (always softening tone, always shortening sentences), the system should flag "your reviewer is consistently moving translations toward warmer-and-shorter — should we update the brand voice?"
+
+**Why it matters in the buyer conversation:** every TMS we compete with (Lokalise, Phrase, Crowdin) advertises "AI translation" but none of them have a brand voice system. The buyers who care most about translation quality — marketing-led product teams, consumer apps, finance apps with tight regulatory language — all share the same problem: "the AI translation is technically correct but doesn't sound like us." This is the differentiator the product already has the bones for (we inject style guides into prompts) but hasn't packaged.
+
+**Why it's not built yet:** doing this right requires a clear product hypothesis about which buyer it's for. Marketing-led consumer apps have a different brand voice problem than enterprise SaaS. Pick the user first, then build.
+
+**Adjacent work that unlocks this:**
+- The eval corpus gap (CEO review §6) — can't measure tone consistency without ground truth.
+- The temperature knob (currently uses provider defaults at 1.0) — tone consistency requires deterministic generation. Variable temperature makes brand voice irreproducible.
+- The risk-class routing already exists; voice-by-string-type would slot in cleanly next to it.

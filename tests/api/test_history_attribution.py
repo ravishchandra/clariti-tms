@@ -15,8 +15,9 @@ These tests verify:
    a session that never installed the GUCs (mimicking the MT worker /
    ingestion service paths) falls back to ``change_source='system'``.
 
-Runs against the real Postgres at ``$DATABASE_URL`` (default ``tms_f4``).
-Migration 0006 must be applied for these tests to pass.
+Runs against the real Postgres at ``$DATABASE_URL`` (defaults to the
+project-wide ``tms`` database from ``.env``). Migration 0006 must be
+applied for these tests to pass.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://tms:tms@localhost:5432/tms_f4",
+    "postgresql+asyncpg://tms:tms@localhost:5432/tms",
 )
 
 DATABASE_URL = os.environ["DATABASE_URL"]

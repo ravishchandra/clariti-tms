@@ -9,9 +9,8 @@ Two sets of tests live here:
    ``tests/mt/conftest.py``).
 
 Pure tests run unconditionally. Integration tests are guarded by
-``DATABASE_URL`` being set; in CI the harness exports
-``DATABASE_URL=postgresql+asyncpg://tms:tms@localhost:5432/tms_ph5_import``
-and the tests proceed.
+``DATABASE_URL`` being set; the project-wide ``tms`` database (from
+``.env``) is the default.
 """
 
 from __future__ import annotations

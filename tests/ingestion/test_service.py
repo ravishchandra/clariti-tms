@@ -28,12 +28,11 @@ Coverage:
   * handles a multi-screen, multi-locale fixture end-to-end
   * a component that is ``None`` falls into the "shared" group
 
-These tests run against the real Postgres (``tms_h7``) — bootstrap with::
+These tests run against the real Postgres at ``$DATABASE_URL`` (defaults to
+the project-wide ``tms`` database from ``.env``) — bootstrap with::
 
-    DEBUG=true DATABASE_URL=postgresql+asyncpg://tms:tms@localhost:5432/tms_h7 \\
-        alembic -c infra/alembic.ini upgrade head
-    DEBUG=true DATABASE_URL=postgresql+asyncpg://tms:tms@localhost:5432/tms_h7 \\
-        pytest tests/ingestion/test_service.py
+    alembic -c infra/alembic.ini upgrade head
+    pytest tests/ingestion/test_service.py
 """
 
 from __future__ import annotations
@@ -55,7 +54,7 @@ from sqlalchemy.ext.asyncio import (
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://tms:tms@localhost:5432/tms_h7",
+    "postgresql+asyncpg://tms:tms@localhost:5432/tms",
 )
 
 from app.ingestion.parsers.types import ParsedKey, ParseResult  # noqa: E402

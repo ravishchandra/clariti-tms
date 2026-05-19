@@ -1,13 +1,10 @@
 """Test fixtures for the MT-pipeline integration tests.
 
-These tests exercise the real Postgres database (``tms_mt`` per the audit
-worktree convention) and require pgvector. They run when invoked via:
+These tests exercise the real Postgres at ``$DATABASE_URL`` (defaults to the
+project-wide ``tms`` database from ``.env``) and require pgvector. They run
+when invoked via::
 
-    DEBUG=true DATABASE_URL=postgresql+asyncpg://tms:tms@localhost:5432/tms_mt \
-        pytest tests/mt/
-
-A top-level ``conftest.py`` would be owned by the C4 agent — keeping the
-DEBUG default scoped to this directory avoids stepping on that work.
+    pytest tests/mt/
 
 We build a fresh per-test asyncpg engine via :data:`_engine` and rely on
 pytest-asyncio's session-scoped event loop so that connection objects don't

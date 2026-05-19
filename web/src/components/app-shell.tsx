@@ -1,7 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Database, FileSpreadsheet, FolderTree, Languages, Settings, Upload } from "lucide-react";
+import {
+  Database,
+  FileSpreadsheet,
+  FolderTree,
+  Languages,
+  LayoutPanelTop,
+  Settings,
+  Upload,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -26,6 +34,7 @@ type AppShellProps = {
 const SECTION_LINKS = [
   { href: "/glossary", label: "Glossary", icon: FolderTree },
   { href: "/locales", label: "Locales", icon: Languages },
+  { href: "/contexts", label: "Contexts", icon: LayoutPanelTop },
   { href: "/imports", label: "Imports", icon: Upload },
   { href: "/exports", label: "Exports", icon: FileSpreadsheet },
   { href: "/keys", label: "Keys", icon: Database },

@@ -385,9 +385,12 @@ CREATE TABLE mt_runs (
   input_tokens      INTEGER,
   output_tokens     INTEGER,
   cost_usd          NUMERIC(10, 6),
+  temperature       NUMERIC(4, 3),        -- sampling temperature used on the call; NULL for rows written before tracking landed (added 0007)
   ran_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
+
+`temperature` is the LLM sampling temperature passed to the provider for this call. Default in production is `0.0` (deterministic) — see `docs/05-llm-translation-pipeline.md` § *Sampling temperature*. The column is nullable because rows written before migration `0007` predate the audit trail; analytics that bucket by temperature should treat `NULL` as "pre-tracking" rather than "zero."
 
 ## State machine
 

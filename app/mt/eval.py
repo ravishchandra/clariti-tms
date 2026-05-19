@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.llm.protocol import DEFAULT_TEMPERATURE
 from app.mt.qa import cosine_similarity
 
 
@@ -36,6 +37,8 @@ async def run_eval(
     prompt_version: str,
     translate_fn: Any,
     embed_fn: Any,
+    *,
+    temperature: float = DEFAULT_TEMPERATURE,
 ) -> dict:
     """Run eval against a reference JSON file.
 
@@ -44,6 +47,15 @@ async def run_eval(
       {"key": "nav.home", "source": "Home", "reference": "Accueil", "locale": "fr-FR"},
       ...
     ]
+
+    `temperature` defaults to 0.0 — eval scores are meaningless if sampling
+    varies between runs. Surface the value in the returned dict so saved
+    eval results carry the audit trail (a future eval at temperature=0.7
+    cannot be compared directly against a baseline run at 0.0).
+
+    `translate_fn` is unpacked as ``provider.translate``; we call it with
+    a keyword temperature so providers that don't sample (DeepL) silently
+    ignore it.
 
     Returns aggregate metrics and per-string results.
     """
@@ -59,10 +71,15 @@ async def run_eval(
 
         # Translate source string
         try:
-            hypothesis = await translate_fn(
+            hyp_payload = await translate_fn(
                 prompt=json.dumps({item["key"]: source}),
                 system=f"Translate to {locale}. Output only JSON with the same key.",
+                temperature=temperature,
             )
+            # `translate_fn` is provider.translate — returns (text, usage)
+            # post-D2. Old eval code unpacked just the text; preserve that
+            # by treating tuple returns explicitly.
+            hypothesis = hyp_payload[0] if isinstance(hyp_payload, tuple) else hyp_payload
             parsed = json.loads(hypothesis)
             hyp_text = parsed.get(item["key"], "")
         except Exception as exc:
@@ -95,6 +112,7 @@ async def run_eval(
     n = len(results) or 1
     return {
         "prompt_version": prompt_version,
+        "temperature": temperature,
         "string_count": len(results),
         "avg_bleu": round(sum(bleu_scores) / n, 4),
         "avg_semantic_similarity": round(sum(sim_scores) / n, 4),

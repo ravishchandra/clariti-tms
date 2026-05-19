@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import openai
 
-from app.llm.protocol import LLMProviderBase, TokenUsage
+from app.llm.protocol import DEFAULT_TEMPERATURE, LLMProviderBase, TokenUsage
 
 
 class OpenAIProvider(LLMProviderBase):
@@ -22,13 +22,21 @@ class OpenAIProvider(LLMProviderBase):
         else:
             self._client = openai.AsyncOpenAI(api_key=api_key)
 
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
+    async def translate(
+        self,
+        prompt: str,
+        system: str,
+        *,
+        cache_system: bool = False,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
+            temperature=temperature,
         )
         # OpenAI types `.message.content` as `Optional[str]` (the SDK allows
         # `None` when content was filtered or refused). For our translate path
@@ -38,12 +46,18 @@ class OpenAIProvider(LLMProviderBase):
             raise RuntimeError("OpenAI returned no content (filtered or refused)")
         return content, _extract_usage(response)
 
-    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
+    async def evaluate(
+        self,
+        prompt: str,
+        *,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]:
         response = await self._client.chat.completions.create(
             model=self._model,
             messages=[
                 {"role": "user", "content": prompt},
             ],
+            temperature=temperature,
         )
         content = response.choices[0].message.content
         if content is None:

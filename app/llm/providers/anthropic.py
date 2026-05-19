@@ -5,7 +5,7 @@ from typing import cast
 import anthropic
 from anthropic.types import TextBlock, TextBlockParam
 
-from app.llm.protocol import LLMProviderBase, TokenUsage
+from app.llm.protocol import DEFAULT_TEMPERATURE, LLMProviderBase, TokenUsage
 
 
 def _first_text(content: list[object]) -> str:
@@ -28,7 +28,14 @@ class AnthropicProvider(LLMProviderBase):
         self._model = model
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
 
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
+    async def translate(
+        self,
+        prompt: str,
+        system: str,
+        *,
+        cache_system: bool = False,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]:
         system_arg: str | list[TextBlockParam]
         if cache_system:
             system_arg = [
@@ -49,15 +56,22 @@ class AnthropicProvider(LLMProviderBase):
             max_tokens=4096,
             system=system_arg,
             messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
         )
         return _first_text(list(response.content)), _extract_usage(response)
 
-    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
+    async def evaluate(
+        self,
+        prompt: str,
+        *,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]:
         response = await self._client.messages.create(
             model=self._model,
             max_tokens=512,
             system="",
             messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
         )
         return _first_text(list(response.content)), _extract_usage(response)
 

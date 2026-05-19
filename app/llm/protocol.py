@@ -34,11 +34,38 @@ def zero_usage() -> TokenUsage:
     return {"input_tokens": 0, "output_tokens": 0}
 
 
+# Sampling temperature for translate / evaluate. 0.0 = deterministic (the
+# canonical setting for production translation pipelines — see docs/05
+# "Determinism & reproducibility"). Higher values produce more variation
+# but break:
+#
+#  * eval-harness reproducibility (same prompt → different score)
+#  * regression debugging ("re-run this and tell me what happened")
+#  * back-translation similarity scoring (cosine drift across runs)
+#  * translation-memory cleanliness (same source → multiple approved targets)
+#
+# Providers that don't sample (DeepL: deterministic neural MT) accept and
+# ignore this kwarg to keep the Protocol uniform.
+DEFAULT_TEMPERATURE: float = 0.0
+
+
 @runtime_checkable
 class LLMProvider(Protocol):
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]: ...
+    async def translate(
+        self,
+        prompt: str,
+        system: str,
+        *,
+        cache_system: bool = False,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]: ...
 
-    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]: ...
+    async def evaluate(
+        self,
+        prompt: str,
+        *,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]: ...
 
     async def embed(self, text: str) -> list[float]: ...
 
@@ -62,10 +89,22 @@ class LLMProvider(Protocol):
 
 class LLMProviderBase(ABC):
     @abstractmethod
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]: ...
+    async def translate(
+        self,
+        prompt: str,
+        system: str,
+        *,
+        cache_system: bool = False,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]: ...
 
     @abstractmethod
-    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]: ...
+    async def evaluate(
+        self,
+        prompt: str,
+        *,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]: ...
 
     @abstractmethod
     async def embed(self, text: str) -> list[float]: ...

@@ -38,7 +38,7 @@ const tiers = [
     name: "Managed (waitlist)",
     badge: "Coming Q4 2026",
     price: "Early access",
-    sub: "no public pricing yet",
+    sub: "",
     cta: { label: "Join waitlist", href: site.github + "/issues/new?title=%5Bmanaged-waitlist%5D+", primary: false },
     body: "Single-tenant managed deployment in your cloud account. We operate it — you own the data, the infra, and the LLM provider relationships.",
     perks: [
@@ -116,7 +116,9 @@ export default function PricingPage() {
                       <span className="text-[36px] font-bold tracking-[-0.03em] text-[var(--color-text)]">
                         {t.price}
                       </span>
-                      <span className="text-[13px] text-[var(--color-text-muted)]">{t.sub}</span>
+                      {t.sub && (
+                        <span className="text-[13px] text-[var(--color-text-muted)]">{t.sub}</span>
+                      )}
                     </div>
                     <p className="mt-5 text-[14px] leading-[1.6] text-[var(--color-text-soft)]">
                       {t.body}

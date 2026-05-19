@@ -46,6 +46,10 @@ from app.export_import.parse import (
     parse_xlsx_path,
 )
 from app.export_import.validate import RowValidation, validate_rows
+from app.export_import.xliff_import import (
+    parse_xliff_bytes,
+    parse_xliff_path,
+)
 from app.models import ImportJob, TranslationStatus
 from app.mt.api import fetch_translations_by_ids
 from app.mt.transitions import (
@@ -63,6 +67,15 @@ ROLLBACK_WINDOW: Final[timedelta] = timedelta(hours=24)
 JOB_STATUS_PREVIEW: Final[str] = "preview"
 JOB_STATUS_COMMITTED: Final[str] = "committed"
 JOB_STATUS_ROLLED_BACK: Final[str] = "rolled_back"
+
+# File-format discriminator. The import_jobs ``dry_run_summary._meta.format``
+# field carries this string forward through commit / rollback so the audit
+# trail records which wire format the reviewer used.
+ImportFormat = Literal["xlsx", "xliff"]
+# Declared as Literal so mypy lets _detect_format return them as ImportFormat
+# without a cast.
+FORMAT_XLSX: Final[Literal["xlsx"]] = "xlsx"
+FORMAT_XLIFF: Final[Literal["xliff"]] = "xliff"
 
 
 class ExcelImportError(Exception):
@@ -147,6 +160,7 @@ async def preview_import(
     file_path: str | None = None,
     filename: str | None = None,
     uploaded_by: uuid.UUID,
+    format: ImportFormat | None = None,
 ) -> ImportJob:
     """Parse, validate, detect conflicts. Persist an import_jobs row.
 
@@ -154,15 +168,36 @@ async def preview_import(
     returned :class:`ImportJob` has ``status = 'preview'`` and
     ``dry_run_summary`` populated with the per-row plan plus counts and
     errors. The caller passes ``job.id`` to :func:`commit_import` to apply.
+
+    ``format`` selects the wire parser:
+
+    * ``"xlsx"`` (the Phase 5 default) — open with openpyxl.
+    * ``"xliff"`` — parse XLIFF 1.2 via :mod:`app.export_import.xliff_import`.
+    * ``None`` — auto-detect from filename extension (``.xlf`` /
+      ``.xliff`` -> xliff, otherwise xlsx). Useful for CLI / HTTP callers
+      that haven't been format-aware until now.
     """
     if (file_bytes is None) == (file_path is None):
         raise ValueError("preview_import requires exactly one of file_bytes / file_path")
 
-    if file_bytes is not None:
-        parsed = parse_xlsx_bytes(file_bytes, filename=filename)
+    resolved_format: ImportFormat = format or _detect_format(filename=filename, file_path=file_path)
+
+    if resolved_format == FORMAT_XLIFF:
+        if file_bytes is not None:
+            parsed = parse_xliff_bytes(file_bytes, filename=filename)
+        else:
+            assert file_path is not None
+            parsed = parse_xliff_path(file_path)
+    elif resolved_format == FORMAT_XLSX:
+        if file_bytes is not None:
+            parsed = parse_xlsx_bytes(file_bytes, filename=filename)
+        else:
+            assert file_path is not None
+            parsed = parse_xlsx_path(file_path)
     else:
-        assert file_path is not None
-        parsed = parse_xlsx_path(file_path)
+        # ``ImportFormat`` is a closed Literal so mypy would catch this at
+        # the call site; the runtime guard is defensive.
+        raise ExcelImportError(f"Unsupported import format: {resolved_format!r}")
 
     if parsed.meta.project_id != project_id:
         raise ProjectMismatchError(
@@ -173,19 +208,39 @@ async def preview_import(
     conflicts = await detect_conflicts(db, parsed)
 
     summary = _build_summary(parsed, validations, conflicts)
+    summary_dict = _summary_to_dict(summary)
+    # Stamp the import format on the persisted summary so commit / rollback
+    # / the audit trail can recover which wire format the reviewer used.
+    summary_dict["format"] = resolved_format
 
     job = ImportJob(
         project_id=project_id,
         uploaded_by=uploaded_by,
-        filename=filename or (file_path or "uploaded.xlsx"),
+        filename=filename or (file_path or f"uploaded.{resolved_format}"),
         schema_version=parsed.meta.schema_version,
         export_timestamp=parsed.meta.export_timestamp,
-        dry_run_summary=_summary_to_dict(summary),
+        dry_run_summary=summary_dict,
         status=JOB_STATUS_PREVIEW,
     )
     db.add(job)
     await db.flush()
     return job
+
+
+def _detect_format(*, filename: str | None, file_path: str | None) -> ImportFormat:
+    """Infer the import format from a filename / path suffix.
+
+    ``.xlf`` / ``.xliff`` -> ``xliff``. Anything else (including a missing
+    name) -> ``xlsx``. The XLSX default preserves Phase-5-caller behaviour
+    when no format is supplied.
+    """
+    import pathlib
+
+    candidate = filename or file_path or ""
+    suffix = pathlib.Path(candidate).suffix.lower()
+    if suffix in {".xlf", ".xliff"}:
+        return FORMAT_XLIFF
+    return FORMAT_XLSX
 
 
 async def commit_import(
@@ -572,6 +627,9 @@ def _summary_to_dict(summary: PreviewSummary) -> dict[str, Any]:
 
 __all__ = [
     "ExcelImportError",
+    "FORMAT_XLIFF",
+    "FORMAT_XLSX",
+    "ImportFormat",
     "ImportParseError",
     "JobNotCommittableError",
     "JobNotFoundError",

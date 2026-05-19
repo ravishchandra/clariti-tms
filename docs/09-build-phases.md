@@ -179,7 +179,7 @@ Build only after measuring real friction in the MVP. Ordered loosely by expected
 
 - [ ] **Swift AST screen grouping** — parse Swift source for `NSLocalizedString` calls, group by enclosing ViewController. Replaces key prefix inference for iOS.
 - [ ] **Android layout XML screen grouping** — parse `res/layout/activity_*.xml` for `@string/` references, group by layout file. Replaces key prefix inference for Android.
-- [ ] **XLIFF export/import** — for professional LSP exchange (`loc export-xliff`, `loc import-xliff`)
+- [x] **XLIFF export/import** — for professional LSP exchange (`loc export-xliff`, `loc import-xliff`)
 - [ ] **GitLab adapter** — community package (`clariti-tms-gitlab`); follows same SourceAdapter/PublicationAdapter pattern
 - [ ] **Additional CMS adapters** — Sanity, Strapi, Prismic (community packages)
 - [ ] **In-context Chrome extension** — Tolgee-style: translate strings while viewing staging. Overlay on live app, click string to see/edit translation.

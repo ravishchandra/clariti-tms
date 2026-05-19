@@ -86,6 +86,8 @@ except ImportError:
 try:
     from app.api.v1.endpoints.screenshots import (
         router as screenshots_key_router,
+    )
+    from app.api.v1.endpoints.screenshots import (
         screenshots_router,
     )
 

@@ -195,9 +195,7 @@ async def list_screenshots(
     key: ScopedKey,
 ) -> dict[str, list[ScreenshotRead]]:
     """List every screenshot row tied to a key (oldest first)."""
-    result = await db.execute(
-        select(Screenshot).where(Screenshot.key_id == key.id).order_by(Screenshot.uploaded_at)
-    )
+    result = await db.execute(select(Screenshot).where(Screenshot.key_id == key.id).order_by(Screenshot.uploaded_at))
     rows = result.scalars().all()
     return {"items": [ScreenshotRead.model_validate(s) for s in rows]}
 

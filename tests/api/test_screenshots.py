@@ -180,7 +180,7 @@ _TINY_JPEG = (
     b"\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02"
     b"\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xc4\x00\xb5\x10\x00\x02\x01\x03"
     b"\x03\x02\x04\x03\x05\x05\x04\x04\x00\x00\x01}\x01\x02\x03\x00\x04\x11"
-    b"\x05\x12!1A\x06\x13Qa\x07\"q\x142\x81\x91\xa1\x08#B\xb1\xc1\x15R\xd1"
+    b'\x05\x12!1A\x06\x13Qa\x07"q\x142\x81\x91\xa1\x08#B\xb1\xc1\x15R\xd1'
     b"\xf0$3br\x82\t\n\x16\x17\x18\x19\x1a%&'()*456789:CDEFGHIJSTUVWXYZ"
     b"cdefghijstuvwxyz\x83\x84\x85\x86\x87\x88\x89\x8a\x92\x93\x94\x95\x96"
     b"\x97\x98\x99\x9a\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xb2\xb3\xb4\xb5"
@@ -197,9 +197,7 @@ _TINY_JPEG = (
 
 
 class TestUpload:
-    async def test_upload_png_returns_201_with_screenshot(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_upload_png_returns_201_with_screenshot(self, client: AsyncClient, fixture: Fixture) -> None:
         files = {"file": ("a.png", _TINY_PNG, "image/png")}
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
@@ -217,17 +215,11 @@ class TestUpload:
         # The id in the url should equal the row id.
         assert body["id"] in body["storage_url"]
         # File should exist on disk.
-        candidate = (
-            fixture.storage_root
-            / str(fixture.org_a.key_id)
-            / f"{body['id']}.png"
-        )
+        candidate = fixture.storage_root / str(fixture.org_a.key_id) / f"{body['id']}.png"
         assert candidate.exists()
         assert candidate.read_bytes() == _TINY_PNG
 
-    async def test_upload_jpeg_accepted(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_upload_jpeg_accepted(self, client: AsyncClient, fixture: Fixture) -> None:
         files = {"file": ("a.jpg", _TINY_JPEG, "image/jpeg")}
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
@@ -238,11 +230,7 @@ class TestUpload:
         # Caption absent → null on the wire.
         assert r.json()["caption"] is None
         # File written with .jpg extension.
-        candidate = (
-            fixture.storage_root
-            / str(fixture.org_a.key_id)
-            / f"{r.json()['id']}.jpg"
-        )
+        candidate = fixture.storage_root / str(fixture.org_a.key_id) / f"{r.json()['id']}.jpg"
         assert candidate.exists()
 
 
@@ -252,9 +240,7 @@ class TestUpload:
 
 
 class TestUploadValidation:
-    async def test_non_image_returns_422(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_non_image_returns_422(self, client: AsyncClient, fixture: Fixture) -> None:
         # Bytes claim to be PNG but the magic header says "PDF". Endpoint
         # must rely on magic-byte sniffing, not Content-Type.
         files = {"file": ("evil.png", b"%PDF-1.4\nfake", "image/png")}
@@ -265,9 +251,7 @@ class TestUploadValidation:
         )
         assert r.status_code == 422
 
-    async def test_empty_upload_returns_422(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_empty_upload_returns_422(self, client: AsyncClient, fixture: Fixture) -> None:
         files = {"file": ("empty.png", b"", "image/png")}
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
@@ -276,9 +260,7 @@ class TestUploadValidation:
         )
         assert r.status_code == 422
 
-    async def test_oversize_returns_413(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_oversize_returns_413(self, client: AsyncClient, fixture: Fixture) -> None:
         # 10 MB + 1 byte, prefixed by the PNG magic so we exercise the size
         # check, not the magic-byte check.
         oversize = _TINY_PNG + b"\x00" * (10 * 1024 * 1024 + 1 - len(_TINY_PNG))
@@ -290,9 +272,7 @@ class TestUploadValidation:
         )
         assert r.status_code == 413
 
-    async def test_upload_to_unknown_key_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_upload_to_unknown_key_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         files = {"file": ("a.png", _TINY_PNG, "image/png")}
         r = await client.post(
             f"/api/v1/keys/{uuid.uuid4()}/screenshots",
@@ -308,9 +288,7 @@ class TestUploadValidation:
 
 
 class TestList:
-    async def test_list_returns_uploaded_items_for_key(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_list_returns_uploaded_items_for_key(self, client: AsyncClient, fixture: Fixture) -> None:
         # Upload two for org_a, then fetch the list.
         for _ in range(2):
             r = await client.post(
@@ -333,9 +311,7 @@ class TestList:
         for item in body["items"]:
             assert item["key_id"] == str(fixture.org_a.key_id)
 
-    async def test_list_does_not_leak_other_keys(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_list_does_not_leak_other_keys(self, client: AsyncClient, fixture: Fixture) -> None:
         # Upload one for org_b's key, then ensure org_b's list shows it
         # and org_a's same-org list does not.
         r = await client.post(
@@ -361,9 +337,7 @@ class TestList:
 
 
 class TestGetImage:
-    async def test_get_image_serves_bytes_with_content_type(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_get_image_serves_bytes_with_content_type(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -381,9 +355,7 @@ class TestGetImage:
         assert "max-age=86400" in img.headers.get("cache-control", "")
         assert img.content == _TINY_PNG
 
-    async def test_get_image_for_jpeg_has_jpeg_content_type(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_get_image_for_jpeg_has_jpeg_content_type(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -406,9 +378,7 @@ class TestGetImage:
 
 
 class TestTenantIsolation:
-    async def test_cross_org_upload_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_cross_org_upload_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         # org_a's key trying to upload to org_b's key id.
         r = await client.post(
             f"/api/v1/keys/{fixture.org_b.key_id}/screenshots",
@@ -417,18 +387,14 @@ class TestTenantIsolation:
         )
         assert r.status_code == 404
 
-    async def test_cross_org_list_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_cross_org_list_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
             f"/api/v1/keys/{fixture.org_b.key_id}/screenshots",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 404
 
-    async def test_cross_org_get_image_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_cross_org_get_image_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         # Upload as org_b, fetch as org_a.
         r = await client.post(
             f"/api/v1/keys/{fixture.org_b.key_id}/screenshots",
@@ -444,9 +410,7 @@ class TestTenantIsolation:
         )
         assert img.status_code == 404
 
-    async def test_cross_org_delete_returns_404(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_cross_org_delete_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             f"/api/v1/keys/{fixture.org_b.key_id}/screenshots",
             headers=_headers(fixture.org_b.api_key_raw),
@@ -468,9 +432,7 @@ class TestTenantIsolation:
 
 
 class TestDelete:
-    async def test_delete_removes_row_and_file(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_delete_removes_row_and_file(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
             headers=_headers(fixture.org_a.api_key_raw),
@@ -479,11 +441,7 @@ class TestDelete:
         assert r.status_code == 201
         sid = r.json()["id"]
 
-        candidate = (
-            fixture.storage_root
-            / str(fixture.org_a.key_id)
-            / f"{sid}.png"
-        )
+        candidate = fixture.storage_root / str(fixture.org_a.key_id) / f"{sid}.png"
         assert candidate.exists()
 
         rd = await client.delete(
@@ -496,9 +454,7 @@ class TestDelete:
 
         # Row gone.
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                select(Screenshot).where(Screenshot.id == uuid.UUID(sid))
-            )
+            result = await db.execute(select(Screenshot).where(Screenshot.id == uuid.UUID(sid)))
             assert result.scalar_one_or_none() is None
 
         # And a subsequent GET image returns 404.
@@ -515,9 +471,7 @@ class TestDelete:
 
 
 class TestAuth:
-    async def test_missing_api_key_rejected(
-        self, client: AsyncClient, fixture: Fixture
-    ) -> None:
+    async def test_missing_api_key_rejected(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(
             f"/api/v1/keys/{fixture.org_a.key_id}/screenshots",
             files={"file": ("a.png", _TINY_PNG, "image/png")},

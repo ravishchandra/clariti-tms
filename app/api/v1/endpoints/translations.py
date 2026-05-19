@@ -8,8 +8,12 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedTranslation, assert_project_in_org
-from app.api.v1.schemas.translations import TranslationRead, TranslationUpdate
-from app.models import Key, Translation, TranslationStatus
+from app.api.v1.schemas.translations import (
+    TranslationHistoryRead,
+    TranslationRead,
+    TranslationUpdate,
+)
+from app.models import Key, Translation, TranslationHistory, TranslationStatus
 from app.mt.transitions import (
     ALLOWED_REVIEWER_ACTIONS,
     IllegalTransitionError,
@@ -116,3 +120,27 @@ async def update_translation(
     await db.commit()
     await db.refresh(translation)
     return TranslationRead.model_validate(translation)
+
+
+@router.get("/{translation_id}/history", response_model=dict)
+async def get_translation_history(
+    db: DB,
+    translation: ScopedTranslation,
+    limit: int = Query(100, ge=1, le=500),
+) -> dict[str, Any]:
+    """Return the audit-log entries for a translation, newest first.
+
+    Powers the Phase 6 key-detail page's history timeline. Rows are written
+    automatically by the Postgres `record_translation_history()` trigger;
+    the application never inserts here. Tenant scoping reuses
+    `ScopedTranslation` so cross-org access returns 404 before any history
+    leaks.
+    """
+    rows = await db.execute(
+        select(TranslationHistory)
+        .where(TranslationHistory.translation_id == translation.id)
+        .order_by(TranslationHistory.changed_at.desc())
+        .limit(limit)
+    )
+    items = [TranslationHistoryRead.model_validate(r) for r in rows.scalars().all()]
+    return {"items": items, "total": len(items)}

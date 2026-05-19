@@ -24,3 +24,29 @@ class BatchRead(BaseModel):
 
 class BatchTrigger(BaseModel):
     provider: str = "anthropic"
+
+
+class MtRunRead(BaseModel):
+    """One row from the `mt_runs` audit table.
+
+    Powers the Phase 6 key-detail MT-run inspector. One row per LLM call —
+    primary attempt, retry, fallback. Full prompt + output text are
+    included so reviewers can dig into a specific translation's provenance.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    batch_id: uuid.UUID | None
+    prompt_version: str
+    model: str
+    prompt_text: str
+    output_text: str
+    validators_passed: bool | None
+    validator_errors: dict | None
+    string_count: int | None
+    latency_ms: int | None
+    input_tokens: int | None
+    output_tokens: int | None
+    cost_usd: float | None
+    ran_at: datetime

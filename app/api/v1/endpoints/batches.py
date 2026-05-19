@@ -8,8 +8,8 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedBatch, assert_project_in_org
-from app.api.v1.schemas.batches import BatchRead, BatchTrigger
-from app.models import BatchStatus, Translation, TranslationBatch, TranslationStatus
+from app.api.v1.schemas.batches import BatchRead, BatchTrigger, MtRunRead
+from app.models import BatchStatus, MtRun, Translation, TranslationBatch, TranslationStatus
 from app.mt.transitions import IllegalTransitionError, apply_transition
 
 logger = logging.getLogger(__name__)
@@ -166,3 +166,21 @@ async def reject_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
         "rejected": rejected_count,
         "skipped": skipped_count,
     }
+
+
+@router.get("/{batch_id}/mt-runs", response_model=dict)
+async def list_mt_runs(
+    db: DB,
+    batch: ScopedBatch,
+    limit: int = Query(50, ge=1, le=500),
+) -> dict[str, Any]:
+    """Return MT-run rows for a batch, newest first.
+
+    Powers the Phase 6 key-detail MT-run inspector. Each row is one LLM
+    attempt (primary / retry / fallback per docs/05:52). The full
+    `prompt_text` and `output_text` are included for forensic debugging
+    of bad translations.
+    """
+    rows = await db.execute(select(MtRun).where(MtRun.batch_id == batch.id).order_by(MtRun.ran_at.desc()).limit(limit))
+    items = [MtRunRead.model_validate(r) for r in rows.scalars().all()]
+    return {"items": items, "total": len(items)}

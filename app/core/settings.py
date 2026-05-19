@@ -70,6 +70,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
     DEBUG: bool = False
 
+    # Scheduler (F-OPS-2) — APScheduler-driven recurring jobs.
+    # Off by default so dev / test runs don't kick off real network work
+    # unless an operator explicitly opts in.
+    SCHEDULER_ENABLED: bool = False
+    # Run the publication job every N minutes (Phase 4 line 114 = 15).
+    PUBLICATION_INTERVAL_MINUTES: int = 15
+    # Hour of day (UTC, 0-23) at which the nightly reconciliation runs.
+    # 2 AM UTC is the default — quiet hours for most US/EU traffic.
+    RECONCILIATION_HOUR_UTC: int = 2
+
     @model_validator(mode="after")
     def _validate_secret_key(self) -> Self:
         """Enforce SECRET_KEY policy based on DEBUG mode.

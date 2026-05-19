@@ -36,6 +36,7 @@ dependencies = [
     "python-multipart>=0.0.18",
     "cryptography>=44",
     "pyjwt[crypto]>=2.10",
+    "apscheduler>=3.11",
 ]
 
 [project.optional-dependencies]

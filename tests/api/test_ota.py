@@ -28,6 +28,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 # Match the loop-scope used by tests/api/test_tenant_isolation.py so the two
 # real-DB suites can coexist under CI's `pytest -x -q` run. Mixing
@@ -46,7 +47,11 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 
 @pytest_asyncio.fixture(loop_scope="module")
 async def engine() -> AsyncIterator[Any]:
-    eng = create_async_engine(DATABASE_URL, echo=False)
+    # NullPool: don't reuse connections across module-scoped event loops.
+    # Without this, the pool's asyncpg connections stay bound to the loop
+    # that created them, and the next module's engine raises
+    # "Future attached to a different loop" on setup.
+    eng = create_async_engine(DATABASE_URL, echo=False, poolclass=NullPool)
     yield eng
     await eng.dispose()
 

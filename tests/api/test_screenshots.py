@@ -147,6 +147,15 @@ async def fixture(tmp_path_factory: pytest.TempPathFactory) -> Fixture:
 
     screenshots_module._reset_storage_root_for_tests()
 
+    # Dispose the global `AsyncSessionLocal` engine when this module finishes.
+    # The next module-scoped test (test_tenant_isolation.py) creates a fresh
+    # event loop; the global engine's asyncpg connection pool would otherwise
+    # still hold connections bound to this module's now-closed loop, tripping
+    # "Future attached to a different loop" on the next module's first DB call.
+    from app.core.database import engine as _global_engine
+
+    await _global_engine.dispose()
+
 
 @pytest_asyncio.fixture(loop_scope="module")
 async def client() -> AsyncClient:

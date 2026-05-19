@@ -17,14 +17,15 @@ Source: dummy-claims audit produced 2026-05-19 against the marketing site as of 
 
 ### A. Broken / dead URLs (highest impact — every external link is a 404)
 
-- [ ] **Register the marketing domain or change `site.url`.** `https://clariti-tms.dev` is NXDOMAIN. Every canonical URL, OG tag, sitemap entry, and JSON-LD entity points at it. Fix in `marketing/src/lib/site.ts`. Knock-on: `/llms.txt` and `/api/features.json` self-reference this URL.
-- [ ] **Create the GitHub org + repo, or change every `site.github` reference.** `https://github.com/clariti-tms/clariti` is 404. ~30 CTAs and footer links across the site point at it: nav GitHub icon, Hero badge link, Install section "Read the docs", every Footer "Open source" / "Docs" column link, OpenSource band "View source", every comparison-page CTA section, Pricing tier CTAs (managed waitlist, commercial license), and the agents page "Open a thread on GitHub".
-- [ ] **Pricing → "Join waitlist"** points to `${github}/discussions` — 404 because parent repo doesn't exist. Either ship a real waitlist form (Tally, Plain, ConvertKit) or remove the tier (see scope-reduction §A.1).
-- [ ] **Pricing → "Contact maintainers"** points to the GitHub repo — 404, and there's no real contact path. Replace with a real `mailto:` (or a Plain inbox, etc.) once a maintainer email exists.
+> Update 2026-05-19: real repo is `github.com/ravishchandra/clariti-tms` (public, AGPL-3.0). Most A-items closed by pointing `site.github` at it. Remaining items below.
+
+- [x] ~~Create the GitHub org + repo, or change every `site.github` reference.~~ Fixed — pointing at the real `ravishchandra/clariti-tms` repo. Every CTA across nav, footer, pricing, agents, benchmark, OpenSource band, and comparison pages now resolves to a 200.
+- [x] ~~Pricing → "Join waitlist"~~ — repointed to `/issues/new?title=[managed-waitlist]+`. Replace with a real form (Tally / Plain / ConvertKit) before launch if managed actually ships.
+- [x] ~~Pricing → "Contact maintainers"~~ — repointed to `/issues/new?title=[commercial-license]+`. Replace with a real `mailto:` once a maintainer email exists.
+- [x] ~~/agents page CTA, /benchmark page CTAs~~ — all repointed from `/discussions/new` to `/issues/new` (Discussions not enabled on the repo). Optional follow-up: enable Discussions in repo settings → flip these back to `/discussions/new`.
+- [ ] **Register the marketing domain or change `site.url`.** `https://clariti-tms.dev` is NXDOMAIN. Every canonical URL, OG tag, sitemap entry, and JSON-LD entity points at it. After Vercel deploy, the temporary fix is to set `site.url` to the `*.vercel.app` URL so canonicals are consistent. Permanent fix: register a domain. (Files: `marketing/src/lib/site.ts`; knock-on for `/llms.txt` and `/api/features.json`.)
 - [ ] **Layout JSON-LD `Organization.logo`** references `${site.url}/logo.svg` — file does not exist in `marketing/public/`. Add `logo.svg`, `favicon.ico`, `apple-touch-icon.png`, and `icon.png` so the JSON-LD validates and OG/search results render properly.
 - [ ] **Footer Twitter** `https://twitter.com/claritihq` returns 301 (handle status unverified — could be parked, could be real). Confirm or remove.
-- [ ] **`/agents` page CTA** points to `${github}/discussions/new?category=agent-integration` — 404. Same fix as above.
-- [ ] **`/benchmark` page CTAs** both point to `${github}/discussions/new?category=benchmark` — 404. Same.
 - [ ] **`/changelog` page CTA** points to `/agents` — works, but the implicit "Want the next changelog in your inbox?" copy promises something not built. Either ship a subscribe form or change the copy.
 
 ### B. Fake product surfaces (the integrity gap will be the first thing a sharp prospect notices)

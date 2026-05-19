@@ -97,7 +97,7 @@ export default function BenchmarkPage() {
             <Reveal delay={210}>
               <div className="mt-9 flex flex-wrap gap-3">
                 <a
-                  href={`${site.github}/discussions/new?category=benchmark`}
+                  href={`${site.github}/issues/new?title=%5Bbenchmark%5D+`}
                   className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
                 >
                   Get notified when results land →
@@ -259,13 +259,13 @@ export default function BenchmarkPage() {
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a
-                    href={`${site.github}/discussions/new?category=benchmark`}
+                    href={`${site.github}/issues/new?title=%5Bbenchmark%5D+`}
                     className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
                   >
                     Get notified when results land
                   </a>
                   <a
-                    href={`${site.github}/discussions/new?category=benchmark`}
+                    href={`${site.github}/issues/new?title=%5Bbenchmark%5D+`}
                     className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40 hover:text-white"
                   >
                     Suggest a corpus or a system →

@@ -30,7 +30,7 @@ const tiers = [
       "All features — TM, glossary, back-translation QA, OTA, XLIFF",
       "Bring your own LLM provider — Claude, GPT, DeepL, Ollama",
       "GitHub PR-back and Contentful sync included",
-      "Community support via GitHub Discussions",
+      "Community support via GitHub Issues",
       "AGPL-3.0 — your modifications stay yours unless you redistribute",
     ],
   },
@@ -39,7 +39,7 @@ const tiers = [
     badge: "Coming Q4 2026",
     price: "Early access",
     sub: "no public pricing yet",
-    cta: { label: "Join waitlist", href: site.github + "/discussions", primary: false },
+    cta: { label: "Join waitlist", href: site.github + "/issues/new?title=%5Bmanaged-waitlist%5D+", primary: false },
     body: "Single-tenant managed deployment in your cloud account. We operate it — you own the data, the infra, and the LLM provider relationships.",
     perks: [
       "Single-tenant deployment in your AWS / GCP / Azure",
@@ -56,7 +56,7 @@ const tiers = [
     badge: "AGPL-incompatible use",
     price: "Talk to us",
     sub: "for hosted operators",
-    cta: { label: "Contact maintainers", href: site.github, primary: false },
+    cta: { label: "Contact maintainers", href: site.github + "/issues/new?title=%5Bcommercial-license%5D+", primary: false },
     body: "If you are building a hosted offering on top of Clariti and the AGPL is incompatible with how you want to ship, a commercial license is available.",
     perks: [
       "Use Clariti in a closed-source product",

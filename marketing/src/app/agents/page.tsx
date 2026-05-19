@@ -292,10 +292,10 @@ export default function ClaudeCodePage() {
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a
-                    href={`${site.github}/discussions/new?category=agent-integration`}
+                    href={`${site.github}/issues/new?title=%5Bagent-integration%5D+`}
                     className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
                   >
-                    Open a thread on GitHub
+                    Open an issue on GitHub
                   </a>
                   <Link
                     href="/playground"

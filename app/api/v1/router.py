@@ -79,3 +79,17 @@ try:
     router.include_router(imports_router, prefix="/imports", tags=["Imports"])
 except ImportError:
     pass
+
+# Phase 7 — Screenshot capture. The upload + list routes mount under /keys
+# (they're key-scoped); the image-fetch + delete routes mount under
+# /screenshots (operating on a screenshot id directly).
+try:
+    from app.api.v1.endpoints.screenshots import (
+        router as screenshots_key_router,
+        screenshots_router,
+    )
+
+    router.include_router(screenshots_key_router, prefix="/keys", tags=["Screenshots"])
+    router.include_router(screenshots_router, prefix="/screenshots", tags=["Screenshots"])
+except ImportError:
+    pass

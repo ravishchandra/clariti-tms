@@ -17,6 +17,7 @@ import { StatusChip } from "@/components/status-chip";
 import { api, getApiKey, type Key, type Translation } from "@/lib/api";
 import { useKeyBindings } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
+import { useHelpDialog } from "@/app/(app)/_help/help-dialog";
 
 /**
  * Screen-based review (docs/06-human-review-workflow.md "Screen-based
@@ -31,7 +32,7 @@ import { cn } from "@/lib/utils";
  *   Cmd+Enter  save edit
  *   Escape     cancel edit
  *   Shift+A    approve every visible row that's currently needs_review
- *   ?          help dialog (TODO: dispatch agent will add)
+ *   ?          help dialog (Phase 6 — global overlay, see `_help/help-dialog.tsx`)
  *
  * Updates are optimistic — TanStack Query patches the cache before the
  * server responds so the keyboard flow stays at typing speed.
@@ -54,6 +55,7 @@ export default function BatchReviewPage() {
 
 function BatchReview({ batchId, projectId }: { batchId: string; projectId: string | null }) {
   const qc = useQueryClient();
+  const helpDialog = useHelpDialog();
 
   const batchQuery = useQuery({
     queryKey: ["review", "batch", batchId],
@@ -232,6 +234,16 @@ function BatchReview({ batchId, projectId }: { batchId: string; projectId: strin
         const r = activeRow();
         if (r && editingId === r.translation.id) saveEdit(r);
       },
+    },
+    {
+      // The review surface registers `?` locally so the chord works even
+      // before any global listener attaches (e.g. during the first render
+      // after a navigation). The app-shell also registers it — first match
+      // wins and either path opens the same singleton dialog.
+      key: "?",
+      shift: true,
+      description: "Open keyboard shortcut help",
+      handler: () => helpDialog.open(),
     },
   ]);
 

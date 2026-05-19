@@ -23,7 +23,7 @@ const tiers = [
     badge: "Open Source",
     price: "$0",
     sub: "per month, forever",
-    cta: { label: "Star on GitHub", href: site.github, primary: true },
+    cta: { label: "Try the playground →", href: "/playground", primary: true },
     body: "Run Clariti on your own infrastructure under the AGPL-3.0. No seat caps, no string caps, no feature gates.",
     perks: [
       "Unlimited users, projects, locales, strings",

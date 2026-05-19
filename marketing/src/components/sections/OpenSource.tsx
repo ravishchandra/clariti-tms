@@ -37,19 +37,19 @@ export function OpenSource() {
             <div className="relative flex flex-wrap items-center gap-3 border-t border-[var(--color-line)]/70 px-10 py-5 lg:px-14">
               <a
                 href={site.github}
-                className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2 text-[13px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2 text-[13px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40"
               >
-                Star on GitHub
+                View source on GitHub
               </a>
               <a
                 href={`${site.github}/blob/main/CONTRIBUTING.md`}
-                className="text-[13px] text-[var(--color-text-soft)] underline-offset-4 hover:text-white hover:underline"
+                className="text-[13px] text-[var(--color-text-soft)] underline-offset-4 hover:text-[var(--color-text)] hover:underline"
               >
                 Contributing guide
               </a>
               <a
                 href={`${site.github}/blob/main/LICENSE`}
-                className="text-[13px] text-[var(--color-text-soft)] underline-offset-4 hover:text-white hover:underline"
+                className="text-[13px] text-[var(--color-text-soft)] underline-offset-4 hover:text-[var(--color-text)] hover:underline"
               >
                 Read the AGPL
               </a>

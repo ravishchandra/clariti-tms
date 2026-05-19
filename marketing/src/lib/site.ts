@@ -7,13 +7,13 @@ export const site = {
   github: "https://github.com/clariti-tms/clariti",
   twitter: "https://twitter.com/claritihq",
   navLinks: [
-    { href: "/#features", label: "Features" },
-    { href: "/#how-it-works", label: "How it works" },
+    { href: "/playground", label: "Playground" },
+    { href: "/agents", label: "Agents" },
     { href: "/#compare", label: "Compare" },
     { href: "/pricing", label: "Pricing" },
-    { href: "/#faq", label: "FAQ" },
+    { href: "/changelog", label: "Changelog" },
   ],
-  ctaPrimary: { href: "https://github.com/clariti-tms/clariti", label: "Star on GitHub" },
+  ctaPrimary: { href: "/playground", label: "Try the playground" },
   ctaSecondary: { href: "/#install", label: "Self-host in 5 min" },
 };
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Reveal } from "../Reveal";
 import { site } from "@/lib/site";
 
@@ -28,15 +29,15 @@ export function Install() {
                 when you are ready to translate real work.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <a
-                  href={site.github}
+                <Link
+                  href="/playground"
                   className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
                 >
-                  View on GitHub →
-                </a>
+                  Skip the install — try the playground →
+                </Link>
                 <a
                   href={`${site.github}#readme`}
-                  className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-1)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-1)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40"
                 >
                   Read the docs
                 </a>

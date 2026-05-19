@@ -283,12 +283,12 @@ export default async function CompareCompetitorPage({
                   pipeline before you wire up Claude or GPT-4.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <a
-                    href={site.github}
+                  <Link
+                    href="/playground"
                     className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
                   >
-                    Star on GitHub
-                  </a>
+                    Try the playground →
+                  </Link>
                   <Link
                     href="/pricing"
                     className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"

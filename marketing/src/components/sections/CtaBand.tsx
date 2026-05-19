@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { Reveal } from "../Reveal";
-import { site } from "@/lib/site";
 
 export function CtaBand() {
   return (
@@ -21,19 +21,19 @@ export function CtaBand() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <a
-                  href={site.github}
+                <Link
+                  href="/playground"
                   className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-5 py-3 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
                 >
-                  Get started on GitHub
+                  Try the playground
                   <span>→</span>
-                </a>
-                <a
-                  href="/pricing"
-                  className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/80 px-5 py-3 text-[14px] font-medium text-[var(--color-text)] backdrop-blur transition-all hover:border-[var(--color-flame)]/45 hover:text-white"
+                </Link>
+                <Link
+                  href="/agents"
+                  className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/80 px-5 py-3 text-[14px] font-medium text-[var(--color-text)] backdrop-blur transition-all hover:border-[var(--color-flame)]/45"
                 >
-                  See pricing
-                </a>
+                  Drop into Claude Code, Cursor, Cline
+                </Link>
               </div>
             </div>
           </div>

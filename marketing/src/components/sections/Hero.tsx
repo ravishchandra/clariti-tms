@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { LocaleCycler } from "./LocaleCycler";
 import { Reveal } from "../Reveal";
-import { site } from "@/lib/site";
 
 export function Hero() {
   return (
@@ -44,21 +43,20 @@ export function Hero() {
 
           <Reveal delay={210}>
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a
-                href={site.github}
+              <Link
+                href="/playground"
                 className="group inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
               >
-                Star on GitHub
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                  <path d="M8 0l2.06 5.27L16 6l-4.5 3.6L13.5 16 8 12.27 2.5 16l2-6.4L0 6l5.94-.73L8 0z" />
-                </svg>
-              </a>
+                Try the playground
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
               <Link
                 href="/#install"
-                className="group inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/70 px-4 py-2.5 text-[14px] font-medium text-[var(--color-text)] backdrop-blur transition-all hover:border-[var(--color-flame)]/45 hover:text-white"
+                className="group inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/70 px-4 py-2.5 text-[14px] font-medium text-[var(--color-text)] backdrop-blur transition-all hover:border-[var(--color-flame)]/45"
               >
                 <span className="font-mono text-[12px] text-[var(--color-flame-soft)]">$</span>
-                <span>self-host in 5 min</span>
+                <span className="font-mono">loc demo</span>
+                <span className="text-[var(--color-text-muted)]">— no API keys</span>
               </Link>
             </div>
           </Reveal>

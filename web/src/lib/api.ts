@@ -172,6 +172,86 @@ export const TranslationBatch = z.object({
 export type TranslationBatch = z.infer<typeof TranslationBatch>;
 
 /* ---------------------------------------------------------------------------
+ * Import / Export schemas (Phase 5 round-trip; UI in Phase 6).
+ *
+ * The dry-run summary shape is dictated by docs/07-excel-roundtrip.md lines
+ * 96-127. The server stores the parsed summary on `import_jobs.dry_run_summary`
+ * and returns it verbatim from `POST /imports/preview`. Server keeps the
+ * authoritative shape; we model only the fields the UI renders today. Unknown
+ * fields are tolerated (zod default `passthrough` is off here, but we use
+ * `loose` so future server additions don't break the page).
+ * ------------------------------------------------------------------------ */
+
+export const ImportValidationError = z.object({
+  row_id: z.string().nullable().optional(),
+  locale: z.string().nullable().optional(),
+  key: z.string().nullable().optional(),
+  kind: z.string(), // "placeholders_mismatch" | "length_exceeded" | "icu_malformed" | "glossary" | ...
+  detail: z.string().nullable().optional(),
+});
+export type ImportValidationError = z.infer<typeof ImportValidationError>;
+
+export const ImportDryRunSummary = z.looseObject({
+  schema_version: z.string().nullable().optional(),
+  schema_version_ok: z.boolean().nullable().optional(),
+  project_id: z.string().nullable().optional(),
+  project_slug: z.string().nullable().optional(),
+  project_match: z.boolean().nullable().optional(),
+  export_timestamp: z.string().nullable().optional(),
+  conflicts: z.number().nullable().optional(),
+  locales: z.array(z.string()).nullable().optional(),
+  // Per-action counts. Keys match docs/07-excel-roundtrip.md "Actions to apply".
+  actions: z
+    .looseObject({
+      approve: z.number().nullable().optional(),
+      edit: z.number().nullable().optional(),
+      reject: z.number().nullable().optional(),
+      flag: z.number().nullable().optional(),
+      skip: z.number().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  // Per-rule counts. Keys match docs/07-excel-roundtrip.md "Validation".
+  validation: z
+    .looseObject({
+      placeholders_match: z.number().nullable().optional(),
+      placeholders_mismatch: z.number().nullable().optional(),
+      length_ok: z.number().nullable().optional(),
+      length_exceeded: z.number().nullable().optional(),
+      glossary_ok: z.number().nullable().optional(),
+      icu_malformed: z.number().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  errors: z.array(ImportValidationError).nullable().optional(),
+  total_rows: z.number().nullable().optional(),
+});
+export type ImportDryRunSummary = z.infer<typeof ImportDryRunSummary>;
+
+export const ImportPreviewResponse = z.object({
+  job_id: z.string().uuid(),
+  status: z.string(),
+  summary: ImportDryRunSummary.nullable().optional(),
+});
+export type ImportPreviewResponse = z.infer<typeof ImportPreviewResponse>;
+
+export const ImportCommitResponse = z.object({
+  job_id: z.string().uuid(),
+  status: z.string(),
+  committed_at: z.string().nullable().optional(),
+  rollback_expires_at: z.string().nullable().optional(),
+  applied_changes_count: z.number().nullable().optional(),
+  skipped_count: z.number().nullable().optional(),
+});
+export type ImportCommitResponse = z.infer<typeof ImportCommitResponse>;
+
+export const ImportRollbackResponse = z.object({
+  job_id: z.string().uuid(),
+  status: z.string(),
+});
+export type ImportRollbackResponse = z.infer<typeof ImportRollbackResponse>;
+
+/* ---------------------------------------------------------------------------
  * Typed query functions — used by TanStack Query in pages.
  * Naming convention: noun + verb (organizations.list, project.get, etc.)
  * ------------------------------------------------------------------------ */
@@ -227,6 +307,93 @@ export const api = {
       const params = ids.map((id) => `id=${id}`).join("&");
       const data = await apiFetch<{ items: unknown[] }>(`/keys?${params}`);
       return z.object({ items: z.array(Key) }).parse(data).items;
+    },
+  },
+  exports: {
+    /**
+     * Build an XLSX export and trigger a browser download.
+     *
+     * Implemented as a raw `fetch` (not `apiFetch`) because the response
+     * body is a binary blob, not JSON — `apiFetch` always calls `res.json()`.
+     * On non-2xx the server returns `application/json` with a `detail` field
+     * (`HTTPException`), so we parse that path manually and throw `ApiError`
+     * with the same shape consumers already handle.
+     */
+    create: async (body: {
+      project_id: string;
+      locales: string[];
+      status_filter?: string | null;
+    }): Promise<{ blob: Blob; filename: string }> => {
+      const key = getApiKey();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (key) headers["X-API-Key"] = key;
+
+      const res = await fetch(`${API_BASE}/api/v1/exports`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        let detail: unknown;
+        try {
+          detail = await res.json();
+        } catch {
+          detail = await res.text();
+        }
+        throw new ApiError(res.status, detail);
+      }
+      // Prefer the server's filename from Content-Disposition so the
+      // downloaded file matches docs/07 line 14 naming convention.
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = /filename="?([^"]+)"?/i.exec(disposition);
+      const filename = match?.[1] ?? "clariti-export.xlsx";
+      return { blob: await res.blob(), filename };
+    },
+  },
+  imports: {
+    /**
+     * Upload an .xlsx file and request a dry-run preview.
+     *
+     * Uses raw `fetch` because multipart bodies don't fit through the JSON
+     * `apiFetch` wrapper — the browser must set the multipart boundary in
+     * `Content-Type` itself, so we deliberately do NOT set that header.
+     */
+    preview: async (file: File, projectId: string): Promise<ImportPreviewResponse> => {
+      const key = getApiKey();
+      const form = new FormData();
+      form.append("file", file);
+      form.append("project_id", projectId);
+
+      const headers: Record<string, string> = {};
+      if (key) headers["X-API-Key"] = key;
+
+      const res = await fetch(`${API_BASE}/api/v1/imports/preview`, {
+        method: "POST",
+        headers,
+        body: form,
+      });
+      if (!res.ok) {
+        let detail: unknown;
+        try {
+          detail = await res.json();
+        } catch {
+          detail = await res.text();
+        }
+        throw new ApiError(res.status, detail);
+      }
+      return ImportPreviewResponse.parse(await res.json());
+    },
+    commit: async (jobId: string): Promise<ImportCommitResponse> => {
+      return ImportCommitResponse.parse(
+        await apiFetch(`/imports/${jobId}/commit`, { method: "POST" }),
+      );
+    },
+    rollback: async (jobId: string): Promise<ImportRollbackResponse> => {
+      return ImportRollbackResponse.parse(
+        await apiFetch(`/imports/${jobId}/rollback`, { method: "POST" }),
+      );
     },
   },
 };

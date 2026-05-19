@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { useKeyBindings } from "@/lib/keyboard";
+import { HelpDialogProvider, useHelpDialogState } from "@/app/(app)/_help/help-dialog";
 
 /**
  * Application shell — fixed-width sidebar (220px) + scrollable main area.
@@ -33,6 +35,33 @@ const SECTION_LINKS = [
 ] as const;
 
 export function AppShell({ children }: AppShellProps) {
+  // HelpDialogProvider mounts a singleton `<HelpDialog>` next to `children`
+  // so any page descendant can open the overlay via `useHelpDialog()`.
+  return (
+    <HelpDialogProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </HelpDialogProvider>
+  );
+}
+
+function AppShellInner({ children }: AppShellProps) {
+  const helpDialog = useHelpDialogState();
+
+  // Global `?` shortcut — opens the help overlay from anywhere in the app
+  // (dashboard / queue / settings). The review batch page also registers a
+  // local `?` binding that opens the same singleton dialog; calling `open`
+  // twice on the same keydown is idempotent (open→open is still open), so
+  // the two listeners don't fight. Close is handled by the base-ui Dialog
+  // (Esc / outside click / close button).
+  useKeyBindings([
+    {
+      key: "?",
+      shift: true,
+      description: "Open keyboard shortcut help",
+      handler: () => helpDialog.setOpen(true),
+    },
+  ]);
+
   return (
     <div className="flex min-h-screen w-full">
       <Sidebar />

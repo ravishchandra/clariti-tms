@@ -3,7 +3,7 @@ export const site = {
   tagline: "The translation management system you actually own.",
   description:
     "Clariti TMS is a self-hosted, AGPL-licensed translation management system with context-aware LLM translation, bring-your-own provider (Claude, GPT, DeepL, Ollama), back-translation QA, and native iOS / Android / web pipelines. Replace Lokalise, Phrase, and Crowdin without seat pricing.",
-  url: "https://clariti-tms.dev",
+  url: "https://clariti-tms.vercel.app",
   github: "https://github.com/ravishchandra/clariti-tms",
   twitter: "https://twitter.com/claritihq",
   navLinks: [

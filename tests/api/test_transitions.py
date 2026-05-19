@@ -7,8 +7,9 @@ reviewed_at, published_at) when crossing the relevant boundary.
 H2 — `translation_history` is written exactly once per UPDATE, by the
 Postgres trigger. The prior manual insert in the PATCH endpoint is gone.
 
-Runs against the real Postgres at $DATABASE_URL (default tms_h1h2). The
-trigger is part of migration 0001 and must be in the DB before these tests.
+Runs against the real Postgres at $DATABASE_URL (defaults to the
+project-wide ``tms`` database from ``.env``). The trigger is part of
+migration 0001 and must be in the DB before these tests.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://tms:tms@localhost:5432/tms_h1h2",
+    "postgresql+asyncpg://tms:tms@localhost:5432/tms",
 )
 
 DATABASE_URL = os.environ["DATABASE_URL"]

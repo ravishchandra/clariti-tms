@@ -1,8 +1,8 @@
 """Unit tests for ``app.mt.tm.store_tm_entry`` — M6 fix.
 
 These exercise the SQLAlchemy model layer using a real session against the
-configured tms_mt database. They verify ``repository_id`` is populated on both
-insert and update paths.
+project-wide ``tms`` database at ``$DATABASE_URL``. They verify
+``repository_id`` is populated on both insert and update paths.
 """
 
 from __future__ import annotations

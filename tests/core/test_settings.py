@@ -8,7 +8,7 @@ from app.core.settings import Settings, get_settings
 
 # All env vars that pydantic-settings might pull in via .env / OS env and that
 # could flip DEBUG or SECRET_KEY out from under a test. We clear them per test.
-_RELEVANT_ENV_VARS = ("SECRET_KEY", "DEBUG")
+_RELEVANT_ENV_VARS = ("SECRET_KEY", "DEBUG", "FERNET_KEY")
 
 
 @pytest.fixture(autouse=True)
@@ -142,8 +142,14 @@ def test_get_settings_rejects_env_backed_bad_secret(
     the question of whether env-backed loads (the real production path) honor
     the validator. This proves they do.
     """
+    from cryptography.fernet import Fernet
+
     monkeypatch.setenv("DEBUG", "false")
     monkeypatch.setenv("SECRET_KEY", "change-me-in-production")
+    # FERNET_KEY is independently required when DEBUG=false; without this the
+    # second `get_settings()` call below raises on FERNET_KEY instead of
+    # succeeding (the failure mode is unrelated to what this test exercises).
+    monkeypatch.setenv("FERNET_KEY", Fernet.generate_key().decode())
     # Avoid the repo's .env file leaking values into env-backed construction
     monkeypatch.chdir("/")
     with pytest.raises(ValueError):

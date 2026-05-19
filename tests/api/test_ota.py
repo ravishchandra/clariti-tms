@@ -39,7 +39,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="module")
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://tms:tms@localhost:5432/tms_h1h2",
+    "postgresql+asyncpg://tms:tms@localhost:5432/tms",
 )
 
 DATABASE_URL = os.environ["DATABASE_URL"]

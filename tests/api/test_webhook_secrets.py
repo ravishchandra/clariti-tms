@@ -1,8 +1,9 @@
 """C3: webhook secret encryption integration tests.
 
-Real Postgres at $DATABASE_URL (defaults to tms_c3 in this worktree), no mocks
-for the encryption/decryption layer or the HMAC signature check. Migrations are
-expected to have already been applied.
+Real Postgres at $DATABASE_URL (defaults to the project-wide ``tms``
+database from ``.env``), no mocks for the encryption/decryption layer or
+the HMAC signature check. Migrations are expected to have already been
+applied.
 
 The tests verify the end-to-end contract:
   1. POST /organizations/{org}/projects/{proj}/repositories with a webhook_secret
@@ -39,7 +40,7 @@ os.environ.setdefault("FERNET_KEY", Fernet.generate_key().decode())
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://tms:tms@localhost:5432/tms_c3",
+    "postgresql+asyncpg://tms:tms@localhost:5432/tms",
 )
 
 DATABASE_URL = os.environ["DATABASE_URL"]

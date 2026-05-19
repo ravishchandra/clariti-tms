@@ -172,14 +172,64 @@ export const TranslationBatch = z.object({
 export type TranslationBatch = z.infer<typeof TranslationBatch>;
 
 /* ---------------------------------------------------------------------------
+ * Editor schemas — Phase 6 CRUD pages.
+ *
+ * Naming mirrors the server's Pydantic schemas in `app/api/v1/schemas/`:
+ *   - GlossaryTerm        ← app/api/v1/schemas/glossary.py
+ *   - LocaleConfig        ← app/api/v1/schemas/locale_configs.py
+ *     (the Python attribute is `register_value` after the L2 alias rename,
+ *      but the JSON contract — and hence the type here — uses `register`)
+ *   - ComponentContext    ← app/api/v1/schemas/component_contexts.py
+ * ------------------------------------------------------------------------ */
+
+export const GlossaryTerm = z.object({
+  id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  source_term: z.string(),
+  target_term: z.string(),
+  locale: z.string(),
+  case_sensitive: z.boolean(),
+  do_not_translate: z.boolean(),
+  notes: z.string().nullable(),
+  created_by: z.string().uuid().nullable().optional(),
+  created_at: z.string(),
+});
+export type GlossaryTerm = z.infer<typeof GlossaryTerm>;
+
+export const LocaleConfig = z.object({
+  id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  locale: z.string(),
+  formality: z.string(),
+  // Server emits `register` over the wire (see schemas/locale_configs.py
+  // alias config). Keep the wire shape here so .parse() succeeds.
+  register: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  is_bootstrapped: z.boolean(),
+  created_at: z.string(),
+});
+export type LocaleConfig = z.infer<typeof LocaleConfig>;
+
+export const ComponentContext = z.object({
+  id: z.string().uuid(),
+  repository_id: z.string().uuid(),
+  component: z.string(),
+  screen: z.string().nullable().optional(),
+  description: z.string(),
+  default_risk_class: z.string(),
+  default_max_length: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+export type ComponentContext = z.infer<typeof ComponentContext>;
+
+/* ---------------------------------------------------------------------------
  * Import / Export schemas (Phase 5 round-trip; UI in Phase 6).
  *
  * The dry-run summary shape is dictated by docs/07-excel-roundtrip.md lines
  * 96-127. The server stores the parsed summary on `import_jobs.dry_run_summary`
- * and returns it verbatim from `POST /imports/preview`. Server keeps the
- * authoritative shape; we model only the fields the UI renders today. Unknown
- * fields are tolerated (zod default `passthrough` is off here, but we use
- * `loose` so future server additions don't break the page).
+ * and returns it verbatim from `POST /imports/preview`. We model only the
+ * fields the UI renders today; unknown fields are tolerated via `looseObject`.
  * ------------------------------------------------------------------------ */
 
 export const ImportValidationError = z.object({
@@ -200,7 +250,6 @@ export const ImportDryRunSummary = z.looseObject({
   export_timestamp: z.string().nullable().optional(),
   conflicts: z.number().nullable().optional(),
   locales: z.array(z.string()).nullable().optional(),
-  // Per-action counts. Keys match docs/07-excel-roundtrip.md "Actions to apply".
   actions: z
     .looseObject({
       approve: z.number().nullable().optional(),
@@ -211,7 +260,6 @@ export const ImportDryRunSummary = z.looseObject({
     })
     .nullable()
     .optional(),
-  // Per-rule counts. Keys match docs/07-excel-roundtrip.md "Validation".
   validation: z
     .looseObject({
       placeholders_match: z.number().nullable().optional(),
@@ -393,6 +441,131 @@ export const api = {
     rollback: async (jobId: string): Promise<ImportRollbackResponse> => {
       return ImportRollbackResponse.parse(
         await apiFetch(`/imports/${jobId}/rollback`, { method: "POST" }),
+      );
+    },
+  },
+  glossary: {
+    list: async (projectId: string) => {
+      const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/glossary`);
+      return z.object({ items: z.array(GlossaryTerm) }).parse(data).items;
+    },
+    create: async (
+      projectId: string,
+      body: {
+        source_term: string;
+        target_term: string;
+        locale: string;
+        notes?: string | null;
+        case_sensitive?: boolean;
+        do_not_translate?: boolean;
+      },
+    ) => {
+      return GlossaryTerm.parse(
+        await apiFetch(`/projects/${projectId}/glossary`, { method: "POST", body }),
+      );
+    },
+    update: async (
+      projectId: string,
+      termId: string,
+      body: {
+        target_term?: string;
+        notes?: string | null;
+        case_sensitive?: boolean;
+        do_not_translate?: boolean;
+      },
+    ) => {
+      return GlossaryTerm.parse(
+        await apiFetch(`/projects/${projectId}/glossary/${termId}`, {
+          method: "PATCH",
+          body,
+        }),
+      );
+    },
+    remove: async (projectId: string, termId: string) => {
+      await apiFetch<void>(`/projects/${projectId}/glossary/${termId}`, {
+        method: "DELETE",
+      });
+    },
+  },
+  localeConfigs: {
+    list: async (projectId: string) => {
+      const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/locale-configs`);
+      return z.object({ items: z.array(LocaleConfig) }).parse(data).items;
+    },
+    create: async (
+      projectId: string,
+      body: {
+        locale: string;
+        formality?: string;
+        register?: string | null;
+        notes?: string | null;
+        is_bootstrapped?: boolean;
+      },
+    ) => {
+      return LocaleConfig.parse(
+        await apiFetch(`/projects/${projectId}/locale-configs`, { method: "POST", body }),
+      );
+    },
+    update: async (
+      projectId: string,
+      configId: string,
+      body: {
+        formality?: string;
+        register?: string | null;
+        notes?: string | null;
+        is_bootstrapped?: boolean;
+      },
+    ) => {
+      return LocaleConfig.parse(
+        await apiFetch(`/projects/${projectId}/locale-configs/${configId}`, {
+          method: "PATCH",
+          body,
+        }),
+      );
+    },
+  },
+  componentContexts: {
+    list: async (repoId: string) => {
+      const data = await apiFetch<{ items: unknown[] }>(
+        `/repositories/${repoId}/component-contexts`,
+      );
+      return z.object({ items: z.array(ComponentContext) }).parse(data).items;
+    },
+    create: async (
+      repoId: string,
+      body: {
+        component: string;
+        screen?: string | null;
+        description: string;
+        default_risk_class?: string;
+        default_max_length?: number | null;
+        notes?: string | null;
+      },
+    ) => {
+      return ComponentContext.parse(
+        await apiFetch(`/repositories/${repoId}/component-contexts`, {
+          method: "POST",
+          body,
+        }),
+      );
+    },
+    update: async (
+      repoId: string,
+      ctxId: string,
+      body: {
+        component?: string;
+        screen?: string | null;
+        description?: string;
+        default_risk_class?: string;
+        default_max_length?: number | null;
+        notes?: string | null;
+      },
+    ) => {
+      return ComponentContext.parse(
+        await apiFetch(`/repositories/${repoId}/component-contexts/${ctxId}`, {
+          method: "PATCH",
+          body,
+        }),
       );
     },
   },

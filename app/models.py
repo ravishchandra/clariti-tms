@@ -576,6 +576,10 @@ class MtRun(Base):
     input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cost_usd: Mapped[float | None] = mapped_column(Numeric(10, 6), nullable=True)
+    # Sampling temperature used for this attempt. NULL for rows written
+    # before migration 0007 and for non-LLM providers (DeepL ignores
+    # temperature; we leave it NULL there to document "not applicable").
+    temperature: Mapped[float | None] = mapped_column(Numeric(4, 3), nullable=True)
     ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships

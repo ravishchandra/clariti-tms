@@ -70,6 +70,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
     DEBUG: bool = False
 
+    # LLM sampling temperature defaults (see docs/05 "Determinism &
+    # reproducibility"). 0.0 = deterministic — same prompt always produces
+    # the same output, which is the canonical setting for production
+    # translation pipelines. Operators can override per-call via
+    # `translate_batch(translate_temperature=...)`; back-translation QA
+    # always runs at 0.0 regardless. Range: Anthropic [0.0, 1.0],
+    # OpenAI [0.0, 2.0], Ollama model-dependent.
+    TRANSLATE_TEMPERATURE: float = 0.0
+    EVALUATE_TEMPERATURE: float = 0.0
+
     # Scheduler (F-OPS-2) — APScheduler-driven recurring jobs.
     # Off by default so dev / test runs don't kick off real network work
     # unless an operator explicitly opts in.

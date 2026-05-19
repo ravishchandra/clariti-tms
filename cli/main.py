@@ -1273,7 +1273,17 @@ async def _demo(target_locale: str) -> None:
                 return {}
             return json.loads(prompt[start:end])
 
-        async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
+        async def translate(
+            self,
+            prompt: str,
+            system: str,
+            *,
+            cache_system: bool = False,
+            temperature: float = 0.0,
+        ) -> tuple[str, TokenUsage]:
+            # `temperature` is accepted to satisfy the LLMProvider Protocol;
+            # the mock is deterministic regardless of value.
+            del temperature
             strings = self._extract_strings_block(prompt)
             tag = f"[{target_locale}]"
             out = {k: f"{tag} {v}" for k, v in strings.items()}
@@ -1282,10 +1292,16 @@ async def _demo(target_locale: str) -> None:
                 "output_tokens": len(json.dumps(out)) // 4,
             }
 
-        async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
+        async def evaluate(
+            self,
+            prompt: str,
+            *,
+            temperature: float = 0.0,
+        ) -> tuple[str, TokenUsage]:
             # Mid-range scores so review-policy routing doesn't force review
             # solely on QA grounds. Validation can still force review on
             # placeholder mismatch, etc.
+            del temperature
             return (
                 json.dumps({"naturalness": 4, "consistency": 4, "accuracy": 4, "issue": None}),
                 {"input_tokens": 50, "output_tokens": 30},

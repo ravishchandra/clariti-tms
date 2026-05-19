@@ -45,6 +45,7 @@ from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.settings import get_settings
 from app.llm.protocol import LLMProvider, TokenUsage
 from app.llm.registry import RoutingContext, select_fallback_provider, select_provider
 from app.models import (
@@ -183,6 +184,7 @@ def _record_mt_run(
     cost_usd: float = 0.0,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    temperature: float | None = None,
 ) -> MtRun:
     """Insert an ``mt_runs`` row for a single LLM attempt.
 
@@ -214,6 +216,7 @@ def _record_mt_run(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         cost_usd=cost_usd,
+        temperature=temperature,
         ran_at=datetime.now(tz=UTC),
     )
     db.add(mt_run)
@@ -239,6 +242,8 @@ async def _attempt_translation(
     system_prompt: str,
     user_prompt: str,
     expected_keys: list[str],
+    *,
+    temperature: float,
 ) -> tuple[dict[str, str], str, TokenUsage]:
     """Single LLM call + JSON parse.
 
@@ -247,7 +252,12 @@ async def _attempt_translation(
     auth errors, etc.) and converts JSON parse failures into
     :class:`TranslationError` so the retry/fallback machinery picks them up.
     """
-    raw_output, usage = await provider.translate(user_prompt, system_prompt, cache_system=True)
+    raw_output, usage = await provider.translate(
+        user_prompt,
+        system_prompt,
+        cache_system=True,
+        temperature=temperature,
+    )
     try:
         translations_out = parse_llm_json_output(raw_output, expected_keys)
     except ValueError as exc:
@@ -265,6 +275,8 @@ async def _translate_with_retry_and_fallback(
     system_prompt: str,
     user_prompt: str,
     expected_keys: list[str],
+    *,
+    temperature: float,
 ) -> tuple[dict[str, str] | None, str | None, str | None, str]:
     """Run primary → retry-once → fallback per docs/05:52.
 
@@ -287,7 +299,7 @@ async def _translate_with_retry_and_fallback(
     t0 = time.monotonic()
     try:
         translations_out, raw_output, usage = await _attempt_translation(
-            primary_provider, system_prompt, user_prompt, expected_keys
+            primary_provider, system_prompt, user_prompt, expected_keys, temperature=temperature
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
         _record_mt_run(
@@ -301,6 +313,7 @@ async def _translate_with_retry_and_fallback(
             input_tokens=usage["input_tokens"],
             output_tokens=usage["output_tokens"],
             cost_usd=_cost_from_usage(primary_provider, usage),
+            temperature=temperature,
         )
         return translations_out, raw_output, None, primary_name
     except Exception as exc:
@@ -313,6 +326,7 @@ async def _translate_with_retry_and_fallback(
             output_text=f"ERROR: {exc}",
             string_count=None,
             latency_ms=latency_ms,
+            temperature=temperature,
         )
         if not _is_retryable(exc):
             logger.error(
@@ -333,7 +347,7 @@ async def _translate_with_retry_and_fallback(
     t0 = time.monotonic()
     try:
         translations_out, raw_output, usage = await _attempt_translation(
-            primary_provider, system_prompt, user_prompt, expected_keys
+            primary_provider, system_prompt, user_prompt, expected_keys, temperature=temperature
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
         _record_mt_run(
@@ -347,6 +361,7 @@ async def _translate_with_retry_and_fallback(
             input_tokens=usage["input_tokens"],
             output_tokens=usage["output_tokens"],
             cost_usd=_cost_from_usage(primary_provider, usage),
+            temperature=temperature,
         )
         return translations_out, raw_output, None, primary_name
     except Exception as exc:
@@ -359,6 +374,7 @@ async def _translate_with_retry_and_fallback(
             output_text=f"ERROR (retry): {exc}",
             string_count=None,
             latency_ms=latency_ms,
+            temperature=temperature,
         )
         last_error = str(exc)
         # Codex follow-up: don't proceed to fallback for non-retryable
@@ -404,7 +420,7 @@ async def _translate_with_retry_and_fallback(
     )
     try:
         translations_out, raw_output, usage = await _attempt_translation(
-            fallback_provider, system_prompt, user_prompt, expected_keys
+            fallback_provider, system_prompt, user_prompt, expected_keys, temperature=temperature
         )
         latency_ms = int((time.monotonic() - t0) * 1000)
         _record_mt_run(
@@ -418,6 +434,7 @@ async def _translate_with_retry_and_fallback(
             input_tokens=usage["input_tokens"],
             output_tokens=usage["output_tokens"],
             cost_usd=_cost_from_usage(fallback_provider, usage),
+            temperature=temperature,
         )
         logger.info(
             "MT fallback to '%s' succeeded for batch %s",
@@ -435,6 +452,7 @@ async def _translate_with_retry_and_fallback(
             output_text=f"ERROR (fallback): {exc}",
             string_count=None,
             latency_ms=latency_ms,
+            temperature=temperature,
         )
         logger.error(
             "MT fallback '%s' also failed for batch %s: %s",
@@ -550,11 +568,25 @@ async def translate_batch(
     deepl_locales: list[str] | None = None,
     config_provider: str = "anthropic",
     embed_provider: str = "openai",
+    translate_temperature: float | None = None,
+    evaluate_temperature: float | None = None,
 ) -> dict:
     """Translate all draft translations in *batch*.
 
+    `translate_temperature` and `evaluate_temperature` control sampling for
+    the translation and QA-evaluation LLM calls respectively. ``None`` (the
+    default) falls back to the settings defaults
+    (``TRANSLATE_TEMPERATURE`` / ``EVALUATE_TEMPERATURE``). Both default to
+    0.0 (deterministic) so eval baselines and TM stay consistent — see
+    docs/05 "Determinism & reproducibility". Back-translation QA always
+    runs at 0.0 regardless; see `app.mt.qa.back_translation_qa`.
+
     Returns a summary dict with counts and cost.
     """
+    settings = get_settings()
+    translate_temp = translate_temperature if translate_temperature is not None else settings.TRANSLATE_TEMPERATURE
+    evaluate_temp = evaluate_temperature if evaluate_temperature is not None else settings.EVALUATE_TEMPERATURE
+
     deepl_locales = deepl_locales or []
 
     # Mark batch running
@@ -715,6 +747,7 @@ async def translate_batch(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             expected_keys=list(pre.processed_strings.keys()),
+            temperature=translate_temp,
         )
         if translations_out is None:
             batch.status = BatchStatus.needs_review
@@ -789,6 +822,7 @@ async def translate_batch(
                     locale_notes=locale_cfg.notes if locale_cfg else None,
                     tm_neighbors=tm_neighbors,
                     evaluate_fn=provider.evaluate,
+                    temperature=evaluate_temp,
                 )
             except Exception as exc:
                 logger.warning("QA eval failed for key %s: %s", key_str, exc)

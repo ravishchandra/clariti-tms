@@ -16,6 +16,10 @@ class OpenRouterProvider(OpenAIProvider):
 
     Embeddings default to openai/text-embedding-3-small which OpenRouter
     proxies to the real OpenAI endpoint.
+
+    `translate()` / `evaluate()` are inherited unchanged from
+    :class:`OpenAIProvider`, so the temperature kwarg added to the
+    Protocol propagates here automatically.
     """
 
     def __init__(

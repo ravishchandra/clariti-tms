@@ -4,14 +4,15 @@ import json
 import math
 import re
 from collections.abc import Awaitable, Callable
+from typing import Any
 
-from app.llm.protocol import TokenUsage
+from app.llm.protocol import DEFAULT_TEMPERATURE, TokenUsage
 
-# Type alias for clarity — ``evaluate_fn`` is supplied by an LLMProvider
-# whose ``evaluate()`` returns ``(text, usage)`` per D2 (token-counting).
-# QA paths discard ``usage`` for now; aggregating QA-call tokens into
-# ``mt_runs`` is tracked separately.
-EvaluateFn = Callable[[str], Awaitable[tuple[str, TokenUsage]]]
+# `evaluate_fn` is supplied by an LLMProvider whose ``evaluate()`` accepts a
+# keyword-only ``temperature`` arg. We widen the Callable type with `...`
+# rather than enumerate the kwargs — call sites pass ``temperature=...``
+# explicitly, and the Protocol enforces the real signature.
+EvaluateFn = Callable[..., Awaitable[tuple[str, TokenUsage]]]
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -30,10 +31,15 @@ async def back_translation_qa(
     evaluate_fn: EvaluateFn,
     embed_fn: Callable[[str], Awaitable[list[float]]],
 ) -> tuple[str, float]:
+    # Back-translation similarity is meaningless if the back-translated text
+    # varies across runs — cosine drifts from sampling noise instead of
+    # translation quality. Hard-pin temperature to 0 regardless of the
+    # operator-configured eval default.
     back, _usage = await evaluate_fn(
         f"Translate this {locale} text back to English.\n"
         f"Output only the English translation. No explanation.\n\n"
-        f"Text: {translated}"
+        f"Text: {translated}",
+        temperature=0.0,
     )
     source_emb, back_emb = await embed_fn(source), await embed_fn(back)
     return back, cosine_similarity(source_emb, back_emb)
@@ -45,9 +51,11 @@ async def locale_consistency_eval(
     locale: str,
     domain_description: str,
     locale_notes: str | None,
-    tm_neighbors: list[dict],
+    tm_neighbors: list[dict[str, Any]],
     evaluate_fn: EvaluateFn,
-) -> dict:
+    *,
+    temperature: float = DEFAULT_TEMPERATURE,
+) -> dict[str, Any]:
     examples = "\n".join(f"  {n['source_text']} → {n['target_text']}" for n in tm_neighbors[:5]) or "  (none yet)"
     raw, _usage = await evaluate_fn(
         f"You are a {locale} language quality evaluator for {domain_description}.\n\n"
@@ -61,7 +69,8 @@ async def locale_consistency_eval(
         f"3. Accuracy: preserves the full meaning of the source\n\n"
         f"If any score < 4, explain in one sentence what is wrong.\n"
         "Output JSON only: "
-        '{"naturalness": N, "consistency": N, "accuracy": N, "issue": "..." or null}'
+        '{"naturalness": N, "consistency": N, "accuracy": N, "issue": "..." or null}',
+        temperature=temperature,
     )
     cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
     cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import httpx
 
-from app.llm.protocol import LLMProviderBase, TokenUsage
+from app.llm.protocol import DEFAULT_TEMPERATURE, LLMProviderBase, TokenUsage
 
 
 class OllamaProvider(LLMProviderBase):
@@ -16,7 +16,14 @@ class OllamaProvider(LLMProviderBase):
         self._model = model
         self._embed_model = embed_model
 
-    async def translate(self, prompt: str, system: str, *, cache_system: bool = False) -> tuple[str, TokenUsage]:
+    async def translate(
+        self,
+        prompt: str,
+        system: str,
+        *,
+        cache_system: bool = False,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]:
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.post(
@@ -28,6 +35,10 @@ class OllamaProvider(LLMProviderBase):
                             {"role": "user", "content": prompt},
                         ],
                         "stream": False,
+                        # Ollama per-model temperature defaults vary (llama3.2
+                        # defaults to 0.8). Passing 0.0 explicitly normalises
+                        # determinism across models so eval baselines hold.
+                        "options": {"temperature": temperature},
                     },
                 )
                 resp.raise_for_status()
@@ -36,7 +47,12 @@ class OllamaProvider(LLMProviderBase):
         except httpx.ConnectError:
             raise ConnectionError(f"Ollama not running at {self._base_url}")
 
-    async def evaluate(self, prompt: str) -> tuple[str, TokenUsage]:
+    async def evaluate(
+        self,
+        prompt: str,
+        *,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> tuple[str, TokenUsage]:
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.post(
@@ -47,6 +63,7 @@ class OllamaProvider(LLMProviderBase):
                             {"role": "user", "content": prompt},
                         ],
                         "stream": False,
+                        "options": {"temperature": temperature},
                     },
                 )
                 resp.raise_for_status()

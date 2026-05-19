@@ -51,6 +51,37 @@ def select_provider(batch: TranslationBatch, config: LLMConfig) -> LLMProvider:
 
 Fallback chain: `TranslationError` → retry once → fallback provider → mark batch `needs_review`. Both attempts logged to `mt_runs`. Alert if fallback triggers more than 3 times per hour.
 
+## Sampling temperature
+
+Every LLM call — translate and evaluate — accepts a `temperature: float` keyword on the provider Protocol. Default: **`0.0`** (deterministic). Configured via env:
+
+```bash
+TRANSLATE_TEMPERATURE=0.0   # used by translate_batch
+EVALUATE_TEMPERATURE=0.0    # used by run_eval and locale_consistency_eval
+```
+
+`back_translation_qa` always uses `temperature=0.0` regardless of config — its job is to produce a stable comparator, never to be creative. This is hard-coded, not configurable.
+
+**Why 0.0 is the default:**
+
+- **Eval baselines are reproducible.** Re-running `loc eval --prompt translate_v2 --reference …` produces the same scores. Without determinism, a regression of 0.02 BLEU could be noise from the same prompt sampling differently.
+- **Regression debugging works.** When a reviewer says "this translation got worse since last week," we can re-run the exact prompt and reproduce. With non-zero temperature, the prompt that failed today might succeed tomorrow — and we'd chase a phantom.
+- **TM doesn't accumulate noisy near-duplicates.** Same source, same context → same target. Otherwise the TM grows lots of stylistically-jittery variants of the same string.
+- **Cost predictability.** Token counts at temperature 0 are tightly distributed; sampling at higher temperatures occasionally produces verbose explanations that blow output budgets.
+
+**When to raise it (manual, per-run):**
+
+Prompt iteration. When designing a new `translate_v3`, sweeping temperature 0.0 → 0.3 → 0.7 over a fixed eval set helps see whether the prompt's quality plateau depends on sampling diversity. Pass via the service-layer kwargs `translate_temperature=` / `evaluate_temperature=` on `translate_batch()`. The value used is persisted on every `mt_runs.temperature` row so post-hoc analysis can correlate quality with temperature.
+
+**Provider-specific ranges:**
+
+- Anthropic: `[0.0, 1.0]`
+- OpenAI: `[0.0, 2.0]`
+- Ollama: model-dependent (most models: `[0.0, 2.0]`)
+- DeepL: temperature kwarg is accepted and ignored — DeepL's neural MT is deterministic by construction and exposes no sampling control.
+
+**If you change the default**, treat it like a prompt-version bump: all stored eval baselines are now from a different distribution and must be regenerated. The runtime won't stop you, but downstream comparisons against pre-change baselines are no longer apples-to-apples.
+
 ## Pre-processing (before MT)
 
 Some string types require transformation before the LLM sees them.

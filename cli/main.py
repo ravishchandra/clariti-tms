@@ -778,6 +778,122 @@ async def _export(project_slug: str, locales_raw: str, status_filter: str | None
         console.print(f"  {locale}: {len(rows_by_locale.get(locale, []))}")
 
 
+# ---------------------------------------------------------------------------
+# loc export-xliff / loc import-xliff — Phase 7 LSP-exchange round-trip
+# ---------------------------------------------------------------------------
+
+
+@app.command(name="export-xliff")
+def export_xliff(
+    project: str = typer.Option(..., "--project", help="Project slug"),
+    locales: str = typer.Option(..., "--locales", help="Comma-separated BCP-47 locales (e.g. fr-FR,de-DE)"),
+    status: str = typer.Option(
+        None,
+        "--status",
+        help="Translation status filter (e.g. needs_review). Omit for all rows.",
+    ),
+    output: str = typer.Option("./out.xlf", "--output", help="Output .xlf path"),
+) -> None:
+    """Export translations to XLIFF 1.2 (Phase 7).
+
+    Produces an OASIS XLIFF 1.2 document with one ``<file>`` per locale.
+    Designed for professional Language Service Providers (LSPs) who price
+    by word count and don't want to log into a web UI.
+
+    Status -> XLIFF state mapping:
+
+    * draft / mt_proposed  -> new
+    * needs_review / needs_more_context -> needs-translation
+    * approved -> translated
+    * published -> final
+    * rejected -> rejected
+    """
+    asyncio.run(_export_xliff(project, locales, status, output))
+
+
+async def _export_xliff(project_slug: str, locales_raw: str, status_filter: str | None, output: str) -> None:
+    from datetime import UTC, datetime
+
+    from app.core.database import AsyncSessionLocal
+    from app.export_import.export import (
+        ExportRequest,
+        fetch_export_rows,
+        fetch_project_for_export,
+    )
+    from app.export_import.xliff_export import (
+        build_filename as build_xliff_filename,
+    )
+    from app.export_import.xliff_export import (
+        export_to_xliff_bytes,
+    )
+
+    locales = [loc.strip() for loc in locales_raw.split(",") if loc.strip()]
+    if not locales:
+        err.print("[red]--locales must list at least one locale.[/red]")
+        raise typer.Exit(1)
+
+    async with AsyncSessionLocal() as db:
+        project = await fetch_project_for_export(db, project_slug)
+        if project is None:
+            err.print(f"[red]Project '{project_slug}' not found.[/red]")
+            raise typer.Exit(1)
+
+        rows_by_locale = await fetch_export_rows(
+            db=db,
+            project_id=project.id,
+            locales=locales,
+            status_filter=status_filter,
+        )
+
+    export_timestamp = datetime.now(tz=UTC)
+    request = ExportRequest(
+        project_id=project.id,
+        project_slug=project.slug,
+        status_filter=status_filter,
+        exported_by_email=None,
+        exported_by_user_id=None,
+        export_timestamp=export_timestamp,
+        rows_by_locale=rows_by_locale,
+    )
+
+    xliff_bytes = export_to_xliff_bytes(request)
+
+    out_path = Path(output).resolve()
+    if out_path.is_dir():
+        out_path = out_path / build_xliff_filename(project.slug, locales, status_filter, export_timestamp)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(xliff_bytes)
+
+    total_rows = sum(len(rows) for rows in rows_by_locale.values())
+    console.print(f"\n[green]✓[/green] Wrote {total_rows} row(s) across {len(locales)} locale <file>(s) → {out_path}")
+    for locale in locales:
+        console.print(f"  {locale}: {len(rows_by_locale.get(locale, []))}")
+
+
+@app.command(name="import-xliff")
+def import_xliff(
+    file: str = typer.Option(None, "--file", help="Path to .xlf / .xliff (required for --dry-run / --commit)"),
+    project: str = typer.Option(None, "--project", help="Project slug (required for --dry-run / --commit)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview only, no DB writes"),
+    commit: bool = typer.Option(False, "--commit", help="Apply changes (writes to DB)"),
+    force_overwrite: bool = typer.Option(False, "--force-overwrite", help="Apply conflicted rows anyway (admin)"),
+) -> None:
+    """Import translations from XLIFF 1.2 — dry-run or commit.
+
+    Rollback is shared with the XLSX flow: use ``loc import --rollback
+    <job_id>``. The import_jobs row records the format on commit; rollback
+    is format-agnostic.
+
+    Examples:
+        loc import-xliff --file ./out.xlf --project clariti-web --dry-run
+        loc import-xliff --file ./out.xlf --project clariti-web --commit
+    """
+    # Rollback intentionally lives on ``loc import`` only — there's no
+    # technical reason to duplicate it here, and a single rollback path
+    # is one less surface area for tests + docs.
+    asyncio.run(_import_cmd(file, project, dry_run, commit, None, force_overwrite, fmt="xliff"))
+
+
 @app.command(name="import")
 def import_file(
     file: str = typer.Option(None, "--file", help="Path to .xlsx (required for --dry-run / --commit)"),
@@ -789,12 +905,15 @@ def import_file(
 ) -> None:
     """Import translations from Excel — dry-run, commit, or rollback.
 
+    Format is auto-detected from the file extension (.xlf / .xliff -> XLIFF,
+    otherwise XLSX). For an explicit XLIFF-only CLI, see ``loc import-xliff``.
+
     Examples:
         loc import --file ./review.xlsx --project clariti-web --dry-run
         loc import --file ./review.xlsx --project clariti-web --commit
         loc import --rollback <job_id>
     """
-    asyncio.run(_import_cmd(file, project, dry_run, commit, rollback, force_overwrite))
+    asyncio.run(_import_cmd(file, project, dry_run, commit, rollback, force_overwrite, fmt=None))
 
 
 async def _import_cmd(
@@ -804,12 +923,14 @@ async def _import_cmd(
     commit_flag: bool,
     rollback_job_id: str | None,
     force_overwrite: bool,
+    fmt: str | None = None,
 ) -> None:
     import uuid as _uuid
 
     from app.core.database import AsyncSessionLocal
     from app.export_import.commit import (
         ExcelImportError,
+        ImportFormat,
         commit_import,
         preview_import,
         rollback_import,
@@ -872,6 +993,9 @@ async def _import_cmd(
             )
             raise typer.Exit(1)
 
+        # Pass through the format hint so the parser dispatcher in
+        # ``preview_import`` doesn't have to re-detect.
+        format_arg: ImportFormat | None = fmt  # type: ignore[assignment]
         try:
             job = await preview_import(
                 db=db,
@@ -879,6 +1003,7 @@ async def _import_cmd(
                 file_path=str(file_path),
                 filename=file_path.name,
                 uploaded_by=user.id,
+                format=format_arg,
             )
         except ExcelImportError as exc:
             err.print(f"[red]Preview failed:[/red] {exc}")

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, Field
@@ -22,6 +23,8 @@ from app.export_import.export import (
     export_to_bytes,
     fetch_export_rows,
 )
+from app.export_import.xliff_export import build_filename as build_xliff_filename
+from app.export_import.xliff_export import export_to_xliff_bytes
 from app.models import Project, TranslationStatus
 
 # TODO(phase5-async): the spec calls for `POST /api/v1/exports` to be async —
@@ -49,9 +52,17 @@ class ExportCreate(BaseModel):
         None,
         description="Optional translation status filter (e.g. 'needs_review'). Omit for all rows.",
     )
+    format: Literal["xlsx", "xliff"] = Field(
+        "xlsx",
+        description=(
+            "Wire format. 'xlsx' returns the Phase 5 Excel workbook; "
+            "'xliff' returns an XLIFF 1.2 document for LSP exchange."
+        ),
+    )
 
 
 _XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_XLIFF_MEDIA_TYPE = "application/x-xliff+xml"
 
 
 @router.post(
@@ -59,8 +70,11 @@ _XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.
     response_class=Response,
     responses={
         200: {
-            "content": {_XLSX_MEDIA_TYPE: {}},
-            "description": "Generated XLSX workbook. One tab per locale plus a hidden _meta tab.",
+            "content": {_XLSX_MEDIA_TYPE: {}, _XLIFF_MEDIA_TYPE: {}},
+            "description": (
+                "Generated workbook (XLSX, one tab per locale plus a hidden _meta tab) "
+                "or XLIFF 1.2 document (one <file> per locale)."
+            ),
         },
         404: {"description": "Project not found in caller's organization."},
         422: {"description": "Invalid status filter or empty locales."},
@@ -71,11 +85,14 @@ async def create_export(
     db: DB,
     current_key: CurrentKey,
 ) -> Response:
-    """Generate and stream a Phase 5 XLSX export.
+    """Generate and stream a translation export.
 
-    The response is the raw .xlsx bytes with a Content-Disposition attachment
-    header so browsers download it under the conventional filename. Empty
-    result sets still return a valid workbook (with empty locale tabs).
+    ``format=xlsx`` (default) returns the Phase 5 Excel workbook;
+    ``format=xliff`` returns an XLIFF 1.2 document for professional LSP
+    exchange. Either way the response is the raw bytes with a
+    Content-Disposition attachment header so browsers download it under
+    the conventional filename. Empty result sets still return a valid
+    workbook / document.
     """
     # Tenant check: 404 if the project isn't in caller's org. Same behaviour
     # as every other endpoint — see ``app.api.deps.assert_project_in_org``.
@@ -118,14 +135,20 @@ async def create_export(
         rows_by_locale=rows_by_locale,
     )
 
-    xlsx_bytes = export_to_bytes(request)
-    filename = build_filename(project.slug, body.locales, body.status_filter, export_timestamp)
+    if body.format == "xliff":
+        payload = export_to_xliff_bytes(request)
+        media_type = _XLIFF_MEDIA_TYPE
+        filename = build_xliff_filename(project.slug, body.locales, body.status_filter, export_timestamp)
+    else:
+        payload = export_to_bytes(request)
+        media_type = _XLSX_MEDIA_TYPE
+        filename = build_filename(project.slug, body.locales, body.status_filter, export_timestamp)
 
     return Response(
-        content=xlsx_bytes,
-        media_type=_XLSX_MEDIA_TYPE,
+        content=payload,
+        media_type=media_type,
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "Content-Length": str(len(xlsx_bytes)),
+            "Content-Length": str(len(payload)),
         },
     )

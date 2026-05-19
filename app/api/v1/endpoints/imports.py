@@ -9,7 +9,7 @@ caller's org or the request 404s before any file parsing happens.
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -17,6 +17,7 @@ from sqlalchemy import select
 from app.api.deps import DB, CurrentKey, assert_project_in_org
 from app.export_import.commit import (
     ExcelImportError,
+    ImportFormat,
     JobNotCommittableError,
     JobNotFoundError,
     ProjectMismatchError,
@@ -72,8 +73,21 @@ async def post_preview(
     current_key: CurrentKey,
     project_id: uuid.UUID = Form(...),
     file: UploadFile = File(...),
+    format: Literal["xlsx", "xliff"] | None = Form(
+        None,
+        description=(
+            "Wire format. 'xlsx' or 'xliff'. If omitted, auto-detected from the "
+            "filename extension (.xlf / .xliff -> xliff, otherwise xlsx)."
+        ),
+    ),
 ) -> dict[str, Any]:
-    """Dry-run an upload. Persists an ``import_jobs`` row in ``preview`` status."""
+    """Dry-run an upload. Persists an ``import_jobs`` row in ``preview`` status.
+
+    ``format`` chooses the wire parser; when omitted the server falls back
+    to filename-extension detection (``.xlf`` / ``.xliff`` -> XLIFF, else
+    XLSX). The chosen format is recorded on the import_jobs row so commit /
+    rollback / audit downstream don't need to re-detect.
+    """
     await assert_project_in_org(project_id, db, current_key)
     uploaded_by = await _resolve_uploaded_by(db, current_key)
 
@@ -84,6 +98,8 @@ async def post_preview(
             detail=f"Upload exceeds {_MAX_UPLOAD_BYTES} bytes.",
         )
 
+    resolved_format: ImportFormat | None = format
+
     try:
         job = await preview_import(
             db=db,
@@ -91,6 +107,7 @@ async def post_preview(
             file_bytes=data,
             filename=file.filename,
             uploaded_by=uploaded_by,
+            format=resolved_format,
         )
     except ProjectMismatchError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None

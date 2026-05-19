@@ -171,6 +171,64 @@ export const TranslationBatch = z.object({
 });
 export type TranslationBatch = z.infer<typeof TranslationBatch>;
 
+// One row in translation_history. The Postgres trigger
+// `record_translation_history()` is the canonical writer
+// (docs/04-data-model.md "translation_history", infra/migrations/versions/
+// 0001_initial_schema.py:779 + 0006_history_trigger_actor_guc.py). Field
+// shapes mirror the table directly.
+export const TranslationHistoryEntry = z.object({
+  id: z.union([z.number(), z.string()]),
+  translation_id: z.string().uuid(),
+  prev_value: z.string().nullable().optional(),
+  new_value: z.string().nullable().optional(),
+  prev_status: z.string().nullable().optional(),
+  new_status: z.string().nullable().optional(),
+  changed_by: z.string().uuid().nullable().optional(),
+  change_source: z.string().nullable().optional(),
+  change_note: z.string().nullable().optional(),
+  changed_at: z.string(),
+});
+export type TranslationHistoryEntry = z.infer<typeof TranslationHistoryEntry>;
+
+// One MT run — populated for every batch-level LLM call.
+// See docs/04-data-model.md "mt_runs".
+export const MtRun = z.object({
+  id: z.string().uuid(),
+  batch_id: z.string().uuid().nullable().optional(),
+  prompt_version: z.string(),
+  model: z.string(),
+  prompt_text: z.string(),
+  output_text: z.string(),
+  validators_passed: z.boolean().nullable().optional(),
+  validator_errors: z.unknown().nullable().optional(),
+  string_count: z.number().nullable().optional(),
+  latency_ms: z.number().nullable().optional(),
+  input_tokens: z.number().nullable().optional(),
+  output_tokens: z.number().nullable().optional(),
+  cost_usd: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional()
+    .transform((v) => {
+      // The server returns NUMERIC as a string in JSON — coerce to number
+      // so the UI can format consistently. Null/undefined pass through.
+      if (v === null || v === undefined) return null;
+      const n = typeof v === "string" ? Number(v) : v;
+      return Number.isFinite(n) ? n : null;
+    }),
+  ran_at: z.string(),
+});
+export type MtRun = z.infer<typeof MtRun>;
+
+export const Screenshot = z.object({
+  id: z.string().uuid(),
+  key_id: z.string().uuid(),
+  storage_url: z.string(),
+  caption: z.string().nullable().optional(),
+  uploaded_at: z.string().nullable().optional(),
+});
+export type Screenshot = z.infer<typeof Screenshot>;
+
 /* ---------------------------------------------------------------------------
  * Editor schemas — Phase 6 CRUD pages.
  *
@@ -331,11 +389,36 @@ export const api = {
       const data = await apiFetch<{ items: unknown[] }>(`/translations?batch_id=${batchId}`);
       return z.object({ items: z.array(Translation) }).parse(data).items;
     },
+    // List translations for a single key. Filters by project_id (the
+    // backend requires it) and key_id. Locale is omitted so we get every
+    // locale's row in one call — needed for the Key detail "Translations
+    // panel" (one row per locale).
+    listByKey: async (projectId: string, keyId: string) => {
+      const data = await apiFetch<{ items: unknown[] }>(
+        `/translations?project_id=${projectId}&key_id=${keyId}&page_size=200`,
+      );
+      return z.object({ items: z.array(Translation) }).parse(data).items;
+    },
     update: async (
       id: string,
       body: { value?: string | null; status?: TranslationStatus; reviewer_action?: string; reviewer_notes?: string },
     ) => {
       return Translation.parse(await apiFetch(`/translations/${id}`, { method: "PATCH", body }));
+    },
+    // Append-only history for a single translation. The route is a
+    // planned-but-not-yet-shipped endpoint (the table exists, the
+    // controller may not); the caller treats 404 as "no history feed
+    // yet" rather than an error.
+    history: async (translationId: string): Promise<TranslationHistoryEntry[]> => {
+      try {
+        const data = await apiFetch<{ items: unknown[] }>(
+          `/translations/${translationId}/history`,
+        );
+        return z.object({ items: z.array(TranslationHistoryEntry) }).parse(data).items;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
     },
   },
   batches: {
@@ -349,12 +432,60 @@ export const api = {
     get: async (id: string) => {
       return TranslationBatch.parse(await apiFetch(`/batches/${id}`));
     },
+    // MT runs for a batch — used by the Key detail "MT run inspector".
+    // Endpoint is planned; if absent we degrade to "no MT runs recorded".
+    mtRuns: async (batchId: string): Promise<MtRun[]> => {
+      try {
+        const data = await apiFetch<{ items: unknown[] }>(`/batches/${batchId}/mt-runs`);
+        return z.object({ items: z.array(MtRun) }).parse(data).items;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
+    },
   },
   keys: {
     listByIds: async (ids: string[]) => {
       const params = ids.map((id) => `id=${id}`).join("&");
       const data = await apiFetch<{ items: unknown[] }>(`/keys?${params}`);
       return z.object({ items: z.array(Key) }).parse(data).items;
+    },
+    // Project-scoped list — used by the Keys index page. Backend supports
+    // page/page_size; we set a generous page_size for the table.
+    listByProject: async (
+      projectId: string,
+      opts?: { component?: string; page?: number; pageSize?: number },
+    ) => {
+      const params = new URLSearchParams({ project_id: projectId });
+      if (opts?.component) params.set("component", opts.component);
+      params.set("page", String(opts?.page ?? 1));
+      params.set("page_size", String(opts?.pageSize ?? 200));
+      const data = await apiFetch<{ items: unknown[]; total?: number }>(
+        `/keys?${params.toString()}`,
+      );
+      const parsed = z
+        .object({ items: z.array(Key), total: z.number().optional() })
+        .parse(data);
+      return parsed;
+    },
+    get: async (keyId: string): Promise<Key> => {
+      // The server returns the full key + translations under one envelope.
+      // We only need the Key fields for the header; translations are
+      // refetched via translations.listByKey so the cache key composition
+      // matches the rest of the UI.
+      const data = await apiFetch<Record<string, unknown>>(`/keys/${keyId}`);
+      return Key.parse(data);
+    },
+    // Screenshots for a key. Per docs/09:186 the upload SDK is Phase 7,
+    // so the endpoint may not exist yet — treat 404 as "no screenshots".
+    screenshots: async (keyId: string): Promise<Screenshot[]> => {
+      try {
+        const data = await apiFetch<{ items: unknown[] }>(`/keys/${keyId}/screenshots`);
+        return z.object({ items: z.array(Screenshot) }).parse(data).items;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
     },
   },
   exports: {

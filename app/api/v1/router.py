@@ -79,3 +79,13 @@ try:
     router.include_router(imports_router, prefix="/imports", tags=["Imports"])
 except ImportError:
     pass
+
+# Phase 7 — OTA locale delivery for mobile. Public read-only endpoint;
+# no X-API-Key. Guarded with try/except to match the rest of this file's
+# partial-merge tolerance, even though the OTA module has no optional deps.
+try:
+    from app.api.v1.endpoints.ota import router as ota_router
+
+    router.include_router(ota_router, prefix="/ota", tags=["OTA"])
+except ImportError:
+    pass

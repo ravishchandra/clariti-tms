@@ -29,7 +29,7 @@ export default async function Image() {
               width: 28,
               height: 28,
               borderRadius: 6,
-              border: "2px solid #ff7847",
+              border: "2px solid #81d8d0",
             }}
           />
           <div style={{ display: "flex", alignItems: "baseline", fontSize: 22, letterSpacing: -0.5 }}>
@@ -51,7 +51,7 @@ export default async function Image() {
             }}
           >
             <span>The translation system</span>
-            <span style={{ color: "#ff7847" }}>you actually own.</span>
+            <span style={{ color: "#81d8d0" }}>you actually own.</span>
           </div>
           <div style={{ display: "flex", fontSize: 26, color: "#b5b8c1", maxWidth: 900, lineHeight: 1.35 }}>
             <span>
@@ -69,7 +69,7 @@ export default async function Image() {
             color: "#7a7e8a",
           }}
         >
-          <span style={{ color: "#ff9970" }}>$</span>
+          <span style={{ color: "#b8ece5" }}>$</span>
           <span>git clone github.com/ravishchandra/clariti-tms</span>
         </div>
       </div>

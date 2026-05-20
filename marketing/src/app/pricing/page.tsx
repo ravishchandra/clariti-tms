@@ -139,7 +139,7 @@ export default function PricingPage() {
                         href={t.cta.href}
                         className={
                           t.cta.primary
-                            ? "inline-flex w-full items-center justify-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
+                            ? "inline-flex w-full items-center justify-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#0a2e2c] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
                             : "inline-flex w-full items-center justify-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"
                         }
                       >

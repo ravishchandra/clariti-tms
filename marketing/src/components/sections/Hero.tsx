@@ -46,7 +46,7 @@ export function Hero() {
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <Link
                 href="/playground"
-                className="group inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
+                className="group inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#0a2e2c] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
               >
                 Try the playground
                 <span className="transition-transform group-hover:translate-x-0.5">→</span>

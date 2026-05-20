@@ -272,37 +272,37 @@ class TestValidateString:
         assert result.valid is True
 
     def test_do_not_translate_violation(self):
-        # Brand term "Clariti" must appear verbatim — translating it is a violation
+        # Brand term "ClaritiTMS" must appear verbatim — translating it is a violation
         glossary = [
             {
-                "source_term": "Clariti",
+                "source_term": "ClaritiTMS",
                 "target_term": "",
                 "do_not_translate": True,
             }
         ]
         result = validate_string(
             **self._base_kwargs(
-                source="Welcome to Clariti",
-                translated="Bienvenue dans notre application",  # "Clariti" missing
+                source="Welcome to ClaritiTMS",
+                translated="Bienvenue dans notre application",  # "ClaritiTMS" missing
                 glossary_terms=glossary,
             )
         )
         assert result.valid is False
-        assert any("Clariti" in e for e in result.errors)
+        assert any("ClaritiTMS" in e for e in result.errors)
 
     def test_do_not_translate_present_passes(self):
         # Brand term preserved verbatim → valid
         glossary = [
             {
-                "source_term": "Clariti",
+                "source_term": "ClaritiTMS",
                 "target_term": "",
                 "do_not_translate": True,
             }
         ]
         result = validate_string(
             **self._base_kwargs(
-                source="Welcome to Clariti",
-                translated="Bienvenue dans Clariti",
+                source="Welcome to ClaritiTMS",
+                translated="Bienvenue dans ClaritiTMS",
                 glossary_terms=glossary,
             )
         )
@@ -547,14 +547,14 @@ class TestFormatGlossaryForPrompt:
     def test_do_not_translate_term(self):
         terms = [
             {
-                "source_term": "Clariti",
+                "source_term": "ClaritiTMS",
                 "target_term": "",
                 "do_not_translate": True,
                 "notes": None,
             }
         ]
         result = format_glossary_for_prompt(terms)
-        assert '"Clariti" → DO NOT TRANSLATE' in result
+        assert '"ClaritiTMS" → DO NOT TRANSLATE' in result
 
     def test_term_with_notes(self):
         terms = [

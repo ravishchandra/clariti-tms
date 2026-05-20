@@ -93,7 +93,7 @@ function Sidebar() {
         <div className="size-6 rounded-md bg-primary/20 grid place-items-center text-primary text-sm font-semibold">
           C
         </div>
-        <div className="text-sm font-semibold tracking-tight">Clariti</div>
+        <div className="text-sm font-semibold tracking-tight">ClaritiTMS</div>
       </div>
 
       <Separator />

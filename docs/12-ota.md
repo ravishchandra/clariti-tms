@@ -142,13 +142,13 @@ and varies on `Accept-Encoding`. No origin-request policy changes needed.
 
 ## iOS SDK sketch (~80 LOC Swift)
 
-A real Swift Package would ship as `ClaritiOTA` with a versioned target.
-Below is the runtime shape; copy into `Sources/ClaritiOTA/ClaritiOTA.swift`.
+A real Swift Package would ship as `ClaritiTMSOTA` with a versioned target.
+Below is the runtime shape; copy into `Sources/ClaritiTMSOTA/ClaritiTMSOTA.swift`.
 
 ```swift
 import Foundation
 
-public enum ClaritiOTA {
+public enum ClaritiTMSOTA {
     public struct Config {
         public let baseURL: URL
         public let bundledFallback: () -> [String: String]
@@ -158,8 +158,8 @@ public enum ClaritiOTA {
         }
     }
 
-    private static let etagKey = "ClaritiOTA.ETag"
-    private static let bodyKey  = "ClaritiOTA.Body"
+    private static let etagKey = "ClaritiTMSOTA.ETag"
+    private static let bodyKey  = "ClaritiTMSOTA.Body"
 
     /// Fetch the latest locale strings. Falls back to the bundled copy on
     /// any network failure or 5xx; returns the cached copy on 304.
@@ -203,8 +203,8 @@ public enum ClaritiOTA {
         }.resume()
     }
 
-    private static func etagKey(_ p: String, _ l: String) -> String { "ClaritiOTA.ETag.\(p).\(l)" }
-    private static func bodyKey(_ p: String, _ l: String) -> String { "ClaritiOTA.Body.\(p).\(l)" }
+    private static func etagKey(_ p: String, _ l: String) -> String { "ClaritiTMSOTA.ETag.\(p).\(l)" }
+    private static func bodyKey(_ p: String, _ l: String) -> String { "ClaritiTMSOTA.Body.\(p).\(l)" }
 
     private static func cached(_ project: String, _ locale: String) -> [String: String]? {
         guard let data = UserDefaults.standard.data(forKey: bodyKey(project, locale)),
@@ -218,7 +218,7 @@ public enum ClaritiOTA {
 Usage at app launch:
 
 ```swift
-ClaritiOTA.fetchLocale(
+ClaritiTMSOTA.fetchLocale(
     project: "checkout",
     locale: Locale.current.identifier,
     config: .init(
@@ -232,7 +232,7 @@ ClaritiOTA.fetchLocale(
 
 ## Android SDK sketch (~60 LOC Kotlin)
 
-`ClaritiOTA.kt`, suspend function, OkHttp + SharedPreferences:
+`ClaritiTMSOTA.kt`, suspend function, OkHttp + SharedPreferences:
 
 ```kotlin
 import android.content.Context
@@ -240,7 +240,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 
-object ClaritiOTA {
+object ClaritiTMSOTA {
     private val client = OkHttpClient()
 
     /**
@@ -254,7 +254,7 @@ object ClaritiOTA {
         locale: String,
         bundledFallback: () -> Map<String, String>,
     ): Map<String, String> {
-        val prefs = context.getSharedPreferences("ClaritiOTA", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("ClaritiTMSOTA", Context.MODE_PRIVATE)
         val etagKey = "etag.$project.$locale"
         val bodyKey = "body.$project.$locale"
 

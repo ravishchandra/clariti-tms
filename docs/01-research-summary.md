@@ -8,7 +8,7 @@ After cutting through marketing across Transifex, Lokalise, Phrase, Crowdin, Sma
 |---|---|---|---|
 | 1 | **String database with versioning** | Central store: `key → {locale, value, status, history, metadata}` | Easy — JSON in Git already gets you most of the way |
 | 2 | **Translator-facing editor** | Web UI for non-developers to edit strings, see pending work, comment. Where context, glossary, and TM are surfaced. | Medium — the *editor design* is what determines whether translators use it |
-| 3 | **Translation Memory + glossary** | "We translated this before, reuse it." Plus terminology lock ("Clariti always stays Clariti") | Medium — biggest single quality lever at scale |
+| 3 | **Translation Memory + glossary** | "We translated this before, reuse it." Plus terminology lock ("ClaritiTMS always stays ClaritiTMS") | Medium — biggest single quality lever at scale |
 | 4 | **Context capture** | Screenshots, surrounding UI, what the button does, length limits, ICU plurals, placeholders | Medium — the missing piece that fixes "Google Translate sounded weird" |
 | 5 | **CI/CD plumbing** | Pull source strings from Git/Contentful → push translations back. Webhooks. SDKs for OTA delivery. | Medium — straightforward but tedious |
 | 6 | **Workflow / review state machine** | Drafted → MT → reviewed → approved → published. Roles, comments, QA checks. | Easy if you keep states minimal |

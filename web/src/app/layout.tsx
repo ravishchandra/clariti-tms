@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clariti TMS",
+  title: "ClaritiTMS",
   description: "Self-hosted translation management system.",
 };
 

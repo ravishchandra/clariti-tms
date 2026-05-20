@@ -1,6 +1,6 @@
 # Getting started
 
-A 5-minute walkthrough that runs Clariti TMS end-to-end with zero API keys. By the end you'll have ingested strings, run them through the translation pipeline, and seen the canonical state-machine output. Real LLM providers are a one-line config flip after.
+A 5-minute walkthrough that runs ClaritiTMS end-to-end with zero API keys. By the end you'll have ingested strings, run them through the translation pipeline, and seen the canonical state-machine output. Real LLM providers are a one-line config flip after.
 
 This guide assumes you've cloned the repo and have **Docker** + **Python 3.12+** installed.
 

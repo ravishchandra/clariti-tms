@@ -87,7 +87,7 @@ Fallback: key prefix inference (`checkout_*` → CheckoutViewController).
 ```xml
 <resources>
     <string name="checkout_confirm_button">Confirm payment</string>
-    <string name="checkout_confirm_button" translatable="false">Clariti</string>
+    <string name="checkout_confirm_button" translatable="false">ClaritiTMS</string>
     <string name="checkout_terms_rich">Agree to <b>Terms</b> and <a href="%1$s">Privacy</a></string>
     <plurals name="checkout_items_count">
         <item quantity="one">%d item</item>

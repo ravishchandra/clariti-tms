@@ -1,1 +1,1 @@
-"""Machine-translation pipeline for Clariti TMS."""
+"""Machine-translation pipeline for ClaritiTMS."""

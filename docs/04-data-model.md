@@ -27,7 +27,7 @@ CREATE TABLE organizations (
 
 ### `projects`
 
-A project is a product (e.g., "Clariti App"). It owns the shared translation context — glossary, TM, style guide, and target locales — across all its repositories.
+A project is a product (e.g., "ClaritiTMS App"). It owns the shared translation context — glossary, TM, style guide, and target locales — across all its repositories.
 
 ```sql
 CREATE TABLE projects (

@@ -1,7 +1,7 @@
 {
   "name": "@clariti-tms/screenshot-sdk",
   "version": "0.1.0",
-  "description": "Auto-capture screenshots of UI strings in your staging app and upload them to Clariti TMS.",
+  "description": "Auto-capture screenshots of UI strings in your staging app and upload them to ClaritiTMS.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "dist/index.js",

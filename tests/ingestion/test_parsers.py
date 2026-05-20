@@ -519,7 +519,7 @@ class TestAndroidParser:
     STRINGS_XML = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="checkout_confirm_button">Confirm payment</string>
-    <string name="brand_name" translatable="false">Clariti</string>
+    <string name="brand_name" translatable="false">ClaritiTMS</string>
     <string name="rich_text">Agree to <b>Terms</b> and <a href="%1$s">Privacy</a></string>
     <plurals name="items_count">
         <item quantity="one">%d item</item>

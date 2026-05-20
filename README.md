@@ -1,4 +1,4 @@
-# Clariti TMS
+# ClaritiTMS
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
@@ -108,7 +108,7 @@ Translation publication opens a PR back to your source repo automatically. The c
    GITHUB_APP_PRIVATE_KEY_PATH=./secrets/github-app.pem  # or GITHUB_APP_PRIVATE_KEY inline
    ```
 3. **Install the App** on each target repo (one click in GitHub's UI).
-4. **Tell Clariti which installation owns which repo row:**
+4. **Tell ClaritiTMS which installation owns which repo row:**
    ```bash
    curl -X PATCH -H "X-API-Key: <key>" \
      -H "Content-Type: application/json" \
@@ -136,7 +136,7 @@ Found a security issue? Please follow [SECURITY.md](SECURITY.md) — **do not** 
 
 ## License
 
-Clariti TMS is dual-licensed:
+ClaritiTMS is dual-licensed:
 
 - **Open source:** [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). The AGPL's network-copyleft clause means SaaS operators who modify the code must publish their modifications. Self-hosters who don't modify or redistribute the code are unaffected.
 - **Commercial:** available from the maintainers for organizations whose use is incompatible with the AGPL. Contact the maintainers via GitHub for licensing terms.

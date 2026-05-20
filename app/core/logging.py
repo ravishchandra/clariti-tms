@@ -1,4 +1,4 @@
-"""Structured JSON logging for Clariti TMS.
+"""Structured JSON logging for ClaritiTMS.
 
 Per ``CLAUDE.md`` the project emits structured JSON logs and always
 includes ``project_id``, ``translation_id``, and ``request_id`` where

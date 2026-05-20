@@ -2,7 +2,7 @@
  * @clariti-tms/screenshot-sdk
  *
  * Browser library that auto-captures screenshots of i18n strings as they
- * render in a staging environment, and uploads them to the Clariti TMS
+ * render in a staging environment, and uploads them to the ClaritiTMS
  * backend so reviewers see the in-product context next to each string.
  *
  * Workflow once initialized:
@@ -29,9 +29,9 @@ import { toBlob } from "html-to-image";
 // Public API surface
 // --------------------------------------------------------------------------- //
 
-export interface ClaritiScreenshotConfig {
+export interface ClaritiTMSScreenshotConfig {
   /**
-   * Origin of the Clariti TMS backend. Example: `"https://tms.example.com"`.
+   * Origin of the ClaritiTMS backend. Example: `"https://tms.example.com"`.
    * No trailing slash; the SDK appends `/api/v1/...` itself.
    */
   apiBase: string;
@@ -86,7 +86,7 @@ export interface CaptureResult {
 // --------------------------------------------------------------------------- //
 
 interface InternalState {
-  config: Required<Omit<ClaritiScreenshotConfig, "projectSlug">> & {
+  config: Required<Omit<ClaritiTMSScreenshotConfig, "projectSlug">> & {
     projectSlug: string | undefined;
   };
   mutationObserver: MutationObserver | null;
@@ -149,7 +149,7 @@ function isValidUuid(value: string): boolean {
 // --------------------------------------------------------------------------- //
 
 async function uploadBlob(keyId: string, blob: Blob): Promise<CaptureResult> {
-  if (!state) throw new Error("Clariti screenshot SDK not initialized — call init() first.");
+  if (!state) throw new Error("ClaritiTMS screenshot SDK not initialized — call init() first.");
   const { apiBase, apiKey } = state.config;
 
   const form = new FormData();
@@ -164,7 +164,7 @@ async function uploadBlob(keyId: string, blob: Blob): Promise<CaptureResult> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Clariti screenshot upload failed (${res.status}): ${text}`);
+    throw new Error(`ClaritiTMS screenshot upload failed (${res.status}): ${text}`);
   }
 
   const payload = (await res.json()) as {
@@ -187,7 +187,7 @@ async function captureElement(element: HTMLElement, keyId: string): Promise<Capt
     cacheBust: true,
   });
   if (!blob) {
-    throw new Error(`Clariti screenshot: html-to-image returned null for key ${keyId}.`);
+    throw new Error(`ClaritiTMS screenshot: html-to-image returned null for key ${keyId}.`);
   }
   return uploadBlob(keyId, blob);
 }
@@ -198,9 +198,9 @@ async function captureElement(element: HTMLElement, keyId: string): Promise<Capt
  * a storybook page.
  */
 export async function capture(element: HTMLElement, keyId: string): Promise<CaptureResult> {
-  if (!state) throw new Error("Clariti screenshot SDK not initialized — call init() first.");
+  if (!state) throw new Error("ClaritiTMS screenshot SDK not initialized — call init() first.");
   if (!isValidUuid(keyId)) {
-    throw new Error(`Clariti screenshot: keyId must be a UUID, got ${JSON.stringify(keyId)}.`);
+    throw new Error(`ClaritiTMS screenshot: keyId must be a UUID, got ${JSON.stringify(keyId)}.`);
   }
   return captureElement(element, keyId);
 }
@@ -310,7 +310,7 @@ function onMutations(mutations: MutationRecord[]): void {
  * Initialize the SDK. Idempotent — calling twice is a no-op and logs a
  * warning. Returns a `teardown()` function for tests / SPA route changes.
  */
-export function init(config: ClaritiScreenshotConfig): () => void {
+export function init(config: ClaritiTMSScreenshotConfig): () => void {
   if (state) {
     // eslint-disable-next-line no-console
     console.warn("[clariti-screenshot] init() called twice; ignoring second call.");
@@ -322,8 +322,8 @@ export function init(config: ClaritiScreenshotConfig): () => void {
       /* no-op */
     };
   }
-  if (!config.apiBase) throw new Error("Clariti screenshot: apiBase is required.");
-  if (!config.apiKey) throw new Error("Clariti screenshot: apiKey is required.");
+  if (!config.apiBase) throw new Error("ClaritiTMS screenshot: apiBase is required.");
+  if (!config.apiKey) throw new Error("ClaritiTMS screenshot: apiKey is required.");
 
   state = {
     config: {
@@ -393,12 +393,12 @@ export function resetUploadedKeys(): void {
 }
 
 // Default export bundles the public API into a single object — easy to
-// stash on `window.ClaritiScreenshot` from a <script> tag-style integration.
-const ClaritiScreenshot = {
+// stash on `window.ClaritiTMSScreenshot` from a <script> tag-style integration.
+const ClaritiTMSScreenshot = {
   init,
   capture,
   teardown,
   resetUploadedKeys,
 };
 
-export default ClaritiScreenshot;
+export default ClaritiTMSScreenshot;

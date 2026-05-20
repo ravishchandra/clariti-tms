@@ -1,4 +1,4 @@
-# DESIGN.md — Clariti TMS
+# DESIGN.md — ClaritiTMS
 
 Design system for the web review UI. All Phase 6 implementation calibrates against this.
 

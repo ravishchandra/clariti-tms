@@ -34,7 +34,7 @@ export default function SignInPage() {
     <div className="flex flex-1 items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-lg">Sign in to Clariti TMS</CardTitle>
+          <CardTitle className="text-lg">Sign in to ClaritiTMS</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">

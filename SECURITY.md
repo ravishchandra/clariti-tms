@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Clariti TMS is pre-1.0 and ships breaking changes on `main`. Only the latest released tag receives security fixes. Older tags are unsupported.
+ClaritiTMS is pre-1.0 and ships breaking changes on `main`. Only the latest released tag receives security fixes. Older tags are unsupported.
 
 | Version | Supported |
 | ------- | --------- |
@@ -70,4 +70,4 @@ If you're researching, these areas have the most attack surface:
 - The TM retrieval raw-SQL helpers in `app/mt/tm.py` (asyncpg + pgvector force raw SQL; we documented why and added typed helpers, but second eyes are welcome).
 - Multi-tenant scoping in `app/api/deps.py` (`scoped_*` dependencies — every cross-org leak is a critical bug).
 
-Thank you for helping keep Clariti TMS secure.
+Thank you for helping keep ClaritiTMS secure.

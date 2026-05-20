@@ -20,7 +20,7 @@ Wire shape (per OASIS XLIFF 1.2)
             clariti:project-id="<uuid>" clariti:export-hash="<sha>"
             clariti:export-timestamp="<iso>">
         <header>
-          <tool tool-id="clariti-tms" tool-name="Clariti TMS"
+          <tool tool-id="clariti-tms" tool-name="ClaritiTMS"
                 tool-version="0.x" />
           <note from="clariti" priority="2">schema_version:v1</note>
           <!-- ... other custom notes ... -->
@@ -309,7 +309,7 @@ def _build_file_element(
         f"{{{XLIFF_NS}}}tool",
         attrib={
             "tool-id": "clariti-tms",
-            "tool-name": "Clariti TMS",
+            "tool-name": "ClaritiTMS",
             "tool-version": "0.x",
         },
     )

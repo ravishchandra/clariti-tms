@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a defect in Clariti TMS.
+description: Report a defect in ClaritiTMS.
 title: "bug: "
 labels: ["bug", "triage"]
 body:

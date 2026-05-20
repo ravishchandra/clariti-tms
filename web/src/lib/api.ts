@@ -1,5 +1,5 @@
 /**
- * Typed fetch wrapper for the Clariti TMS REST API.
+ * Typed fetch wrapper for the ClaritiTMS REST API.
  *
  * We intentionally hand-roll this thin client instead of pulling in the
  * generated SDK (`@clariti-tms/sdk`, produced by `make sdks` in the repo root)

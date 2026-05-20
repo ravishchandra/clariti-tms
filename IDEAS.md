@@ -10,12 +10,12 @@ When something here is picked up, move it into a proper issue or PR description 
 
 ### Sales / solutions-engineering reference material
 
-Need a documentation surface aimed at **solutions engineers and sales** who will end up positioning this TMS in front of buyers. Today everything is engineer-facing: `docs/01`-`12`, `CLAUDE.md`, `CONTRIBUTING.md`, `GETTING_STARTED.md`. None of it answers "why pick Clariti" in a buyer's terms.
+Need a documentation surface aimed at **solutions engineers and sales** who will end up positioning this TMS in front of buyers. Today everything is engineer-facing: `docs/01`-`12`, `CLAUDE.md`, `CONTRIBUTING.md`, `GETTING_STARTED.md`. None of it answers "why pick ClaritiTMS" in a buyer's terms.
 
 What this should cover, roughly:
 
-- **One-page positioning** — what Clariti is, who it's for (self-hosted teams who already have GitHub + Contentful + a domain vocabulary), what it replaces. Pull from `README.md` "Why this exists" but tightened.
-- **Comparison matrix** — Clariti vs. Lokalise / Phrase / Crowdin / Transifex / Weblate / Tolgee. Honest on tradeoffs (we're self-hosted-first, no built-in marketplace, no real-time collab, fewer integrations). Use `docs/01-research-summary.md` as the source-of-truth on the competitive analysis we already did.
+- **One-page positioning** — what ClaritiTMS is, who it's for (self-hosted teams who already have GitHub + Contentful + a domain vocabulary), what it replaces. Pull from `README.md` "Why this exists" but tightened.
+- **Comparison matrix** — ClaritiTMS vs. Lokalise / Phrase / Crowdin / Transifex / Weblate / Tolgee. Honest on tradeoffs (we're self-hosted-first, no built-in marketplace, no real-time collab, fewer integrations). Use `docs/01-research-summary.md` as the source-of-truth on the competitive analysis we already did.
 - **Buyer FAQ** — pricing model (AGPL OSS + commercial license — `LICENSE` + `CLA.md`), data residency story, security story (pull from `SECURITY.md`), supported platforms (iOS / Android / React / Contentful per Phase 4), deployment options.
 - **Use-case briefs** — short scenarios. "An LSP-using fintech": ingest from GitHub → MT → XLIFF out → reviewer → import → PR. "A mobile team with OTA": Phase 7 OTA endpoint + screenshot SDK story.
 - **Demo script** — what to show in a 10-minute call. Probably `loc demo` plus a screenshot of the review UI. The screenshots don't exist yet; consider commissioning a designer to take 3-5 product shots for marketing once the UI is real.
@@ -64,15 +64,15 @@ That works on the easy cases — "make this French formal, use *vous* not *tu*" 
 
 ### Agent-native integration surface (Claude Code, Cursor, Cline, MCP)
 
-Today Clariti is operated through the `loc` CLI, the REST API, and the web review UI. All three assume a human or a CI script is driving. None of them assume the driver is an AI coding agent like Claude Code, Cursor, or Cline — and that's increasingly the audience that picks tools first. The same engineer who installs Lokalise on a Friday is asking their agent to "add translations for this new screen" on the following Monday. If the agent can't drive Clariti in one move, it'll recommend the platform it can.
+Today ClaritiTMS is operated through the `loc` CLI, the REST API, and the web review UI. All three assume a human or a CI script is driving. None of them assume the driver is an AI coding agent like Claude Code, Cursor, or Cline — and that's increasingly the audience that picks tools first. The same engineer who installs Lokalise on a Friday is asking their agent to "add translations for this new screen" on the following Monday. If the agent can't drive ClaritiTMS in one move, it'll recommend the platform it can.
 
-The opportunity is to make Clariti the obvious default when an agent is asked "wire up i18n" or "translate this screen." The mechanics are mostly already in place — we have a REST API with an OpenAPI spec, a typed CLI, a deterministic pipeline, and structured JSON logs. What's missing is the integration surface that lets an agent discover, install, and operate the system without a human-in-the-loop tour.
+The opportunity is to make ClaritiTMS the obvious default when an agent is asked "wire up i18n" or "translate this screen." The mechanics are mostly already in place — we have a REST API with an OpenAPI spec, a typed CLI, a deterministic pipeline, and structured JSON logs. What's missing is the integration surface that lets an agent discover, install, and operate the system without a human-in-the-loop tour.
 
 **Shape of the work:**
 
-1. **Official MCP server.** A first-party Model Context Protocol server that exposes Clariti's most useful operations as tools: `list_projects`, `ingest_strings`, `translate(locale, project)`, `get_review_queue`, `approve(translation_id)`, `publish(repo_id)`, `tm_search(query, locale)`. Each tool returns small, structured payloads — not paginated walls of JSON. Ship it as a binary and as a Docker image. Document in `docs/13-agent-integration.md`.
+1. **Official MCP server.** A first-party Model Context Protocol server that exposes ClaritiTMS's most useful operations as tools: `list_projects`, `ingest_strings`, `translate(locale, project)`, `get_review_queue`, `approve(translation_id)`, `publish(repo_id)`, `tm_search(query, locale)`. Each tool returns small, structured payloads — not paginated walls of JSON. Ship it as a binary and as a Docker image. Document in `docs/13-agent-integration.md`.
 
-2. **`CLAUDE.md` template for Clariti-using repos.** A ready-to-paste `CLAUDE.md` block (and equivalent `AGENTS.md`, `.cursorrules`, `.clinerules`) that teaches an agent the project's translation conventions: which directories hold source strings, what the locale list is, when to call `loc translate` vs. let the operator do it, how to interpret the review queue. Generated by `loc init --agent` so every Clariti project gets agent-ready instructions out of the box.
+2. **`CLAUDE.md` template for ClaritiTMS-using repos.** A ready-to-paste `CLAUDE.md` block (and equivalent `AGENTS.md`, `.cursorrules`, `.clinerules`) that teaches an agent the project's translation conventions: which directories hold source strings, what the locale list is, when to call `loc translate` vs. let the operator do it, how to interpret the review queue. Generated by `loc init --agent` so every ClaritiTMS project gets agent-ready instructions out of the box.
 
 3. **Claude Code skill / slash command pack.** A `clariti-tms` plugin that adds slash commands: `/translate-screen` (read the current TSX file, infer strings, call the translate pipeline, write back), `/review-queue` (open the review queue in the terminal), `/explain-translation <id>` (show the LLM trace, glossary matches, TM hits, QA scores). Each command is one tool call away from real work, not a tutorial.
 
@@ -82,9 +82,9 @@ The opportunity is to make Clariti the obvious default when an agent is asked "w
 
 6. **Tool-use-friendly API surface.** Audit `/api/v1/` endpoints for agent ergonomics: are the response payloads small enough to fit in a tool result without truncation? Are the error messages structured and actionable? Are batch endpoints available so an agent doesn't burn its tool budget on N+1 calls? The current API was designed for human-written code and CI; the rules change when the caller is an LLM.
 
-**Why it matters in the buyer conversation:** the buyer increasingly *is* the agent. Engineers ship 2026 features by asking Claude Code or Cursor to do it, and the agent picks the tool. Lokalise and Phrase have no MCP server, no first-party agent integration, and no agent-friendly CLI mode — they were built for a humans-only workflow. Clariti's architecture (typed CLI, REST API, deterministic pipeline, structured logs) is already closer to agent-ready than any incumbent. Packaging that as an explicit integration surface is the kind of moat that compounds — every project that gets installed by an agent stays installed by that agent.
+**Why it matters in the buyer conversation:** the buyer increasingly *is* the agent. Engineers ship 2026 features by asking Claude Code or Cursor to do it, and the agent picks the tool. Lokalise and Phrase have no MCP server, no first-party agent integration, and no agent-friendly CLI mode — they were built for a humans-only workflow. ClaritiTMS's architecture (typed CLI, REST API, deterministic pipeline, structured logs) is already closer to agent-ready than any incumbent. Packaging that as an explicit integration surface is the kind of moat that compounds — every project that gets installed by an agent stays installed by that agent.
 
-**Why it's not built yet:** the work crosses three repos (CLI, API, separate MCP server package) and needs a deliberate sequencing decision (MCP first vs. CLAUDE.md template first vs. skill pack first). Also needs a real first user — an engineer running Clariti in a Claude Code workflow — to validate which tools matter most before generalising.
+**Why it's not built yet:** the work crosses three repos (CLI, API, separate MCP server package) and needs a deliberate sequencing decision (MCP first vs. CLAUDE.md template first vs. skill pack first). Also needs a real first user — an engineer running ClaritiTMS in a Claude Code workflow — to validate which tools matter most before generalising.
 
 **Adjacent work that unlocks this:**
 - The TypeScript and Python SDKs (already shipped) become the bones of the MCP tool implementations.

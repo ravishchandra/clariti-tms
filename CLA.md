@@ -1,8 +1,8 @@
 # Contributor License Agreement
 
-Thank you for your interest in contributing to **Clariti TMS** (the "Project").
+Thank you for your interest in contributing to **ClaritiTMS** (the "Project").
 
-Clariti TMS is dual-licensed:
+ClaritiTMS is dual-licensed:
 
 - The public source code is released under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later) — see [LICENSE](LICENSE).
 - Commercial licenses are available from the Project maintainers for organizations whose use is incompatible with the AGPL's network-copyleft requirement (e.g. SaaS operators who cannot publish their modifications).

@@ -17,7 +17,7 @@ A single FastAPI application with clean internal module boundaries. Not six serv
                               │
                               ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│                   Clariti TMS  (single FastAPI app)                  │
+│                   ClaritiTMS  (single FastAPI app)                  │
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │  Source Adapters  (pluggable — implement SourceAdapter ABC)  │    │

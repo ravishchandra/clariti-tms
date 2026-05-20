@@ -28,7 +28,7 @@ export default function DashboardPage() {
     return (
       <EmptyState
         title="Sign in to start reviewing"
-        body="Clariti TMS authenticates with an API key. Mint one with `loc api-key` and paste it on the sign-in screen."
+        body="ClaritiTMS authenticates with an API key. Mint one with `loc api-key` and paste it on the sign-in screen."
         action={{ href: "/sign-in", label: "Sign in" }}
       />
     );

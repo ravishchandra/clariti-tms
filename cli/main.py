@@ -1,4 +1,4 @@
-"""loc — Clariti TMS command-line interface."""
+"""loc — ClaritiTMS command-line interface."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 app = typer.Typer(
     name="loc",
-    help="Clariti TMS — translation management CLI",
+    help="ClaritiTMS — translation management CLI",
     no_args_is_help=True,
 )
 console = Console()
@@ -73,7 +73,7 @@ def init(
         if not overwrite:
             raise typer.Exit(0)
 
-    console.print("\n[bold]Clariti TMS — repository setup[/bold]\n")
+    console.print("\n[bold]ClaritiTMS — repository setup[/bold]\n")
 
     # Repo name
     repo_name = typer.prompt("Repository name (e.g. ios, android, frontend)", default=cwd.name)
@@ -136,7 +136,7 @@ def init(
 
     # Write YAML manually (avoid PyYAML dependency at init time)
     lines = [
-        "# Clariti TMS — repository configuration",
+        "# ClaritiTMS — repository configuration",
         f"repo: {config['repo']}",
         f"platform: {config['platform']}",
         f"file_format: {config['file_format']}",
@@ -1180,7 +1180,7 @@ def demo(
     """Run an end-to-end demo with a mock LLM provider (no API keys required).
 
     Walks through the canonical flow: seed → ingest → translate → status.
-    Useful for evaluating Clariti TMS before configuring real providers.
+    Useful for evaluating ClaritiTMS before configuring real providers.
 
     Each invocation creates a fresh, timestamped demo project so previous
     runs are preserved (and the DB doesn't need a destructive reset).
@@ -1330,7 +1330,7 @@ async def _demo(target_locale: str) -> None:
 
     console.print(
         Panel.fit(
-            "[bold cyan]Clariti TMS demo[/bold cyan]\n"
+            "[bold cyan]ClaritiTMS demo[/bold cyan]\n"
             f"Target locale: [bold]{target_locale}[/bold]\n"
             "Provider: [bold]demo[/bold] (mock, no API key required)\n\n"
             "[dim]Walks: seed → ingest → translate → status[/dim]",
@@ -1403,7 +1403,7 @@ async def _demo(target_locale: str) -> None:
             "settings.account.label": "Account",
             "checkout.button.pay": "Pay {{amount}}",
             "errors.network": "Could not reach the server. Try again.",
-            "onboarding.welcome": "Welcome to Clariti.",
+            "onboarding.welcome": "Welcome to ClaritiTMS.",
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as tmp:
             json.dump(demo_source, tmp, ensure_ascii=False)

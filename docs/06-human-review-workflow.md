@@ -35,7 +35,7 @@ The dashboard is a **queue surface**, not a stats page. Its single job is: show 
 ```
 Dashboard layout:
   ┌─ Sidebar ───────────────────────────────────────────────────┐
-  │  Clariti App                                                 │
+  │  ClaritiTMS App                                                 │
   │  ├── fr-FR  [● 24 screens]                                  │
   │  ├── de-DE  [● 8 screens]                                   │
   │  └── es-ES  [○ bootstrapping]                               │
@@ -116,7 +116,7 @@ If none of the above: `auto_publish` strings go directly to `approved`. `standar
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Clariti App · fr-FR · checkout / payment-review          Queue: 4 screens   │
+│ ClaritiTMS App · fr-FR · checkout / payment-review          Queue: 4 screens   │
 │ [< Prev screen]  CheckoutViewController (16 strings)  [Next screen >]       │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ Screen context: Payment review and confirmation. User has entered payment    │
@@ -270,7 +270,7 @@ Not "No items found." Not a spinner. A moment of satisfaction. Show the count th
 ### First-run flow (new project, zero strings ingested)
 When a project has zero keys:
 ```
-  Get started with Clariti TMS
+  Get started with ClaritiTMS
 
   Connect your first repo in 3 steps:
 

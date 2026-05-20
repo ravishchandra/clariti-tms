@@ -1,5 +1,5 @@
 """
-SQLAlchemy 2.0 ORM models for Clariti TMS.
+SQLAlchemy 2.0 ORM models for ClaritiTMS.
 
 All models use the Mapped / mapped_column API (SQLAlchemy 2.0 style).
 Enums are defined before the models that reference them.

@@ -1,6 +1,6 @@
-# Contributing to Clariti TMS
+# Contributing to ClaritiTMS
 
-Thanks for your interest! Clariti TMS is an open-source translation management system built for teams whose UI text lives in GitHub and Contentful. We welcome contributions — please read this guide before opening your first PR.
+Thanks for your interest! ClaritiTMS is an open-source translation management system built for teams whose UI text lives in GitHub and Contentful. We welcome contributions — please read this guide before opening your first PR.
 
 ---
 

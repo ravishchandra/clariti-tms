@@ -197,7 +197,7 @@ def _parse_document(root: ET.Element) -> ParsedImport:
         elif pid != project_id:
             raise ImportParseError(
                 f"<file> #{file_idx} project-id {pid} does not match earlier project-id {project_id}. "
-                "All <file> elements in one XLIFF must share the same Clariti project."
+                "All <file> elements in one XLIFF must share the same ClaritiTMS project."
             )
 
         if target_locale not in rows_by_locale:

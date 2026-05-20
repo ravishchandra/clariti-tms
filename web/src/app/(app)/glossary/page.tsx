@@ -543,7 +543,7 @@ function TermDialog({
               id="source_term"
               value={sourceTerm}
               onChange={(e) => setSourceTerm(e.target.value)}
-              placeholder="Clariti"
+              placeholder="ClaritiTMS"
               disabled={isEdit}
               required
               autoFocus={!isEdit}
@@ -556,7 +556,7 @@ function TermDialog({
               id="target_term"
               value={targetTerm}
               onChange={(e) => setTargetTerm(e.target.value)}
-              placeholder="Clariti"
+              placeholder="ClaritiTMS"
               required
               autoFocus={isEdit}
             />

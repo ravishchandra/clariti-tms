@@ -1,7 +1,7 @@
 # @clariti-tms/screenshot-sdk
 
 Auto-capture in-context screenshots of UI strings as they render in your
-staging environment, and upload them to a self-hosted Clariti TMS backend.
+staging environment, and upload them to a self-hosted ClaritiTMS backend.
 
 Reviewers translating "Continue" no longer have to guess whether it's a
 primary CTA, a tiny link, or a destructive confirmation — the screenshot
@@ -27,10 +27,10 @@ pnpm add @clariti-tms/screenshot-sdk
 ### 2. Initialize on app boot (staging only)
 
 ```ts
-import ClaritiScreenshot from "@clariti-tms/screenshot-sdk";
+import ClaritiTMSScreenshot from "@clariti-tms/screenshot-sdk";
 
 if (process.env.NEXT_PUBLIC_ENV === "staging") {
-  ClaritiScreenshot.init({
+  ClaritiTMSScreenshot.init({
     apiBase: process.env.NEXT_PUBLIC_CLARITI_API_BASE!,
     apiKey: process.env.NEXT_PUBLIC_CLARITI_SCREENSHOT_KEY!,
     projectSlug: "my-product",
@@ -41,7 +41,7 @@ if (process.env.NEXT_PUBLIC_ENV === "staging") {
 
 > [!IMPORTANT]
 > **Never ship a production-write key to the browser.** Create a dedicated,
-> staging-only Clariti API key with the smallest scope possible. Anyone who
+> staging-only ClaritiTMS API key with the smallest scope possible. Anyone who
 > can `view-source:` on the page can read this value.
 
 ### 3. Annotate the elements that wrap each string
@@ -72,7 +72,7 @@ curl "https://tms.example.com/api/v1/keys?project_id=$PID&page_size=10000" \
 ### 4. Watch the screenshots roll in
 
 After your QA team navigates through the staging app, screenshots will
-appear under each key in the Clariti TMS Key Detail page.
+appear under each key in the ClaritiTMS Key Detail page.
 
 ## Manual capture
 
@@ -88,7 +88,7 @@ await capture(document.querySelector("#login-button")!, "<key-uuid>");
 
 | Option         | Type     | Default | Notes                                                                        |
 | -------------- | -------- | ------- | ---------------------------------------------------------------------------- |
-| `apiBase`      | string   | —       | Required. Origin of your Clariti backend (no trailing slash).                |
+| `apiBase`      | string   | —       | Required. Origin of your ClaritiTMS backend (no trailing slash).                |
 | `apiKey`       | string   | —       | Required. X-API-Key header. Staging-scoped.                                  |
 | `projectSlug`  | string   | —       | Optional. Surfaces in network logs for debugging.                            |
 | `autoCapture`  | boolean  | `true`  | If false, only manual `capture()` calls run.                                 |
@@ -111,8 +111,8 @@ The SDK records every uploaded key id in `localStorage`
 session**. Clear it during dev with:
 
 ```ts
-import ClaritiScreenshot from "@clariti-tms/screenshot-sdk";
-ClaritiScreenshot.resetUploadedKeys();
+import ClaritiTMSScreenshot from "@clariti-tms/screenshot-sdk";
+ClaritiTMSScreenshot.resetUploadedKeys();
 ```
 
 ## Build
@@ -127,5 +127,5 @@ bundler picks up the `dist/index.js` entry.
 
 ## License
 
-AGPL-3.0-or-later, matching the Clariti TMS server. Commercial licenses
+AGPL-3.0-or-later, matching the ClaritiTMS server. Commercial licenses
 available — see the top-level repo for details.

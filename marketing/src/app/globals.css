@@ -12,21 +12,26 @@
 }
 
 @layer base {
-  /* Default = light theme */
+  /*
+   * Light theme — Antigravity-calibrated.
+   * Pure white background, cool neutral grays sampled from antigravity.google
+   * (text #121317, soft #45474D, muted #5F6368). Lines shift from warm
+   * taupe to cool neutral. Flame stays — it's the brand accent.
+   */
   :root {
     color-scheme: light;
-    --color-ink-0: #fafaf7;       /* page background */
-    --color-ink-1: #ffffff;       /* surfaces / cards */
-    --color-ink-2: #f4f4ef;       /* subtle panels */
-    --color-ink-3: #ebebe5;       /* hover rows / chips */
-    --color-ink-4: #d6d6cf;       /* window-chrome dots */
-    --color-line: #e6e6df;
-    --color-line-strong: #cfcfc6;
+    --color-ink-0: #ffffff;       /* page background — pure white */
+    --color-ink-1: #ffffff;       /* surfaces / cards — same as bg, distinguished by border */
+    --color-ink-2: #f6f7f8;       /* subtle cool panel */
+    --color-ink-3: #eef0f2;       /* hover rows / chips */
+    --color-ink-4: #c8ccd1;       /* window-chrome dots */
+    --color-line: #e6e8eb;
+    --color-line-strong: #d2d6db;
 
-    --color-text: #111114;
-    --color-text-soft: #3f424a;
-    --color-text-muted: #6b6e76;
-    --color-text-dim: rgba(17, 17, 20, 0.08);
+    --color-text: #121317;        /* Antigravity body color */
+    --color-text-soft: #45474D;   /* Antigravity dark gray */
+    --color-text-muted: #5F6368;  /* Google standard medium gray */
+    --color-text-dim: rgba(18, 19, 23, 0.06);
 
     --color-flame-soft: #c8552c;  /* darker on white for AA contrast */
     --color-flame-deep: #7c2d12;
@@ -35,9 +40,10 @@
     --color-iris: #5c5fcc;
     --color-rose: #e11d48;
 
-    --grid-line: rgba(0, 0, 0, 0.05);
-    --halo-flame: rgba(255, 120, 71, 0.10);
-    --halo-iris: rgba(92, 95, 204, 0.05);
+    /* Lower-contrast neutrals for backgrounds/overlays on pure white */
+    --grid-line: rgba(18, 19, 23, 0.045);
+    --halo-flame: rgba(255, 120, 71, 0.05);
+    --halo-iris: rgba(92, 95, 204, 0.025);
 
     --shadow-flame:
       0 0 0 1px rgba(255, 120, 71, 0.28),

@@ -80,6 +80,12 @@ class Settings(BaseSettings):
     TRANSLATE_TEMPERATURE: float = 0.0
     EVALUATE_TEMPERATURE: float = 0.0
 
+    # CORS — comma-separated list of allowed origins for the browser SPA.
+    # The Next.js dev server runs on :3000; production deployments should set
+    # this to the deployed frontend origin(s). Empty string = no cross-origin
+    # access (the API is reachable from same-origin clients + CLI only).
+    CORS_ALLOW_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
     # Scheduler (F-OPS-2) — APScheduler-driven recurring jobs.
     # Off by default so dev / test runs don't kick off real network work
     # unless an operator explicitly opts in.

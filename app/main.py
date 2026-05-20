@@ -1,9 +1,10 @@
-"""Clariti TMS — FastAPI application entry point."""
+"""ClaritiTMS — FastAPI application entry point."""
 
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as api_v1_router
 from app.core.logging import configure_logging, request_id_middleware
@@ -90,7 +91,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Clariti TMS",
+    title="ClaritiTMS",
     version="0.1.0",
     docs_url="/api/v1/docs",
     openapi_url="/api/v1/openapi.json",
@@ -98,6 +99,17 @@ app = FastAPI(
 )
 
 request_id_middleware(app)
+
+_cors_origins = [o.strip() for o in settings.CORS_ALLOW_ORIGINS.split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
+    )
 
 app.include_router(api_v1_router, prefix="/api/v1")
 

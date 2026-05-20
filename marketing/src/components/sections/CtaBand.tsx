@@ -23,7 +23,7 @@ export function CtaBand() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/playground"
-                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-5 py-3 text-[14px] font-semibold text-[#0a2e2c] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
+                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-5 py-3 text-[14px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
                 >
                   Try the playground
                   <span>→</span>

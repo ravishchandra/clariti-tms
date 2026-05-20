@@ -10,10 +10,10 @@ export function Faq() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
               Frequently asked
             </p>
-            <h2 className="mt-4 text-balance text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[42px]">
+            <h2 className="mt-4 text-balance text-[40px] font-[450] leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
               Questions worth answering well.
             </h2>
-            <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+            <p className="mt-5 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
               Each answer is written in full so search engines and AI answer engines can index it
               cleanly. Need something not covered here? Open an issue on GitHub.
             </p>
@@ -24,7 +24,7 @@ export function Faq() {
           {faqs.map((f, i) => (
             <Reveal key={f.q} delay={Math.min(i * 25, 200)}>
               <details className="group py-5">
-                <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors hover:text-white">
+                <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors hover:text-[var(--color-flame)]">
                   <span className="text-pretty">{f.q}</span>
                   <span className="font-mono text-[18px] text-[var(--color-flame-soft)] transition-transform group-open:rotate-45">
                     +

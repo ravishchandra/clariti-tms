@@ -6,14 +6,15 @@ export function Hero() {
   return (
     <section className="relative isolate overflow-hidden">
       <div className="absolute inset-0 grid-bg" aria-hidden />
-      <div className="absolute inset-x-0 top-0 -z-10 h-[600px] bg-gradient-to-b from-[var(--color-flame)]/[0.045] to-transparent" />
+      {/* Flame tinted top-gradient removed — would re-introduce off-white cast over the pure-white bg.
+          The grid pattern alone is enough texture for the hero. */}
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 pt-20 pb-24 lg:grid-cols-12 lg:gap-8 lg:pt-28">
         <div className="lg:col-span-7">
           <Reveal>
             <Link
               href="/#how-it-works"
-              className="group inline-flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/60 px-3 py-1 text-[11.5px] tracking-tight text-[var(--color-text-soft)] backdrop-blur transition-colors hover:border-[var(--color-flame)]/40 hover:text-white"
+              className="group inline-flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/60 px-3 py-1 text-[11.5px] tracking-tight text-[var(--color-text-soft)] backdrop-blur transition-colors hover:border-[var(--color-flame)]/40"
             >
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-flame)] pulse-dot" />
               <span className="font-mono uppercase tracking-[0.14em] text-[10px] text-[var(--color-flame-soft)]">
@@ -27,7 +28,7 @@ export function Hero() {
           </Reveal>
 
           <Reveal delay={80}>
-            <h1 className="mt-7 text-balance text-[44px] font-bold leading-[1.02] tracking-[-0.045em] text-[var(--color-text)] sm:text-[56px] lg:text-[68px]">
+            <h1 className="mt-8 text-balance text-[44px] font-[450] leading-[1.05] tracking-[-0.018em] text-[var(--color-text)] sm:text-[64px] lg:text-[80px] lg:leading-[1.08]">
               The translation system{" "}
               <span className="gradient-text-flame">you actually own.</span>
             </h1>
@@ -45,7 +46,7 @@ export function Hero() {
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <Link
                 href="/playground"
-                className="group inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
+                className="group inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
               >
                 Try the playground
                 <span className="transition-transform group-hover:translate-x-0.5">→</span>

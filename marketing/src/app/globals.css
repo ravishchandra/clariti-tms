@@ -2,50 +2,59 @@
 
 @theme {
   /* static across themes */
-  --color-flame: #ff7847;
-  --color-flame-press: #c8552c;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  --color-flame: #4f46e5;
+  --color-flame-press: #4338ca;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 10px;
 }
 
 @layer base {
-  /* Default = light theme */
+  /*
+   * Light theme — Antigravity-calibrated.
+   * Pure white background, cool neutral grays sampled from antigravity.google
+   * (text #121317, soft #45474D, muted #5F6368). Lines shift from warm
+   * taupe to cool neutral. Flame stays — it's the brand accent.
+   */
   :root {
     color-scheme: light;
-    --color-ink-0: #fafaf7;       /* page background */
-    --color-ink-1: #ffffff;       /* surfaces / cards */
-    --color-ink-2: #f4f4ef;       /* subtle panels */
-    --color-ink-3: #ebebe5;       /* hover rows / chips */
-    --color-ink-4: #d6d6cf;       /* window-chrome dots */
-    --color-line: #e6e6df;
-    --color-line-strong: #cfcfc6;
+    --color-ink-0: #ffffff;       /* page background — pure white */
+    --color-ink-1: #ffffff;       /* surfaces / cards — same as bg, distinguished by border */
+    --color-ink-2: #f6f7f8;       /* subtle cool panel */
+    --color-ink-3: #eef0f2;       /* hover rows / chips */
+    --color-ink-4: #c8ccd1;       /* window-chrome dots */
+    --color-line: #e6e8eb;
+    --color-line-strong: #d2d6db;
 
-    --color-text: #111114;
-    --color-text-soft: #3f424a;
-    --color-text-muted: #6b6e76;
-    --color-text-dim: rgba(17, 17, 20, 0.08);
+    --color-text: #121317;        /* Antigravity body color */
+    --color-text-soft: #45474D;   /* Antigravity dark gray */
+    --color-text-muted: #5F6368;  /* Google standard medium gray */
+    --color-text-dim: rgba(18, 19, 23, 0.06);
 
-    --color-flame-soft: #c8552c;  /* darker on white for AA contrast */
-    --color-flame-deep: #7c2d12;
+    --color-flame-soft: #4338ca;  /* darker on white for AA contrast */
+    --color-flame-deep: #312e81;
 
     --color-mint: #16a34a;
     --color-iris: #5c5fcc;
     --color-rose: #e11d48;
 
-    --grid-line: rgba(0, 0, 0, 0.05);
-    --halo-flame: rgba(255, 120, 71, 0.10);
-    --halo-iris: rgba(92, 95, 204, 0.05);
+    /* Lower-contrast neutrals for backgrounds/overlays on pure white */
+    --grid-line: rgba(18, 19, 23, 0.045);
+    /* Halos killed in light mode — they cast a warm/cool wash on the
+     * background that breaks the pure-white target. Dark mode keeps them
+     * (the warmth reads as atmosphere against near-black). */
+    --halo-flame: transparent;
+    --halo-iris: transparent;
 
     --shadow-flame:
-      0 0 0 1px rgba(255, 120, 71, 0.28),
-      0 14px 36px -14px rgba(200, 85, 44, 0.32);
+      0 0 0 1px rgba(79, 70, 229, 0.28),
+      0 14px 36px -14px rgba(67, 56, 202, 0.32);
 
-    --gradient-text-start: #ff7847;
-    --gradient-text-mid: #d2542a;
-    --gradient-text-end: #7c2d12;
+    --gradient-text-start: #6366f1;
+    --gradient-text-mid: #4f46e5;
+    --gradient-text-end: #312e81;
   }
 
   .dark {
@@ -63,24 +72,24 @@
     --color-text-muted: #7a7e8a;
     --color-text-dim: rgba(255, 255, 255, 0.06);
 
-    --color-flame-soft: #ff9970;
-    --color-flame-deep: #c8552c;
+    --color-flame-soft: #a5b4fc;
+    --color-flame-deep: #4338ca;
 
     --color-mint: #6ee7b7;
     --color-iris: #8b8cff;
     --color-rose: #f97583;
 
     --grid-line: rgba(255, 255, 255, 0.03);
-    --halo-flame: rgba(255, 120, 71, 0.08);
+    --halo-flame: rgba(79, 70, 229, 0.08);
     --halo-iris: rgba(139, 140, 255, 0.04);
 
     --shadow-flame:
-      0 0 0 1px rgba(255, 120, 71, 0.25),
-      0 10px 40px -10px rgba(255, 120, 71, 0.45);
+      0 0 0 1px rgba(79, 70, 229, 0.25),
+      0 10px 40px -10px rgba(79, 70, 229, 0.45);
 
-    --gradient-text-start: #ffd1bd;
-    --gradient-text-mid: #ff7847;
-    --gradient-text-end: #c8552c;
+    --gradient-text-start: #e0e7ff;
+    --gradient-text-mid: #4f46e5;
+    --gradient-text-end: #4338ca;
   }
 
   html {
@@ -94,29 +103,37 @@
 
   body {
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.55;
-    letter-spacing: -0.005em;
+    /* Antigravity-inspired body: 17px / 28px reads larger and more editorial */
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: -0.003em;
     background:
       radial-gradient(1200px 600px at 50% -200px, var(--halo-flame), transparent 60%),
       radial-gradient(800px 400px at 100% 100%, var(--halo-iris), transparent 70%),
       var(--color-ink-0);
     min-height: 100vh;
+    font-feature-settings: "ss01", "cv11";
   }
 
   ::selection {
-    background: rgba(255, 120, 71, 0.35);
+    background: rgba(79, 70, 229, 0.35);
     color: #fff;
   }
 
+  /*
+   * Antigravity uses Google Sans Flex at weight 450 — a variable-axis sweet
+   * spot that reads confident but uncrowded. Geist matches the technique;
+   * pulling weight from 700→450 + relaxing letter-spacing is the single
+   * biggest signal shift.
+   */
   h1, h2, h3, h4 {
-    letter-spacing: -0.025em;
-    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-weight: 450;
   }
 
   h1 {
-    font-weight: 700;
-    letter-spacing: -0.04em;
+    font-weight: 450;
+    letter-spacing: -0.018em;
   }
 }
 
@@ -253,15 +270,15 @@
     --color-text-soft: #b5b8c1;
     --color-text-muted: #7a7e8a;
     --color-text-dim: rgba(255, 255, 255, 0.06);
-    --color-flame-soft: #ff9970;
-    --color-flame-deep: #c8552c;
+    --color-flame-soft: #a5b4fc;
+    --color-flame-deep: #4338ca;
     --color-mint: #6ee7b7;
     --color-iris: #8b8cff;
     --color-rose: #f97583;
     --grid-line: rgba(255, 255, 255, 0.03);
-    --gradient-text-start: #ffd1bd;
-    --gradient-text-mid: #ff7847;
-    --gradient-text-end: #c8552c;
+    --gradient-text-start: #e0e7ff;
+    --gradient-text-mid: #4f46e5;
+    --gradient-text-end: #4338ca;
     color: var(--color-text);
   }
 }

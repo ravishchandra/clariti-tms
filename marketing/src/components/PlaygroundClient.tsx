@@ -187,7 +187,7 @@ export function PlaygroundClient() {
           <div className="mt-6 flex gap-2">
             <button
               onClick={run}
-              className="flex-1 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] disabled:opacity-50"
+              className="flex-1 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] disabled:opacity-50"
               disabled={stage !== "idle" && stage !== "done"}
             >
               {stage === "idle" || stage === "done" ? "Run pipeline →" : "Running…"}

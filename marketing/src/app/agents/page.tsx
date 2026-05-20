@@ -130,7 +130,7 @@ export default function ClaudeCodePage() {
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Link
                   href="/playground"
-                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
+                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[14px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
                 >
                   Try the pipeline first →
                 </Link>
@@ -293,13 +293,13 @@ export default function ClaudeCodePage() {
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a
                     href={`${site.github}/issues/new?title=%5Bagent-integration%5D+`}
-                    className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
+                    className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
                   >
                     Open an issue on GitHub
                   </a>
                   <Link
                     href="/playground"
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40"
                   >
                     Try the live pipeline →
                   </Link>

@@ -73,7 +73,7 @@ export default async function CompareCompetitorPage({
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
                 Comparison
               </p>
-              <h1 className="mt-4 max-w-4xl text-balance text-[42px] font-bold leading-[1.04] tracking-[-0.04em] sm:text-[56px]">
+              <h1 className="mt-4 max-w-4xl text-balance text-[42px] font-[450] leading-[1.08] tracking-[-0.018em] sm:text-[60px] lg:text-[72px]">
                 ClaritiTMS <span className="text-[var(--color-text-muted)]">vs</span>{" "}
                 <span className="gradient-text-flame">{c.name}</span>
               </h1>
@@ -255,7 +255,7 @@ export default async function CompareCompetitorPage({
             <div className="mt-8 divide-y divide-[var(--color-line)]/70 border-y border-[var(--color-line)]/70">
               {c.faqs.map((f) => (
                 <details key={f.q} className="group py-5">
-                  <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors hover:text-white">
+                  <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors">
                     <span className="text-pretty">{f.q}</span>
                     <span className="font-mono text-[18px] text-[var(--color-flame-soft)] transition-transform group-open:rotate-45">
                       +
@@ -285,19 +285,19 @@ export default async function CompareCompetitorPage({
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Link
                     href="/playground"
-                    className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
+                    className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-4 py-2.5 text-[13.5px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)]"
                   >
                     Try the playground →
                   </Link>
                   <Link
                     href="/pricing"
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40"
                   >
                     See pricing
                   </Link>
                   <Link
                     href="/#compare"
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40"
                   >
                     Compare all
                   </Link>

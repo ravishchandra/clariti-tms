@@ -20,10 +20,10 @@ export function Pipeline() {
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
                 The pipeline
               </p>
-              <h2 className="mt-4 text-balance text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[42px]">
+              <h2 className="mt-4 text-balance text-[40px] font-[450] leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
                 Seven stages. Versioned. Auditable.
               </h2>
-              <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+              <p className="mt-5 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
                 Each stage is a separate function with its own tests, its own cost log, and its
                 own prompt version. The state machine is the source of truth — not a Notion doc.
               </p>

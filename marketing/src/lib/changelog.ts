@@ -15,6 +15,12 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-19",
     tag: "feature",
+    title: "Editorial design refresh — Geist, indigo, pure white",
+    body: "Restaged the site against an editorial design language inspired by antigravity.google. Inter and JetBrains Mono swapped for Geist Sans and Geist Mono (variable-axis font, closest licensed equivalent to Google Sans Flex). Heading weights dropped from 700/600 to a variable-axis 450 — confident editorial type instead of shouty marketing. Hero H1 scales to 80px at desktop. Page background flipped from warm off-white to pure #fff with cool neutral grays (#121317 body, #5F6368 muted) sampled directly from antigravity.google. Two warm overlays (body radial halo + hero flame-tinted gradient) killed in light mode so white reads as white. Accent color iterated from flame-orange to Tiffany blue to deep indigo #4f46e5 — final pick pairs with the cool neutral palette without going pastel. Nav GitHub link renamed to 'Star on GitHub' with target=_blank so the marketing tab survives the trip to the repo (GitHub auth is required for the actual ★ — a hyperlink alone can't trigger it).",
+  },
+  {
+    date: "2026-05-19",
+    tag: "feature",
     title: "Marketing site v1 + light / dark themes",
     body: "First customer-facing site shipped at marketing/ — hero with animated locale-cycling card, 4 product pillars, 7-stage pipeline diagram, vendor comparison table (Lokalise / Phrase / Crowdin / Weblate), 12-question FAQ with JSON-LD, pricing, and per-competitor comparison pages. Light mode is the default; dark mode is opt-in via toggle with no-FOUC pre-paint. Honest about what isn't shipped yet (the comparison table flags 'professional reviewer marketplace' as not yet built).",
   },

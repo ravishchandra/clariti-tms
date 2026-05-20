@@ -85,10 +85,10 @@ export function Compare() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
               Honest comparison
             </p>
-            <h2 className="mt-4 text-balance text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[42px]">
+            <h2 className="mt-4 text-balance text-[40px] font-[450] leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
               Where the bundled-TMS model breaks down.
             </h2>
-            <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+            <p className="mt-5 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
               The hosted platforms do a lot well — mobile SDKs, polished editors, marketplace
               integrations. They also charge per seat for things that should be commodity. Here is
               where ClaritiTMS is materially different.

@@ -15,7 +15,7 @@ export function CtaBand() {
                   Stop renting the bundle.{" "}
                   <span className="gradient-text-flame">Own the pipeline.</span>
                 </h2>
-                <p className="mt-4 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+                <p className="mt-4 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
                   Five minutes from <span className="font-mono">git clone</span> to a French
                   translation that actually sounds French.
                 </p>
@@ -23,7 +23,7 @@ export function CtaBand() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/playground"
-                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-5 py-3 text-[14px] font-semibold text-[#1a0c06] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
+                  className="inline-flex items-center gap-2 rounded-md bg-[var(--color-flame)] px-5 py-3 text-[14px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
                 >
                   Try the playground
                   <span>→</span>

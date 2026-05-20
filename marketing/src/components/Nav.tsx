@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
-import { ThemeToggle } from "./ThemeToggle";
 import { site } from "@/lib/site";
 
 export function Nav() {
@@ -36,7 +35,6 @@ export function Nav() {
             </svg>
             Star on GitHub
           </a>
-          <ThemeToggle />
           <Link
             href="/pricing"
             className="rounded-md border border-[var(--color-flame)]/35 bg-[var(--color-flame)]/10 px-3 py-1.5 text-[13px] font-medium text-[var(--color-flame-soft)] transition-colors hover:bg-[var(--color-flame)]/20"

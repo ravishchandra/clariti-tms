@@ -14,7 +14,7 @@ export function Hero() {
           <Reveal>
             <Link
               href="/#how-it-works"
-              className="group inline-flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/60 px-3 py-1 text-[11.5px] tracking-tight text-[var(--color-text-soft)] backdrop-blur transition-colors hover:border-[var(--color-flame)]/40 hover:text-white"
+              className="group inline-flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-ink-1)]/60 px-3 py-1 text-[11.5px] tracking-tight text-[var(--color-text-soft)] backdrop-blur transition-colors hover:border-[var(--color-flame)]/40"
             >
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-flame)] pulse-dot" />
               <span className="font-mono uppercase tracking-[0.14em] text-[10px] text-[var(--color-flame-soft)]">

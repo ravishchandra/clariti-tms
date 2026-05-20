@@ -24,7 +24,7 @@ export function Faq() {
           {faqs.map((f, i) => (
             <Reveal key={f.q} delay={Math.min(i * 25, 200)}>
               <details className="group py-5">
-                <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors hover:text-white">
+                <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors hover:text-[var(--color-flame)]">
                   <span className="text-pretty">{f.q}</span>
                   <span className="font-mono text-[18px] text-[var(--color-flame-soft)] transition-transform group-open:rotate-45">
                     +

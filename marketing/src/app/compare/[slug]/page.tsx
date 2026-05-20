@@ -255,7 +255,7 @@ export default async function CompareCompetitorPage({
             <div className="mt-8 divide-y divide-[var(--color-line)]/70 border-y border-[var(--color-line)]/70">
               {c.faqs.map((f) => (
                 <details key={f.q} className="group py-5">
-                  <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors hover:text-white">
+                  <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 text-[16px] font-medium tracking-tight text-[var(--color-text)] transition-colors">
                     <span className="text-pretty">{f.q}</span>
                     <span className="font-mono text-[18px] text-[var(--color-flame-soft)] transition-transform group-open:rotate-45">
                       +
@@ -291,13 +291,13 @@ export default async function CompareCompetitorPage({
                   </Link>
                   <Link
                     href="/pricing"
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40"
                   >
                     See pricing
                   </Link>
                   <Link
                     href="/#compare"
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] transition-all hover:border-[var(--color-flame)]/40"
                   >
                     Compare all
                   </Link>

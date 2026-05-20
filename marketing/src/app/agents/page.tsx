@@ -299,7 +299,7 @@ export default function ClaudeCodePage() {
                   </a>
                   <Link
                     href="/playground"
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40"
                   >
                     Try the live pipeline →
                   </Link>

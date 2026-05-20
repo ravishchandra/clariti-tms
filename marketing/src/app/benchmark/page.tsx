@@ -266,7 +266,7 @@ export default function BenchmarkPage() {
                   </a>
                   <a
                     href={`${site.github}/issues/new?title=%5Bbenchmark%5D+`}
-                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-md border border-[var(--color-line-strong)] bg-[var(--color-ink-2)] px-4 py-2.5 text-[13.5px] font-medium text-[var(--color-text)] hover:border-[var(--color-flame)]/40"
                   >
                     Suggest a corpus or a system →
                   </a>

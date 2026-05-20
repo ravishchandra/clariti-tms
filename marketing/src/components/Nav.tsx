@@ -37,9 +37,10 @@ export function Nav() {
           </a>
           <Link
             href="/pricing"
-            className="rounded-md border border-[var(--color-flame)]/35 bg-[var(--color-flame)]/10 px-3 py-1.5 text-[13px] font-medium text-[var(--color-flame-soft)] transition-colors hover:bg-[var(--color-flame)]/20"
+            className="group inline-flex items-center gap-1.5 rounded-md bg-[var(--color-flame)] px-3 py-1.5 text-[13px] font-semibold text-[#ffffff] shadow-flame transition-all hover:bg-[var(--color-flame-soft)] hover:-translate-y-px"
           >
             Get started
+            <span className="transition-transform group-hover:translate-x-0.5">→</span>
           </Link>
         </div>
       </div>

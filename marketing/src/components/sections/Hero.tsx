@@ -68,6 +68,20 @@ export function Hero() {
               <Stat k="10%" v="of Lokalise pricing*" />
               <Stat k="100%" v="of your data" />
             </dl>
+            <p className="mt-4 max-w-lg text-[11px] leading-[1.55] text-[var(--color-text-muted)]">
+              * Lokalise Start plan ≈ $140/mo for 5 seats / 1 project. ClaritiTMS self-host costs
+              $0 in license fees plus your infrastructure (typically $10–25/mo for a small Postgres
+              host). Verify current vendor pricing at{" "}
+              <a
+                href="https://lokalise.com/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline-offset-2 hover:text-[var(--color-flame)] hover:underline"
+              >
+                lokalise.com/pricing
+              </a>
+              .
+            </p>
           </Reveal>
         </div>
 

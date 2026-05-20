@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Clariti TMS — the translation system you actually own";
+export const alt = "ClaritiTMS — the translation system you actually own";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -32,9 +32,8 @@ export default async function Image() {
               border: "2px solid #ff7847",
             }}
           />
-          <div style={{ display: "flex", alignItems: "baseline", gap: 2, fontSize: 22, letterSpacing: -0.5 }}>
-            <span>Clariti</span>
-            <span style={{ color: "#7a7e8a" }}>/tms</span>
+          <div style={{ display: "flex", alignItems: "baseline", fontSize: 22, letterSpacing: -0.5 }}>
+            <span>ClaritiTMS</span>
           </div>
         </div>
 
@@ -71,7 +70,7 @@ export default async function Image() {
           }}
         >
           <span style={{ color: "#ff9970" }}>$</span>
-          <span>git clone github.com/clariti-tms/clariti</span>
+          <span>git clone github.com/ravishchandra/clariti-tms</span>
         </div>
       </div>
     ),

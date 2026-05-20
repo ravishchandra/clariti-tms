@@ -1,6 +1,6 @@
 /**
  * Machine-readable feature matrix. Stable contract for agents that need to
- * answer "does Clariti support X?" without scraping marketing copy.
+ * answer "does ClaritiTMS support X?" without scraping marketing copy.
  * Versioned in the payload — bump `schema_version` on breaking changes.
  */
 import { site } from "@/lib/site";

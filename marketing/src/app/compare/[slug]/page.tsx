@@ -29,7 +29,7 @@ export async function generateMetadata({
     openGraph: { title, description },
     keywords: [
       `${c.name} alternative`,
-      `${c.name} vs Clariti`,
+      `${c.name} vs ClaritiTMS`,
       `open source ${c.name} alternative`,
       `self-hosted ${c.name} alternative`,
       `${c.name} pricing`,
@@ -74,7 +74,7 @@ export default async function CompareCompetitorPage({
                 Comparison
               </p>
               <h1 className="mt-4 max-w-4xl text-balance text-[42px] font-bold leading-[1.04] tracking-[-0.04em] sm:text-[56px]">
-                Clariti TMS <span className="text-[var(--color-text-muted)]">vs</span>{" "}
+                ClaritiTMS <span className="text-[var(--color-text-muted)]">vs</span>{" "}
                 <span className="gradient-text-flame">{c.name}</span>
               </h1>
               <p className="mt-5 max-w-3xl text-pretty text-[17px] leading-[1.55] text-[var(--color-text-soft)]">
@@ -118,7 +118,7 @@ export default async function CompareCompetitorPage({
                         Capability
                       </th>
                       <th className="border-b border-[var(--color-line)] bg-[var(--color-flame)]/[0.08] px-5 py-4 text-left text-[12px] font-semibold text-[var(--color-flame-soft)]">
-                        Clariti TMS
+                        ClaritiTMS
                       </th>
                       <th className="border-b border-[var(--color-line)] px-5 py-4 text-left text-[12px] font-semibold text-[var(--color-text-soft)]">
                         {c.name}
@@ -194,7 +194,7 @@ export default async function CompareCompetitorPage({
 
               <Reveal delay={80}>
                 <h3 className="text-[22px] font-semibold tracking-tight text-[var(--color-flame-soft)]">
-                  When Clariti wins
+                  When ClaritiTMS wins
                 </h3>
                 <ul className="mt-5 space-y-3">
                   {c.whenClariti.map((w) => (
@@ -216,7 +216,7 @@ export default async function CompareCompetitorPage({
           <div className="mx-auto max-w-5xl px-6 py-16">
             <Reveal>
               <h2 className="text-[28px] font-semibold tracking-[-0.025em]">
-                Migrating from {c.name} to Clariti
+                Migrating from {c.name} to ClaritiTMS
               </h2>
               <p className="mt-3 max-w-3xl text-[15px] leading-[1.7] text-[var(--color-text-soft)]">
                 The export-and-import path is short. Most teams run both systems for one release
@@ -249,7 +249,7 @@ export default async function CompareCompetitorPage({
           <div className="mx-auto max-w-5xl px-6 py-16">
             <Reveal>
               <h2 className="text-[28px] font-semibold tracking-[-0.025em]">
-                FAQ — Clariti vs {c.name}
+                FAQ — ClaritiTMS vs {c.name}
               </h2>
             </Reveal>
             <div className="mt-8 divide-y divide-[var(--color-line)]/70 border-y border-[var(--color-line)]/70">
@@ -275,7 +275,7 @@ export default async function CompareCompetitorPage({
             <Reveal>
               <div className="rounded-xl border border-[var(--color-flame)]/25 bg-[var(--color-ink-1)]/80 p-8 sm:p-10">
                 <h2 className="text-balance text-[24px] font-semibold tracking-tight sm:text-[28px]">
-                  Try Clariti against your real strings in 5 minutes.
+                  Try ClaritiTMS against your real strings in 5 minutes.
                 </h2>
                 <p className="mt-3 max-w-2xl text-[15px] leading-[1.65] text-[var(--color-text-soft)]">
                   No signup, no API keys, no credit card. <span className="font-mono">loc demo</span>{" "}

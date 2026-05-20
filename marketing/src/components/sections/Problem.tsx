@@ -31,7 +31,7 @@ export function Problem() {
               if you control the prompt, the memory, and the QA pipeline.
             </p>
             <p className="mt-5 text-pretty text-[16.5px] leading-[1.6] text-[var(--color-text-soft)]">
-              Clariti is what you build when you stop paying for the wrapper.
+              ClaritiTMS is what you build when you stop paying for the wrapper.
             </p>
           </Reveal>
 

@@ -60,7 +60,7 @@ Source: dummy-claims audit produced 2026-05-19 against the marketing site as of 
 - [ ] **No favicon / app icon / Apple touch icon.** Only the inline `<Logo>` SVG exists; browser tabs show the default Next.js icon. Add `marketing/src/app/icon.tsx` + `apple-icon.tsx` (Next.js convention).
 - [ ] **Empty social presence.** Only Twitter is listed and unverified. Decide whether LinkedIn / Mastodon / Bluesky / GitHub Discussions cards are needed and add accordingly. Or remove the social row entirely.
 - [ ] **`new Date().getFullYear()` in Footer is server-rendered** — will be cached at build and become stale on Jan 1. Either accept the staleness or move to a client island.
-- [ ] **Duplicate FAQ JSON-LD** — home has 12 FAQ entries; each `/compare/*` page has 3. Some long-tail queries (e.g. "Clariti vs Lokalise FAQ") could compete with themselves. Decide which page should rank for each intent and de-dupe.
+- [ ] **Duplicate FAQ JSON-LD** — home has 12 FAQ entries; each `/compare/*` page has 3. Some long-tail queries (e.g. "ClaritiTMS vs Lokalise FAQ") could compete with themselves. Decide which page should rank for each intent and de-dupe.
 
 ### F. Production hardening
 
@@ -79,7 +79,7 @@ From the CEO/founder-mode review of 2026-05-19. **None of these are wrong; all t
 
 > *"Delete the three competitor pages until at least one has a real customer migration story to anchor it. Without a migration case study, they read as adversarial marketing without credibility."*
 
-- [ ] When the first real customer migration ships (Lokalise / Phrase / Crowdin → Clariti), keep the relevant `/compare/*` page and add the case study inline. Delete the other two until they have the same backing.
+- [ ] When the first real customer migration ships (Lokalise / Phrase / Crowdin → ClaritiTMS), keep the relevant `/compare/*` page and add the case study inline. Delete the other two until they have the same backing.
 - [ ] Hold for now (the pages do good AEO work even without case studies).
 
 ### Scope-reduction §2 — collapse pricing to a single statement

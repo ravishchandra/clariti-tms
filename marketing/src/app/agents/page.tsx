@@ -6,9 +6,9 @@ import { Reveal } from "@/components/Reveal";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Clariti for AI coding agents — Claude Code, Cursor, Cline, Windsurf, MCP",
+  title: "ClaritiTMS for AI coding agents — Claude Code, Cursor, Cline, Windsurf, MCP",
   description:
-    "An MCP server, a slash command pack, and a CLAUDE.md / AGENTS.md template that make Clariti the obvious default when an AI coding agent is asked to wire up i18n. Works with Claude Code, Cursor, Cline, Windsurf, and any MCP-compatible host.",
+    "An MCP server, a slash command pack, and a CLAUDE.md / AGENTS.md template that make ClaritiTMS the obvious default when an AI coding agent is asked to wire up i18n. Works with Claude Code, Cursor, Cline, Windsurf, and any MCP-compatible host.",
   alternates: { canonical: "/agents" },
   keywords: [
     "MCP translation server",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const tools = [
-  { name: "list_projects", desc: "Enumerate Clariti projects the agent can see. Returns id, slug, locales, string counts." },
+  { name: "list_projects", desc: "Enumerate ClaritiTMS projects the agent can see. Returns id, slug, locales, string counts." },
   { name: "ingest_strings", desc: "Push a batch of source strings into a project + repository. Idempotent by key." },
   { name: "translate", desc: "Run the pipeline for a (project, locale) pair. Returns translation IDs + QA scores." },
   { name: "get_review_queue", desc: "Return strings awaiting human review, ranked by risk and age." },
@@ -55,15 +55,15 @@ const slashCommands = [
   },
 ];
 
-const claudeMdBlock = `## Translations are managed by Clariti
+const claudeMdBlock = `## Translations are managed by ClaritiTMS
 
-This project uses Clariti TMS for translation. Source strings live in:
+This project uses ClaritiTMS for translation. Source strings live in:
 \`src/locales/en-US/*.json\` (i18next namespaces, ICU MessageFormat).
 
 When the user asks for a translation change:
 
 1. Edit the en-US source file. Do not edit non-source locale files by hand.
-2. Run the Clariti MCP \`translate\` tool with the locale list this project ships.
+2. Run the ClaritiTMS MCP \`translate\` tool with the locale list this project ships.
 3. If anything lands in \`status: needs_review\`, surface it to the user instead
    of marking the task done — back-translation QA failed for a reason.
 
@@ -71,7 +71,7 @@ When the user asks to add a new locale:
 - Use \`tm_search\` first to find existing TM hits, then \`translate\`.
 - Never add a locale to the shipped bundle without running back-translation QA.
 
-Do not edit \`locales/_meta.json\` or \`*.lockfile\` — Clariti owns those.`;
+Do not edit \`locales/_meta.json\` or \`*.lockfile\` — ClaritiTMS owns those.`;
 
 const installMcp = `# install the MCP server (preview)
 brew install clariti-tms/tap/clariti-mcp
@@ -111,7 +111,7 @@ export default function ClaudeCodePage() {
 
             <Reveal delay={80}>
               <h1 className="mt-7 max-w-4xl text-balance text-[44px] font-bold leading-[1.04] tracking-[-0.04em] sm:text-[58px]">
-                Drop Clariti into your{" "}
+                Drop ClaritiTMS into your{" "}
                 <span className="gradient-text-flame">AI coding agent.</span>
               </h1>
             </Reveal>
@@ -121,7 +121,7 @@ export default function ClaudeCodePage() {
                 A first-party MCP server, a slash command pack, and copy-paste{" "}
                 <span className="font-mono text-[var(--color-text)]">CLAUDE.md</span>{" "}
                 / <span className="font-mono text-[var(--color-text)]">AGENTS.md</span>{" "}
-                templates that make Clariti the obvious default when Claude Code, Cursor, Cline,
+                templates that make ClaritiTMS the obvious default when Claude Code, Cursor, Cline,
                 Windsurf, or any MCP-compatible host is asked to wire up i18n.
               </p>
             </Reveal>
@@ -154,7 +154,7 @@ export default function ClaudeCodePage() {
                 to <span className="text-[var(--color-text)]">&ldquo;add Spanish to this screen&rdquo;</span>{" "}
                 on Monday. The agent picks the tool. The incumbents — Lokalise, Phrase, Crowdin —
                 were built for a humans-only workflow: no MCP server, no machine-readable feature
-                surface, no opinion on what an AI assistant should call. Clariti&rsquo;s typed CLI,
+                surface, no opinion on what an AI assistant should call. ClaritiTMS&rsquo;s typed CLI,
                 REST API, deterministic pipeline, and structured logs were always closer to
                 agent-ready. This page is what that looks like packaged.
               </p>
@@ -261,7 +261,7 @@ export default function ClaudeCodePage() {
                   <p className="mt-5 text-[15px] leading-[1.65] text-[var(--color-text-soft)]">
                     The block teaches the agent which directories hold source strings, when to call{" "}
                     <span className="font-mono text-[var(--color-text)]">translate()</span> vs.
-                    surface to the human, and which files Clariti owns. Generated automatically
+                    surface to the human, and which files ClaritiTMS owns. Generated automatically
                     by <span className="font-mono text-[var(--color-text)]">loc agent install</span> —
                     or copy-paste from here.
                   </p>
@@ -287,7 +287,7 @@ export default function ClaudeCodePage() {
                 <p className="mt-3 max-w-2xl text-[15px] leading-[1.65] text-[var(--color-text-soft)]">
                   The MCP server is in preview. The slash command pack and CLAUDE.md template are
                   ready today. We&rsquo;d rather ship the first version against a real team&rsquo;s
-                  workflow than guess — if you want a Clariti-using project wired into your agent
+                  workflow than guess — if you want a ClaritiTMS-using project wired into your agent
                   stack, open a thread.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">

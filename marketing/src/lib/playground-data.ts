@@ -4,7 +4,7 @@
  * `app/llm/` and `app/mt/qa.py` produces; this lets the marketing site
  * demo the full pipeline shape without depending on a live backend.
  *
- * When a public read-only Clariti instance exists, swap the runSimulation
+ * When a public read-only ClaritiTMS instance exists, swap the runSimulation
  * helper for a fetch() to it.
  */
 
@@ -56,7 +56,7 @@ export const sampleSources: { label: string; strings: SourceString[] }[] = [
   {
     label: "Onboarding (SaaS)",
     strings: [
-      { key: "onboard.welcome", value: "Welcome to Clariti" },
+      { key: "onboard.welcome", value: "Welcome to ClaritiTMS" },
       { key: "onboard.cta.start", value: "Set up your first project" },
       { key: "onboard.skip", value: "I'll do this later" },
       { key: "onboard.help", value: "Need a hand? Talk to the team." },
@@ -166,13 +166,13 @@ const TRANSLATIONS: Record<string, { t: Record<string, string>; back: Record<str
 
   "Onboarding (SaaS) :: fr-FR": {
     t: {
-      "onboard.welcome": "Bienvenue sur Clariti",
+      "onboard.welcome": "Bienvenue sur ClaritiTMS",
       "onboard.cta.start": "Configurez votre premier projet",
       "onboard.skip": "Je le ferai plus tard",
       "onboard.help": "Besoin d'aide ? Contactez l'équipe.",
     },
     back: {
-      "onboard.welcome": "Welcome to Clariti",
+      "onboard.welcome": "Welcome to ClaritiTMS",
       "onboard.cta.start": "Set up your first project",
       "onboard.skip": "I'll do it later",
       "onboard.help": "Need help? Contact the team.",
@@ -180,13 +180,13 @@ const TRANSLATIONS: Record<string, { t: Record<string, string>; back: Record<str
   },
   "Onboarding (SaaS) :: de-DE": {
     t: {
-      "onboard.welcome": "Willkommen bei Clariti",
+      "onboard.welcome": "Willkommen bei ClaritiTMS",
       "onboard.cta.start": "Richten Sie Ihr erstes Projekt ein",
       "onboard.skip": "Mache ich später",
       "onboard.help": "Brauchen Sie Hilfe? Sprechen Sie mit dem Team.",
     },
     back: {
-      "onboard.welcome": "Welcome to Clariti",
+      "onboard.welcome": "Welcome to ClaritiTMS",
       "onboard.cta.start": "Set up your first project",
       "onboard.skip": "I'll do it later",
       "onboard.help": "Do you need help? Talk to the team.",
@@ -194,13 +194,13 @@ const TRANSLATIONS: Record<string, { t: Record<string, string>; back: Record<str
   },
   "Onboarding (SaaS) :: ja-JP": {
     t: {
-      "onboard.welcome": "Clariti へようこそ",
+      "onboard.welcome": "ClaritiTMS へようこそ",
       "onboard.cta.start": "最初のプロジェクトを設定する",
       "onboard.skip": "後で行う",
       "onboard.help": "お困りですか？チームにご相談ください。",
     },
     back: {
-      "onboard.welcome": "Welcome to Clariti",
+      "onboard.welcome": "Welcome to ClaritiTMS",
       "onboard.cta.start": "Set up your first project",
       "onboard.skip": "Do it later",
       "onboard.help": "Are you in trouble? Please consult the team.",
@@ -208,13 +208,13 @@ const TRANSLATIONS: Record<string, { t: Record<string, string>; back: Record<str
   },
   "Onboarding (SaaS) :: es-ES": {
     t: {
-      "onboard.welcome": "Te damos la bienvenida a Clariti",
+      "onboard.welcome": "Te damos la bienvenida a ClaritiTMS",
       "onboard.cta.start": "Configura tu primer proyecto",
       "onboard.skip": "Lo haré más tarde",
       "onboard.help": "¿Necesitas ayuda? Habla con el equipo.",
     },
     back: {
-      "onboard.welcome": "Welcome to Clariti",
+      "onboard.welcome": "Welcome to ClaritiTMS",
       "onboard.cta.start": "Set up your first project",
       "onboard.skip": "I'll do it later",
       "onboard.help": "Need help? Talk to the team.",
@@ -222,13 +222,13 @@ const TRANSLATIONS: Record<string, { t: Record<string, string>; back: Record<str
   },
   "Onboarding (SaaS) :: ar-SA": {
     t: {
-      "onboard.welcome": "مرحبًا بك في Clariti",
+      "onboard.welcome": "مرحبًا بك في ClaritiTMS",
       "onboard.cta.start": "قم بإعداد مشروعك الأول",
       "onboard.skip": "سأقوم بذلك لاحقًا",
       "onboard.help": "هل تحتاج إلى مساعدة؟ تحدث مع الفريق.",
     },
     back: {
-      "onboard.welcome": "Welcome to Clariti",
+      "onboard.welcome": "Welcome to ClaritiTMS",
       "onboard.cta.start": "Set up your first project",
       "onboard.skip": "I will do this later",
       "onboard.help": "Do you need help? Talk with the team.",
@@ -309,12 +309,12 @@ const TRANSLATIONS: Record<string, { t: Record<string, string>; back: Record<str
 
 const GLOSSARY_BY_LABEL: Record<string, GlossaryMatch[]> = {
   "Checkout screen (e-commerce)": [
-    { term: "Clariti", rule: "lock", note: "Brand term — never translate." },
+    { term: "ClaritiTMS", rule: "lock", note: "Brand term — never translate." },
     { term: "{amount}", rule: "placeholder", note: "ICU placeholder — preserve literally." },
     { term: "coupon", rule: "keep", note: "Project glossary: keep as is in marketing copy; otherwise localise." },
   ],
   "Onboarding (SaaS)": [
-    { term: "Clariti", rule: "lock", note: "Brand term — never translate." },
+    { term: "ClaritiTMS", rule: "lock", note: "Brand term — never translate." },
     { term: "project", rule: "keep", note: "Translate locally; do not capitalise." },
   ],
   "Error states (mobile)": [

@@ -6,10 +6,10 @@ type Cell = { v: "yes" | "no" | "partial" | "paid" | "notyet"; note?: string };
 type Row = {
   label: string;
   hint?: string;
-  cells: [Cell, Cell, Cell, Cell, Cell]; // Clariti, Lokalise, Phrase, Crowdin, Weblate
+  cells: [Cell, Cell, Cell, Cell, Cell]; // ClaritiTMS, Lokalise, Phrase, Crowdin, Weblate
 };
 
-const cols = ["Clariti", "Lokalise", "Phrase", "Crowdin", "Weblate"] as const;
+const cols = ["ClaritiTMS", "Lokalise", "Phrase", "Crowdin", "Weblate"] as const;
 
 const rows: Row[] = [
   {
@@ -52,7 +52,7 @@ const rows: Row[] = [
   },
   {
     label: "Professional reviewer marketplace",
-    hint: "Hire vetted translators inside the platform. Clariti hands off via XLIFF / XLSX — not yet built-in.",
+    hint: "Hire vetted translators inside the platform. ClaritiTMS hands off via XLIFF / XLSX — not yet built-in.",
     cells: [
       { v: "notyet", note: "Not on the roadmap yet — hand off via XLIFF or XLSX to your LSP." },
       { v: "yes", note: "Integrated marketplace." },
@@ -91,7 +91,7 @@ export function Compare() {
             <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
               The hosted platforms do a lot well — mobile SDKs, polished editors, marketplace
               integrations. They also charge per seat for things that should be commodity. Here is
-              where Clariti is materially different.
+              where ClaritiTMS is materially different.
             </p>
           </div>
         </Reveal>

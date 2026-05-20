@@ -35,7 +35,7 @@ export function Hero() {
 
           <Reveal delay={140}>
             <p className="mt-6 max-w-xl text-pretty text-[17px] leading-[1.55] text-[var(--color-text-soft)]">
-              Clariti is a self-hosted TMS that runs your strings through a context-aware LLM
+              ClaritiTMS is a self-hosted TMS that runs your strings through a context-aware LLM
               pipeline — your provider, your data, your prompts. Open source. No seat tax. No
               vendor lock-in.
             </p>

@@ -8,10 +8,10 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Pricing — self-host free, commercial license available",
   description:
-    "Clariti TMS is free to self-host under the AGPL-3.0. No per-seat fees. No per-string fees. A commercial license is available for organisations whose use is incompatible with the AGPL.",
+    "ClaritiTMS is free to self-host under the AGPL-3.0. No per-seat fees. No per-string fees. A commercial license is available for organisations whose use is incompatible with the AGPL.",
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "Clariti TMS Pricing — self-host free, commercial license available",
+    title: "ClaritiTMS Pricing — self-host free, commercial license available",
     description:
       "Free self-host under AGPL-3.0. No seat fees, no string fees, no vendor cloud. Commercial license available.",
   },
@@ -24,7 +24,7 @@ const tiers = [
     price: "$0",
     sub: "per month, forever",
     cta: { label: "Try the playground →", href: "/playground", primary: true },
-    body: "Run Clariti on your own infrastructure under the AGPL-3.0. No seat caps, no string caps, no feature gates.",
+    body: "Run ClaritiTMS on your own infrastructure under the AGPL-3.0. No seat caps, no string caps, no feature gates.",
     perks: [
       "Unlimited users, projects, locales, strings",
       "All features — TM, glossary, back-translation QA, OTA, XLIFF",
@@ -57,9 +57,9 @@ const tiers = [
     price: "Talk to us",
     sub: "for hosted operators",
     cta: { label: "Contact maintainers", href: site.github + "/issues/new?title=%5Bcommercial-license%5D+", primary: false },
-    body: "If you are building a hosted offering on top of Clariti and the AGPL is incompatible with how you want to ship, a commercial license is available.",
+    body: "If you are building a hosted offering on top of ClaritiTMS and the AGPL is incompatible with how you want to ship, a commercial license is available.",
     perks: [
-      "Use Clariti in a closed-source product",
+      "Use ClaritiTMS in a closed-source product",
       "Patches negotiated separately from the public roadmap",
       "Annual contract; CLA covers contributions back",
       "Optional priority bug-fix lane",
@@ -85,7 +85,7 @@ export default function PricingPage() {
                 Free to run. Honest at scale.
               </h1>
               <p className="mt-5 max-w-2xl text-pretty text-[17px] leading-[1.55] text-[var(--color-text-soft)]">
-                Clariti is open source. Self-hosting it costs zero — for one user or one thousand.
+                ClaritiTMS is open source. Self-hosting it costs zero — for one user or one thousand.
                 We make money from organisations that need a commercial license or a managed
                 deployment they do not have to run themselves.
               </p>
@@ -170,7 +170,7 @@ export default function PricingPage() {
                   than an engineering decision.
                 </p>
                 <p>
-                  Clariti rejects that model. The software is free because it should be free —
+                  ClaritiTMS rejects that model. The software is free because it should be free —
                   every feature is in the open-source repo and you can run it without ever talking
                   to us. We charge only when we are doing something meaningful for you:
                   shipping a custom-licensed build, or operating a single-tenant managed

@@ -97,7 +97,7 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-[var(--color-line)]/60 pt-6 text-[12px] text-[var(--color-text-muted)] md:flex-row md:items-center">
           <div>
-            © {new Date().getFullYear()} Clariti TMS contributors. Released under the AGPL-3.0.
+            © {new Date().getFullYear()} ClaritiTMS contributors. Released under the AGPL-3.0.
           </div>
           <div className="font-mono text-[11px]">
             <span className="text-[var(--color-flame)]">●</span> all systems operational

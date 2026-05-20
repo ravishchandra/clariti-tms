@@ -29,7 +29,7 @@ export function Logo({ className }: { className?: string }) {
         <circle cx="24" cy="21" r="1.5" fill="currentColor" />
       </svg>
       <span className="font-semibold tracking-tight text-[var(--color-text)]">
-        Clariti<span className="text-[var(--color-text-muted)] font-normal">/tms</span>
+        ClaritiTMS
       </span>
     </span>
   );

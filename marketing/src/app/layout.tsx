@@ -55,8 +55,8 @@ export const metadata: Metadata = {
     "XLIFF",
     "OTA translations",
   ],
-  authors: [{ name: "Clariti TMS contributors" }],
-  creator: "Clariti TMS",
+  authors: [{ name: "ClaritiTMS contributors" }],
+  creator: "ClaritiTMS",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",

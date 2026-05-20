@@ -27,10 +27,10 @@ export const competitors: CompetitorPage[] = [
     slug: "lokalise",
     name: "Lokalise",
     oneLiner: "The most polished hosted TMS — and the most expensive at scale.",
-    tagline: "Clariti TMS vs Lokalise",
+    tagline: "ClaritiTMS vs Lokalise",
     pricingHook: "Lokalise starts at $140/month and scales per seat per project.",
     intro:
-      "Lokalise is the reference experience in the hosted TMS market: a clean editor, strong mobile SDKs, a Figma plugin, and over-the-air translation delivery. It is also seat-priced from $140/month on the cheapest plan, with feature gates pushing serious teams onto plans at $390+/month, and your strings live on Lokalise's infrastructure. Clariti gives you the same six core TMS layers — string DB, editor, TM, context, CI/CD, workflow — but self-hosted, with your LLM provider, your data, and no per-seat tax.",
+      "Lokalise is the reference experience in the hosted TMS market: a clean editor, strong mobile SDKs, a Figma plugin, and over-the-air translation delivery. It is also seat-priced from $140/month on the cheapest plan, with feature gates pushing serious teams onto plans at $390+/month, and your strings live on Lokalise's infrastructure. ClaritiTMS gives you the same six core TMS layers — string DB, editor, TM, context, CI/CD, workflow — but self-hosted, with your LLM provider, your data, and no per-seat tax.",
     whenThem: [
       "You need a marketplace of professional translators for 20+ languages, today, with zero engineering investment.",
       "You ship a mobile-only product and the Lokalise OTA SDK plus their Figma plugin will save you three sprints of work right now.",
@@ -61,11 +61,11 @@ export const competitors: CompetitorPage[] = [
     migration: [
       {
         step: "Export from Lokalise",
-        body: "Use Lokalise's bulk export to download every locale as XLIFF (or iOS .xcstrings / Android XML for native projects). Clariti's importer reads all three formats natively.",
+        body: "Use Lokalise's bulk export to download every locale as XLIFF (or iOS .xcstrings / Android XML for native projects). ClaritiTMS's importer reads all three formats natively.",
       },
       {
         step: "Run `loc init` and configure providers",
-        body: "Stand up Postgres, run alembic upgrade head, and point Clariti at your chosen LLM provider. Anthropic Claude is the default; OpenAI, DeepL, and Ollama work out of the box.",
+        body: "Stand up Postgres, run alembic upgrade head, and point ClaritiTMS at your chosen LLM provider. Anthropic Claude is the default; OpenAI, DeepL, and Ollama work out of the box.",
       },
       {
         step: "Ingest source + translations together",
@@ -73,25 +73,25 @@ export const competitors: CompetitorPage[] = [
       },
       {
         step: "Wire GitHub or Contentful",
-        body: "Install the Clariti GitHub App on your locale repos to receive source-string pushes and open translation PRs back. For CMS-driven content, point Clariti at your Contentful space.",
+        body: "Install the ClaritiTMS GitHub App on your locale repos to receive source-string pushes and open translation PRs back. For CMS-driven content, point ClaritiTMS at your Contentful space.",
       },
       {
         step: "Decommission Lokalise seats at renewal",
-        body: "Run Clariti and Lokalise in parallel for one release cycle to compare output. Most teams cut seats at the next contract anniversary once the diff is in their hands.",
+        body: "Run ClaritiTMS and Lokalise in parallel for one release cycle to compare output. Most teams cut seats at the next contract anniversary once the diff is in their hands.",
       },
     ],
     faqs: [
       {
-        q: "Is Clariti TMS a Lokalise alternative?",
-        a: "Yes. Clariti and Lokalise solve the same problem — managing translated strings across web and mobile apps — but with opposite philosophies. Lokalise is a polished hosted SaaS with per-seat pricing. Clariti is self-hosted, AGPL-licensed, with bring-your-own LLM and no per-seat fees. For teams that already have GitHub and Contentful and want translation to feel like a build step, Clariti is typically a closer fit; for teams that need a translator marketplace and a mature Figma plugin without doing any engineering, Lokalise still wins.",
+        q: "Is ClaritiTMS a Lokalise alternative?",
+        a: "Yes. ClaritiTMS and Lokalise solve the same problem — managing translated strings across web and mobile apps — but with opposite philosophies. Lokalise is a polished hosted SaaS with per-seat pricing. ClaritiTMS is self-hosted, AGPL-licensed, with bring-your-own LLM and no per-seat fees. For teams that already have GitHub and Contentful and want translation to feel like a build step, ClaritiTMS is typically a closer fit; for teams that need a translator marketplace and a mature Figma plugin without doing any engineering, Lokalise still wins.",
       },
       {
-        q: "How much does Lokalise cost vs Clariti?",
-        a: "Lokalise's published plans start at $140/month (Start, 5 seats, 1 project) and scale up to $1,390/month (Enterprise) before custom contracts. Per-project and per-seat caps mean real-world costs are typically higher. Clariti is free to self-host under the AGPL-3.0 — no per-seat or per-string fees, only infrastructure cost (a single small Postgres instance for most teams).",
+        q: "How much does Lokalise cost vs ClaritiTMS?",
+        a: "Lokalise's published plans start at $140/month (Start, 5 seats, 1 project) and scale up to $1,390/month (Enterprise) before custom contracts. Per-project and per-seat caps mean real-world costs are typically higher. ClaritiTMS is free to self-host under the AGPL-3.0 — no per-seat or per-string fees, only infrastructure cost (a single small Postgres instance for most teams).",
       },
       {
-        q: "Can I migrate from Lokalise to Clariti without losing translation memory?",
-        a: "Yes. Lokalise's XLIFF export preserves source / target / approval status per string. Clariti's importer reads XLIFF natively and seeds the project translation memory from the imported translations on the way in, so existing TM matches keep working in the new pipeline.",
+        q: "Can I migrate from Lokalise to ClaritiTMS without losing translation memory?",
+        a: "Yes. Lokalise's XLIFF export preserves source / target / approval status per string. ClaritiTMS's importer reads XLIFF natively and seeds the project translation memory from the imported translations on the way in, so existing TM matches keep working in the new pipeline.",
       },
     ],
   },
@@ -100,10 +100,10 @@ export const competitors: CompetitorPage[] = [
     slug: "phrase",
     name: "Phrase",
     oneLiner: "The Memsource-heritage enterprise TMS — broad, deep, expensive.",
-    tagline: "Clariti TMS vs Phrase",
+    tagline: "ClaritiTMS vs Phrase",
     pricingHook: "Phrase team plans start at $525/month, Pro at $1,250/month, Enterprise on request.",
     intro:
-      "Phrase (formerly Phrase + Memsource after the 2022 acquisition) is the enterprise TMS of choice for organisations that need both marketing-content translation and software-string translation under one roof, with workflows, analytics, and roles to match. It is also expensive — Team plans start at $525/month, Pro at $1,250/month, with custom enterprise contracts beyond that. Clariti targets the software-string half of that problem specifically, with a self-hosted deployment and a context-aware LLM pipeline that you control.",
+      "Phrase (formerly Phrase + Memsource after the 2022 acquisition) is the enterprise TMS of choice for organisations that need both marketing-content translation and software-string translation under one roof, with workflows, analytics, and roles to match. It is also expensive — Team plans start at $525/month, Pro at $1,250/month, with custom enterprise contracts beyond that. ClaritiTMS targets the software-string half of that problem specifically, with a self-hosted deployment and a context-aware LLM pipeline that you control.",
     whenThem: [
       "You run a large localisation team with formal LSP processes, vendor management, and dozens of stakeholders.",
       "You need integrated TMS + CAT tool for translating marketing copy and product UI in one workflow.",
@@ -125,32 +125,32 @@ export const competitors: CompetitorPage[] = [
       { label: "Translation memory", clariti: "pgvector HNSW, project-scoped.", them: "Mature, multi-project TM is a strength.", winner: "them" },
       { label: "CAT tool (translator editor)", clariti: "Web review UI, keyboard-first.", them: "Mature, with offline mode (Memsource heritage).", winner: "them" },
       { label: "Roles, workflows, analytics", clariti: "Minimal, focused on dev workflow.", them: "Enterprise-grade workflow engine.", winner: "them" },
-      { label: "Marketing-content workflows", clariti: "Out of scope — point Clariti at the strings.", them: "Strong end-to-end for marketing teams.", winner: "them" },
+      { label: "Marketing-content workflows", clariti: "Out of scope — point ClaritiTMS at the strings.", them: "Strong end-to-end for marketing teams.", winner: "them" },
       { label: "GitHub / Contentful integration", clariti: "Native, PR-back to source repo.", them: "Yes, mature.", winner: "tie" },
       { label: "Data residency", clariti: "Anywhere you deploy.", them: "Hosted regions only.", winner: "clariti" },
     ],
     migration: [
       {
         step: "Export Phrase projects as XLIFF",
-        body: "Phrase exports clean XLIFF 1.2 / 2.0. Clariti's `loc import-xliff` reads both and preserves source, target, state, and notes.",
+        body: "Phrase exports clean XLIFF 1.2 / 2.0. ClaritiTMS's `loc import-xliff` reads both and preserves source, target, state, and notes.",
       },
       {
-        step: "Map Phrase metadata to Clariti",
-        body: "Phrase's project / job / workflow structure flattens cleanly into Clariti's organisation / project / repository / component model. Document the mapping once and the import becomes idempotent.",
+        step: "Map Phrase metadata to ClaritiTMS",
+        body: "Phrase's project / job / workflow structure flattens cleanly into ClaritiTMS's organisation / project / repository / component model. Document the mapping once and the import becomes idempotent.",
       },
       {
         step: "Reconnect your LLM provider directly",
-        body: "If you were paying for Phrase NextMT, point Clariti at Claude or GPT-4 directly. You typically save on per-character MT fees plus the platform licence.",
+        body: "If you were paying for Phrase NextMT, point ClaritiTMS at Claude or GPT-4 directly. You typically save on per-character MT fees plus the platform licence.",
       },
     ],
     faqs: [
       {
-        q: "Is Clariti a Phrase alternative?",
-        a: "Clariti is a strong alternative to Phrase for software-string localisation specifically — UI strings in iOS, Android, and web apps, with GitHub or Contentful as the source. Clariti does not try to replace Phrase's broader marketing-content workflow tools or its CAT-tool heritage; if those are core to your team, Phrase remains a better fit. For teams whose translation workload is dominated by product UI strings, Clariti delivers the core value at a fraction of the price.",
+        q: "Is ClaritiTMS a Phrase alternative?",
+        a: "ClaritiTMS is a strong alternative to Phrase for software-string localisation specifically — UI strings in iOS, Android, and web apps, with GitHub or Contentful as the source. ClaritiTMS does not try to replace Phrase's broader marketing-content workflow tools or its CAT-tool heritage; if those are core to your team, Phrase remains a better fit. For teams whose translation workload is dominated by product UI strings, ClaritiTMS delivers the core value at a fraction of the price.",
       },
       {
-        q: "How much does Phrase cost compared to Clariti?",
-        a: "Phrase's published Team plan is $525/month, Pro is $1,250/month, and Enterprise is custom. Per-language and per-project add-ons drive real-world contract values higher. Clariti self-hosted is free under the AGPL-3.0; the only cost is the infrastructure (Postgres + a small app server) and the per-token fees you pay your LLM provider directly.",
+        q: "How much does Phrase cost compared to ClaritiTMS?",
+        a: "Phrase's published Team plan is $525/month, Pro is $1,250/month, and Enterprise is custom. Per-language and per-project add-ons drive real-world contract values higher. ClaritiTMS self-hosted is free under the AGPL-3.0; the only cost is the infrastructure (Postgres + a small app server) and the per-token fees you pay your LLM provider directly.",
       },
     ],
   },
@@ -159,10 +159,10 @@ export const competitors: CompetitorPage[] = [
     slug: "crowdin",
     name: "Crowdin",
     oneLiner: "Community-translation roots, broad integrations, hosted-only.",
-    tagline: "Clariti TMS vs Crowdin",
+    tagline: "ClaritiTMS vs Crowdin",
     pricingHook: "Crowdin's Pro plan starts at $50/month for one project; Team at $450/month.",
     intro:
-      "Crowdin is the most beloved TMS in the open-source community — free for OSS projects, mature crowd-translation workflows, and 600+ integrations. For commercial use it is tiered: Pro from $50/month (one project, limited strings), Team from $450/month, and Enterprise custom. It is also hosted-only and closed-source. Clariti gives self-hosted teams the same core capabilities — context, TM, glossary, CI/CD — with an LLM pipeline you control and zero per-seat cost.",
+      "Crowdin is the most beloved TMS in the open-source community — free for OSS projects, mature crowd-translation workflows, and 600+ integrations. For commercial use it is tiered: Pro from $50/month (one project, limited strings), Team from $450/month, and Enterprise custom. It is also hosted-only and closed-source. ClaritiTMS gives self-hosted teams the same core capabilities — context, TM, glossary, CI/CD — with an LLM pipeline you control and zero per-seat cost.",
     whenThem: [
       "You run an open-source project and want a free, polished crowd-translation experience your community already knows.",
       "You need an integration with something obscure (Zendesk Guide, HelpScout Docs, a specific game engine) — Crowdin probably has it.",
@@ -189,11 +189,11 @@ export const competitors: CompetitorPage[] = [
     migration: [
       {
         step: "Export Crowdin projects as XLIFF",
-        body: "Use Crowdin's bulk download to grab XLIFF for every locale. Clariti's XLIFF importer handles status, comments, and approved-state.",
+        body: "Use Crowdin's bulk download to grab XLIFF for every locale. ClaritiTMS's XLIFF importer handles status, comments, and approved-state.",
       },
       {
-        step: "Re-create projects in Clariti",
-        body: "Map each Crowdin project to a Clariti project + repositories. Clariti's hierarchy (org → project → repo → component) is flatter than Crowdin's, so the mapping is straightforward.",
+        step: "Re-create projects in ClaritiTMS",
+        body: "Map each Crowdin project to a ClaritiTMS project + repositories. ClaritiTMS's hierarchy (org → project → repo → component) is flatter than Crowdin's, so the mapping is straightforward.",
       },
       {
         step: "Switch CI publishing target",
@@ -202,12 +202,12 @@ export const competitors: CompetitorPage[] = [
     ],
     faqs: [
       {
-        q: "Is Clariti a Crowdin alternative for commercial teams?",
-        a: "Yes. Crowdin is excellent for open-source projects and crowd-translation, but commercial use is tiered ($50 to $450+/month) and hosted-only. Clariti is built for engineering-led commercial localisation: self-hosted, free under AGPL, context-aware LLM translation under your control. For OSS projects with active translator communities, Crowdin's community features are still the better fit.",
+        q: "Is ClaritiTMS a Crowdin alternative for commercial teams?",
+        a: "Yes. Crowdin is excellent for open-source projects and crowd-translation, but commercial use is tiered ($50 to $450+/month) and hosted-only. ClaritiTMS is built for engineering-led commercial localisation: self-hosted, free under AGPL, context-aware LLM translation under your control. For OSS projects with active translator communities, Crowdin's community features are still the better fit.",
       },
       {
-        q: "Does Clariti support the same file formats as Crowdin?",
-        a: "Clariti supports the formats most product teams need natively — iOS .strings / .xcstrings / .stringsdict, Android strings.xml with layout grouping, i18next JSON with ICU MessageFormat, XLIFF 1.2 and 2.0 for LSP exchange, and XLSX for non-technical reviewers. Crowdin's format coverage is broader (including game-engine and documentation formats); for niche formats Clariti requires a custom parser module, which is roughly one file.",
+        q: "Does ClaritiTMS support the same file formats as Crowdin?",
+        a: "ClaritiTMS supports the formats most product teams need natively — iOS .strings / .xcstrings / .stringsdict, Android strings.xml with layout grouping, i18next JSON with ICU MessageFormat, XLIFF 1.2 and 2.0 for LSP exchange, and XLSX for non-technical reviewers. Crowdin's format coverage is broader (including game-engine and documentation formats); for niche formats ClaritiTMS requires a custom parser module, which is roughly one file.",
       },
     ],
   },

@@ -6,10 +6,10 @@ import { PlaygroundClient } from "@/components/PlaygroundClient";
 export const metadata: Metadata = {
   title: "Playground — see the translation pipeline run live",
   description:
-    "Paste UI strings, pick a target locale and provider, and watch the full Clariti pipeline run in your browser: context resolution, prompt assembly, LLM translation, and back-translation QA. No signup. No API keys.",
+    "Paste UI strings, pick a target locale and provider, and watch the full ClaritiTMS pipeline run in your browser: context resolution, prompt assembly, LLM translation, and back-translation QA. No signup. No API keys.",
   alternates: { canonical: "/playground" },
   openGraph: {
-    title: "Playground · Clariti TMS",
+    title: "Playground · ClaritiTMS",
     description:
       "See the full translation pipeline — context, prompt, translation, and back-translation QA — run live in your browser.",
   },
@@ -32,7 +32,7 @@ export default function PlaygroundPage() {
                 <span className="gradient-text-flame">in your browser.</span>
               </h1>
               <p className="mt-5 text-pretty text-[16.5px] leading-[1.55] text-[var(--color-text-soft)]">
-                Pick a sample screen, a target locale, and a provider — then watch Clariti resolve
+                Pick a sample screen, a target locale, and a provider — then watch ClaritiTMS resolve
                 context, assemble the prompt, run the translation, and score it with
                 back-translation QA. The same five stages you get from{" "}
                 <span className="font-mono text-[var(--color-text)]">loc translate</span>.

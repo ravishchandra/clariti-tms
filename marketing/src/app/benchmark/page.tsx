@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Benchmark — measuring product-UI translation quality honestly",
   description:
-    "Our methodology for comparing Clariti against Lokalise AI, Phrase NextMT, Crowdin AI, and Google Translate on real product-UI strings, scored by native-speaker raters. Designed to be replicable and unkind to ourselves where we deserve it.",
+    "Our methodology for comparing ClaritiTMS against Lokalise AI, Phrase NextMT, Crowdin AI, and Google Translate on real product-UI strings, scored by native-speaker raters. Designed to be replicable and unkind to ourselves where we deserve it.",
   alternates: { canonical: "/benchmark" },
   keywords: [
     "translation quality benchmark",
@@ -41,7 +41,7 @@ const dimensions = [
 ];
 
 const systems = [
-  { id: "clariti", label: "Clariti (Claude)", note: "claude-sonnet-4 + back-translation QA + glossary + TM" },
+  { id: "clariti", label: "ClaritiTMS (Claude)", note: "claude-sonnet-4 + back-translation QA + glossary + TM" },
   { id: "lokalise-ai", label: "Lokalise AI", note: "vendor default, glossary uploaded" },
   { id: "phrase-nextmt", label: "Phrase NextMT", note: "vendor default" },
   { id: "crowdin-ai", label: "Crowdin AI", note: "vendor default" },
@@ -88,7 +88,7 @@ export default function BenchmarkPage() {
               <p className="mt-6 max-w-2xl text-pretty text-[17px] leading-[1.55] text-[var(--color-text-soft)]">
                 Nobody publishes this. Every vendor claims &ldquo;industry-leading AI
                 translation&rdquo; with no numbers to back it. So we are running the comparison
-                ourselves — Clariti against Lokalise AI, Phrase NextMT, Crowdin AI, raw Google
+                ourselves — ClaritiTMS against Lokalise AI, Phrase NextMT, Crowdin AI, raw Google
                 Translate, and raw DeepL — on real product-UI strings, scored by native-speaker
                 raters who don&rsquo;t know which system produced which output.
               </p>
@@ -122,7 +122,7 @@ export default function BenchmarkPage() {
                 you need real strings (not toy sentences), real glossaries, native raters across
                 eight or ten locales, and a willingness to publish numbers where your own product
                 doesn&rsquo;t win. We are committing to all four, including the last one. If
-                Phrase outperforms Clariti on Korean fintech strings, that&rsquo;s a number that
+                Phrase outperforms ClaritiTMS on Korean fintech strings, that&rsquo;s a number that
                 should be public and a defect we should fix.
               </p>
             </Reveal>
@@ -252,7 +252,7 @@ export default function BenchmarkPage() {
                 <p className="mt-4 max-w-3xl text-[15px] leading-[1.65] text-[var(--color-text-soft)]">
                   The full raw corpus, the rater scoring rubric, the per-string rater scores
                   (anonymised), and the aggregate tables will land as a single open data drop on
-                  GitHub, with a long-form writeup on this page. If Clariti loses on a locale, the
+                  GitHub, with a long-form writeup on this page. If ClaritiTMS loses on a locale, the
                   number is here and the fix shows up in the next release. If a vendor outperforms
                   us on a specific corpus, that&rsquo;s information you deserve before paying for
                   the bundle.

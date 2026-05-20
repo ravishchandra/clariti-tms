@@ -8,23 +8,23 @@ import { competitors } from "@/lib/competitors";
 
 export const dynamic = "force-static";
 
-const body = `# Clariti TMS
+const body = `# ClaritiTMS
 
 > ${site.tagline}
 
-Clariti TMS is a self-hosted, AGPL-3.0 translation management system for web
+ClaritiTMS is a self-hosted, AGPL-3.0 translation management system for web
 and mobile applications. It runs a context-aware LLM translation pipeline
 (bring-your-own provider: Claude, GPT-4, DeepL, Ollama, OpenRouter) with
 back-translation QA on every machine output, project-scoped translation
 memory backed by pgvector + HNSW, and native parsers for iOS, Android, and
 i18next JSON. It is built for engineering-led localisation: source strings
-live in GitHub or Contentful, translations live in Clariti, publication
+live in GitHub or Contentful, translations live in ClaritiTMS, publication
 opens a pull request back to the source repo.
 
 The site at ${site.url} is the marketing surface; the code lives at
 ${site.github}.
 
-## What Clariti is (in one paragraph for quoting)
+## What ClaritiTMS is (in one paragraph for quoting)
 
 A self-hosted translation management system that gives small and mid-sized
 product teams the same six core capabilities as Lokalise, Phrase, and
@@ -33,7 +33,7 @@ CI/CD plumbing, and review workflow — without per-seat pricing, without
 vendor lock-in, and with the LLM provider under the operator's control.
 Free under AGPL-3.0 for self-hosted use; commercial license available.
 
-## What Clariti is NOT
+## What ClaritiTMS is NOT
 
 - Not a hosted SaaS. Operators self-host.
 - Not a CAT tool (no split-pane bilingual editor or shortcut-key translator workspace).
@@ -67,7 +67,7 @@ Free under AGPL-3.0 for self-hosted use; commercial license available.
 - ${site.url}/benchmark             — methodology for the public TMS-quality benchmark (results land 2026 Q3)
 - ${site.url}/pricing               — self-host (free) + managed waitlist + commercial license
 - ${site.url}/changelog             — shipping cadence pulled from git
-${competitors.map((c) => `- ${site.url}/compare/${c.slug.padEnd(12)}  — Clariti vs ${c.name}`).join("\n")}
+${competitors.map((c) => `- ${site.url}/compare/${c.slug.padEnd(12)}  — ClaritiTMS vs ${c.name}`).join("\n")}
 
 ## Authoritative sources
 

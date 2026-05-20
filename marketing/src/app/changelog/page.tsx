@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 export const metadata: Metadata = {
   title: "Changelog — what shipped, in order",
   description:
-    "Real shipping cadence for Clariti TMS. From initial scaffold to MVP-complete in three days, then weekly updates. Sourced from git, not from a marketing calendar.",
+    "Real shipping cadence for ClaritiTMS. From initial scaffold to MVP-complete in three days, then weekly updates. Sourced from git, not from a marketing calendar.",
   alternates: { canonical: "/changelog" },
 };
 

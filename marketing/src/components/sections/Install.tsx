@@ -19,10 +19,10 @@ export function Install() {
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
                 Self-host in five minutes
               </p>
-              <h2 className="mt-4 text-balance text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[42px]">
+              <h2 className="mt-4 text-balance text-[40px] font-[450] leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
                 One Postgres. One CLI. Zero API keys to start.
               </h2>
-              <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+              <p className="mt-5 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
                 The <span className="font-mono text-[var(--color-text)]">loc demo</span> command
                 spins a fresh project, ingests five sample strings, and walks them through the full
                 pipeline with a mock provider — no API keys, no signup. Swap in your own provider

@@ -10,10 +10,10 @@ export function Faq() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
               Frequently asked
             </p>
-            <h2 className="mt-4 text-balance text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[42px]">
+            <h2 className="mt-4 text-balance text-[40px] font-[450] leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
               Questions worth answering well.
             </h2>
-            <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+            <p className="mt-5 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
               Each answer is written in full so search engines and AI answer engines can index it
               cleanly. Need something not covered here? Open an issue on GitHub.
             </p>

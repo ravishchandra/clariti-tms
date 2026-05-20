@@ -9,7 +9,7 @@ export function Problem() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
               The state of localization
             </p>
-            <h2 className="mt-4 text-balance text-[34px] font-bold leading-[1.05] tracking-[-0.035em] sm:text-[42px]">
+            <h2 className="mt-4 text-balance text-[40px] font-[450] leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
               Translation became a SaaS subscription. It used to be a build artifact.
             </h2>
           </Reveal>
@@ -17,7 +17,7 @@ export function Problem() {
 
         <div className="lg:col-span-7">
           <Reveal delay={120}>
-            <p className="text-pretty text-[16.5px] leading-[1.6] text-[var(--color-text-soft)]">
+            <p className="text-pretty text-[18px] leading-[1.7] text-[var(--color-text-soft)]">
               Every modern TMS bundles the same six things — a string database, an editor, a
               translation memory, context capture, CI plumbing, and a workflow state machine — and
               charges you per seat for the whole bundle. The actual moat sits in two of those
@@ -25,12 +25,12 @@ export function Problem() {
               <span className="text-white">context-aware machine translation</span>. The rest is
               ergonomics.
             </p>
-            <p className="mt-5 text-pretty text-[16.5px] leading-[1.6] text-[var(--color-text-soft)]">
+            <p className="mt-5 text-pretty text-[18px] leading-[1.7] text-[var(--color-text-soft)]">
               Meanwhile the model layer commoditised. Claude, GPT-4, DeepL and a strong glossary
               outperform any vendor&rsquo;s &ldquo;AI translation&rdquo; that wraps the same APIs —
               if you control the prompt, the memory, and the QA pipeline.
             </p>
-            <p className="mt-5 text-pretty text-[16.5px] leading-[1.6] text-[var(--color-text-soft)]">
+            <p className="mt-5 text-pretty text-[18px] leading-[1.7] text-[var(--color-text-soft)]">
               ClaritiTMS is what you build when you stop paying for the wrapper.
             </p>
           </Reveal>

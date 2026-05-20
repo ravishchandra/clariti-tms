@@ -18,7 +18,7 @@ export function OpenSource() {
                 <h2 className="mt-4 text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.03em] sm:text-[36px]">
                   Free for teams that run it themselves. Commercial license for hosted operators.
                 </h2>
-                <p className="mt-5 text-pretty text-[15.5px] leading-[1.6] text-[var(--color-text-soft)]">
+                <p className="mt-5 text-pretty text-[17px] leading-[1.7] text-[var(--color-text-soft)]">
                   Self-host ClaritiTMS without a license fee — forever. The AGPL&rsquo;s
                   network-copyleft clause means hosted operators publish their modifications, which
                   protects the project and keeps the upgrade path honest. Need a setup that is

@@ -27,7 +27,7 @@ export function Hero() {
           </Reveal>
 
           <Reveal delay={80}>
-            <h1 className="mt-7 text-balance text-[44px] font-bold leading-[1.02] tracking-[-0.045em] text-[var(--color-text)] sm:text-[56px] lg:text-[68px]">
+            <h1 className="mt-8 text-balance text-[44px] font-[450] leading-[1.05] tracking-[-0.018em] text-[var(--color-text)] sm:text-[64px] lg:text-[80px] lg:leading-[1.08]">
               The translation system{" "}
               <span className="gradient-text-flame">you actually own.</span>
             </h1>

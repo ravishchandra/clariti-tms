@@ -1,19 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { site } from "@/lib/site";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  display: "swap",
-});
+// Antigravity-inspired typography stack: Geist Sans + Geist Mono.
+// Geist is Vercel's free, variable-axis font — closest in spirit to
+// Google Sans Flex (proprietary, used on antigravity.google) without the
+// licensing constraint. Both fonts ship `.variable` strings already wired
+// to CSS custom properties, so we just spread them on <html>.
 
 export const viewport: Viewport = {
   themeColor: [
@@ -131,7 +126,7 @@ const softwareJsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

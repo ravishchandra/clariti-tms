@@ -4,8 +4,8 @@
   /* static across themes */
   --color-flame: #ff7847;
   --color-flame-press: #c8552c;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 10px;
@@ -94,14 +94,16 @@
 
   body {
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.55;
-    letter-spacing: -0.005em;
+    /* Antigravity-inspired body: 17px / 28px reads larger and more editorial */
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: -0.003em;
     background:
       radial-gradient(1200px 600px at 50% -200px, var(--halo-flame), transparent 60%),
       radial-gradient(800px 400px at 100% 100%, var(--halo-iris), transparent 70%),
       var(--color-ink-0);
     min-height: 100vh;
+    font-feature-settings: "ss01", "cv11";
   }
 
   ::selection {
@@ -109,14 +111,20 @@
     color: #fff;
   }
 
+  /*
+   * Antigravity uses Google Sans Flex at weight 450 — a variable-axis sweet
+   * spot that reads confident but uncrowded. Geist matches the technique;
+   * pulling weight from 700→450 + relaxing letter-spacing is the single
+   * biggest signal shift.
+   */
   h1, h2, h3, h4 {
-    letter-spacing: -0.025em;
-    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-weight: 450;
   }
 
   h1 {
-    font-weight: 700;
-    letter-spacing: -0.04em;
+    font-weight: 450;
+    letter-spacing: -0.018em;
   }
 }
 

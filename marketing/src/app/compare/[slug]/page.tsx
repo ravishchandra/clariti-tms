@@ -73,7 +73,7 @@ export default async function CompareCompetitorPage({
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-flame-soft)]">
                 Comparison
               </p>
-              <h1 className="mt-4 max-w-4xl text-balance text-[42px] font-bold leading-[1.04] tracking-[-0.04em] sm:text-[56px]">
+              <h1 className="mt-4 max-w-4xl text-balance text-[42px] font-[450] leading-[1.08] tracking-[-0.018em] sm:text-[60px] lg:text-[72px]">
                 ClaritiTMS <span className="text-[var(--color-text-muted)]">vs</span>{" "}
                 <span className="gradient-text-flame">{c.name}</span>
               </h1>

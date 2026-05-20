@@ -42,8 +42,11 @@
 
     /* Lower-contrast neutrals for backgrounds/overlays on pure white */
     --grid-line: rgba(18, 19, 23, 0.045);
-    --halo-flame: rgba(255, 120, 71, 0.05);
-    --halo-iris: rgba(92, 95, 204, 0.025);
+    /* Halos killed in light mode — they cast a warm/cool wash on the
+     * background that breaks the pure-white target. Dark mode keeps them
+     * (the warmth reads as atmosphere against near-black). */
+    --halo-flame: transparent;
+    --halo-iris: transparent;
 
     --shadow-flame:
       0 0 0 1px rgba(255, 120, 71, 0.28),

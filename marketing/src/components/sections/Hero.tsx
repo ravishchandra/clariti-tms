@@ -6,7 +6,8 @@ export function Hero() {
   return (
     <section className="relative isolate overflow-hidden">
       <div className="absolute inset-0 grid-bg" aria-hidden />
-      <div className="absolute inset-x-0 top-0 -z-10 h-[600px] bg-gradient-to-b from-[var(--color-flame)]/[0.045] to-transparent" />
+      {/* Flame tinted top-gradient removed — would re-introduce off-white cast over the pure-white bg.
+          The grid pattern alone is enough texture for the hero. */}
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 pt-20 pb-24 lg:grid-cols-12 lg:gap-8 lg:pt-28">
         <div className="lg:col-span-7">

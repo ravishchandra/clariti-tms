@@ -104,3 +104,13 @@ try:
     router.include_router(ota_router, prefix="/ota", tags=["OTA"])
 except ImportError:
     pass
+
+# Agent-driven string ingest (docs/13-agent-integration.md). Distinct from
+# the webhook ingest path because it runs in partial-sync mode and the
+# caller is an AI agent rather than a Git push.
+try:
+    from app.api.v1.endpoints.ingestion import router as ingestion_router
+
+    router.include_router(ingestion_router, tags=["Ingest"])
+except ImportError:
+    pass

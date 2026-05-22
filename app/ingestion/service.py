@@ -31,10 +31,17 @@ async def upsert_keys(
     repository_id: str,
     project_id: str,
     target_locales: list[str],
+    *,
+    partial: bool = False,
 ) -> dict[str, int]:
     """Upsert all keys from a ParseResult into the database.
 
     Returns a summary dict: {"inserted": N, "updated": N, "unchanged": N, "deactivated": N}
+
+    `partial` skips the "deactivate keys not in result" step. Webhook
+    ingest sends the full repo's strings every time (full sync), so the
+    default behavior deactivates missing keys. Agent ingest typically
+    sends one component, so `partial=True` keeps the rest intact.
     """
     summary = {"inserted": 0, "updated": 0, "unchanged": 0, "deactivated": 0}
     seen_keys: set[str] = set()
@@ -121,17 +128,20 @@ async def upsert_keys(
         else:
             summary["unchanged"] += 1
 
-    # Mark removed keys inactive
-    all_keys = await db.scalars(
-        select(Key).where(
-            Key.repository_id == repository_id,
-            Key.is_active.is_(True),
+    # Mark removed keys inactive (full-sync behavior). Partial ingest skips
+    # this — the caller only sent a subset of the repo's keys, so missing
+    # keys mean "not in this upload", not "deleted from source".
+    if not partial:
+        all_keys = await db.scalars(
+            select(Key).where(
+                Key.repository_id == repository_id,
+                Key.is_active.is_(True),
+            )
         )
-    )
-    for key in all_keys:
-        if key.key not in seen_keys:
-            key.is_active = False
-            summary["deactivated"] += 1
+        for key in all_keys:
+            if key.key not in seen_keys:
+                key.is_active = False
+                summary["deactivated"] += 1
 
     await db.commit()
     return summary

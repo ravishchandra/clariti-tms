@@ -1517,5 +1517,29 @@ async def _demo(target_locale: str) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# MCP subcommand — agent-native entry point. Implemented in app/mcp/.
+# ---------------------------------------------------------------------------
+
+mcp_app = typer.Typer(
+    name="mcp",
+    help="Run the ClaritiTMS MCP server (agent-native entry point).",
+    no_args_is_help=True,
+)
+app.add_typer(mcp_app)
+
+
+@mcp_app.command("serve")
+def mcp_serve() -> None:
+    """Start the MCP server on stdio.
+
+    Reads `CLARITI_API_URL` and `CLARITI_API_KEY` from the environment.
+    See `docs/13-agent-integration.md` for Claude Code / Cursor config.
+    """
+    from app.mcp.server import main as _mcp_main
+
+    _mcp_main()
+
+
 if __name__ == "__main__":
     app()

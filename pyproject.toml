@@ -37,6 +37,7 @@ dependencies = [
     "cryptography>=44",
     "pyjwt[crypto]>=2.10",
     "apscheduler>=3.11",
+    "mcp>=1.2",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +51,7 @@ dev = [
 
 [project.scripts]
 loc = "cli.main:app"
+clariti-mcp = "app.mcp.server:main"
 
 [build-system]
 requires = ["hatchling"]

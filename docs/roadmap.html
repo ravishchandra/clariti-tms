@@ -1,0 +1,1312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ClaritiTMS — Roadmap to Product Hunt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600;700&display=swap" />
+<style>
+  :root {
+    --ink-0: #ffffff;
+    --ink-2: #f6f7f8;
+    --ink-3: #eef0f2;
+    --line: #e6e8eb;
+    --line-strong: #d2d6db;
+    --text: #121317;
+    --text-soft: #45474D;
+    --text-muted: #5F6368;
+    --flame: #4f46e5;
+    --flame-press: #4338ca;
+    --flame-deep: #312e81;
+    --mint: #16a34a;
+    --rose: #e11d48;
+    --amber: #d97706;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--ink-0);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  code, pre, .mono { font-family: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+  .container { max-width: 880px; margin: 0 auto; padding: 0 32px; }
+  header.site {
+    padding: 28px 0 0;
+  }
+  header.site .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand .dot {
+    width: 10px; height: 10px;
+    background: var(--flame);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .meta-chip {
+    font-family: "Geist Mono", monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--ink-2);
+  }
+  .hero { padding: 80px 0 56px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: "Geist Mono", monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--flame);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: 52px;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+    margin: 0 0 20px;
+    color: var(--text);
+  }
+  h1 .accent {
+    background: linear-gradient(180deg, #6366f1 0%, #4f46e5 50%, #312e81 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .lede {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--text-soft);
+    max-width: 720px;
+    margin: 0;
+  }
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  h2 {
+    font-size: 28px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+  h2 .num {
+    font-family: "Geist Mono", monospace;
+    font-weight: 500;
+    color: var(--flame);
+    margin-right: 10px;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: var(--text);
+    letter-spacing: -0.005em;
+  }
+  p { margin: 0 0 14px; color: var(--text-soft); }
+  p strong { color: var(--text); font-weight: 600; }
+  .section-sub {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 8px 0 20px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: var(--ink-2);
+    border-bottom: 1px solid var(--line-strong);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.mono, th.mono { font-family: "Geist Mono", monospace; font-size: 13px; }
+  td code { font-family: "Geist Mono", monospace; font-size: 13px; background: var(--ink-2); padding: 2px 6px; border-radius: 4px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 999px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .pill-done { background: rgba(22, 163, 74, 0.1); color: #15803d; }
+  .pill-todo { background: rgba(225, 29, 72, 0.08); color: #be123c; }
+  .pill-defer { background: var(--ink-3); color: var(--text-muted); }
+  .pill-now { background: rgba(79, 70, 229, 0.1); color: var(--flame-press); }
+  .pill-amber { background: rgba(217, 119, 6, 0.1); color: #b45309; }
+  .phase {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    margin: 0 0 20px;
+    background: var(--ink-0);
+  }
+  .phase.lock {
+    border-color: var(--flame);
+    box-shadow: 0 14px 40px -22px rgba(79, 70, 229, 0.35);
+  }
+  .phase header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .phase header h3 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+  }
+  .phase header h3 .num {
+    font-family: "Geist Mono", monospace;
+    font-weight: 500;
+    color: var(--flame);
+    margin-right: 8px;
+  }
+  .phase header .effort {
+    font-family: "Geist Mono", monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .phase .goal {
+    font-size: 15px;
+    color: var(--text);
+    margin: 0 0 16px;
+  }
+  .phase .goal strong { color: var(--text); }
+  .phase .why {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--ink-3);
+  }
+  ul { margin: 0 0 14px; padding-left: 22px; color: var(--text-soft); }
+  ul li { margin-bottom: 6px; }
+  ul li code { font-family: "Geist Mono", monospace; font-size: 13px; background: var(--ink-2); padding: 2px 6px; border-radius: 4px; }
+  .callout {
+    border: 1px solid var(--flame);
+    background: linear-gradient(180deg, #ffffff 0%, #f5f5ff 100%);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    margin: 24px 0;
+  }
+  .callout h3 {
+    margin-top: 0;
+    color: var(--flame-press);
+  }
+  .callout pre {
+    background: #0b0c10;
+    color: #e7e8ee;
+    padding: 16px 18px;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 14px 0 0;
+  }
+  .next-actions {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .next-actions button {
+    font-family: "Geist", sans-serif;
+    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-strong);
+    background: var(--ink-0);
+    cursor: default;
+    color: var(--text);
+  }
+  .next-actions button.primary {
+    background: var(--flame);
+    border-color: var(--flame);
+    color: white;
+    font-weight: 500;
+  }
+  footer {
+    padding: 40px 0 60px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  footer a { color: var(--flame); text-decoration: none; }
+  /* === Gantt === */
+  .gantt-wrap {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    background: var(--ink-0);
+    overflow-x: auto;
+  }
+  .gantt {
+    min-width: 760px;
+  }
+  .gantt-header,
+  .gantt-row {
+    display: grid;
+    grid-template-columns: 170px repeat(8, 1fr);
+    align-items: center;
+  }
+  .gantt-header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 10px;
+    margin-bottom: 4px;
+  }
+  .gantt-header > div:not(.gantt-label) {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2px 0;
+    border-left: 1px dashed var(--ink-3);
+  }
+  .gantt-header > div.ph {
+    color: var(--rose);
+    font-weight: 600;
+  }
+  .gantt-row {
+    min-height: 38px;
+    position: relative;
+  }
+  .gantt-row + .gantt-row { border-top: 1px solid var(--ink-3); }
+  .gantt-row .gantt-track {
+    grid-column: 2 / -1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    align-items: center;
+    height: 100%;
+    position: relative;
+  }
+  .gantt-track::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(to right, var(--ink-3) 0 1px, transparent 1px calc(100%/8));
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  .gantt-label {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    padding-right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .phase-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    background: var(--text-muted);
+  }
+  .phase-letter.A { background: var(--flame); }
+  .phase-letter.B { background: var(--mint); }
+  .phase-letter.C { background: #5c5fcc; }
+  .phase-letter.D { background: var(--amber); }
+  .phase-letter.E { background: var(--rose); }
+  .gantt-bar {
+    height: 24px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: white;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 4px 14px -8px rgba(0,0,0,0.25);
+  }
+  .gantt-bar.A { background: var(--flame); }
+  .gantt-bar.B { background: var(--mint); }
+  .gantt-bar.C { background: #5c5fcc; }
+  .gantt-bar.D { background: var(--amber); }
+  .gantt-bar.E { background: var(--rose); }
+  .gantt-launch {
+    grid-column: 6 / 7;
+    justify-self: end;
+    margin-right: -10px;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--rose);
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 2px 4px rgba(225,29,72,0.35));
+  }
+  .gantt-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .gantt-legend .lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Geist Mono", monospace;
+  }
+  .gantt-legend .swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .gantt-legend .swatch.A { background: var(--flame); }
+  .gantt-legend .swatch.B { background: var(--mint); }
+  .gantt-legend .swatch.C { background: #5c5fcc; }
+  .gantt-legend .swatch.D { background: var(--amber); }
+  .gantt-legend .swatch.E { background: var(--rose); }
+
+  /* === Kanban (interactive backlog — collapsible rows) === */
+  .kanban {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 8px 0 16px;
+  }
+  .kanban-col {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--ink-2);
+    display: flex;
+    flex-direction: column;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .kanban-col.drop-target {
+    background: rgba(79, 70, 229, 0.06);
+    border-color: var(--flame);
+  }
+  .kanban-col h4 {
+    margin: 0;
+    padding: 12px 16px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+    border-radius: var(--radius-lg);
+    transition: background 0.12s;
+  }
+  .kanban-col h4:hover { background: var(--ink-3); }
+  .kanban-col:not(.collapsed) h4 {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .kanban-col h4 .col-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .kanban-col .toggle-arrow {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 12px;
+    display: inline-block;
+    transition: transform 0.15s ease;
+    transform: rotate(90deg);
+    transform-origin: center;
+  }
+  .kanban-col.collapsed .toggle-arrow {
+    transform: rotate(0deg);
+  }
+  .kanban-col[data-col="now"] h4 .col-name { color: var(--flame); }
+  .kanban-col[data-col="next"] h4 .col-name { color: var(--mint); }
+  .kanban-col[data-col="later"] h4 .col-name { color: var(--amber); }
+  .kanban-col[data-col="defer"] h4 .col-name { color: var(--text-muted); }
+  .kanban-col h4 .count {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .kanban-list {
+    padding: 10px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 50px;
+  }
+  /* Each card spans the full width of its row — one item, one line. */
+  .kanban-card {
+    width: 100%;
+  }
+  .kanban-col.collapsed .kanban-list {
+    display: none;
+  }
+  .kanban-col.collapsed {
+    background: var(--ink-0);
+  }
+  .kanban-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 9px 11px;
+    cursor: grab;
+    user-select: none;
+    transition: box-shadow 0.12s, transform 0.08s, border-color 0.12s;
+    position: relative;
+  }
+  .kanban-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 2px 10px rgba(18, 19, 23, 0.06);
+    transform: translateY(-1px);
+  }
+  .kanban-card:active { cursor: grabbing; }
+  .kanban-card.dragging { opacity: 0.35; }
+  .kanban-card.done {
+    background: linear-gradient(180deg, #f6fff4 0%, #ecf9eb 100%);
+    border-color: rgba(22, 163, 74, 0.35);
+  }
+  .kanban-card.done .card-title,
+  .kanban-card.done .card-effort {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    text-decoration-color: rgba(22, 163, 74, 0.5);
+    text-decoration-thickness: 1.5px;
+  }
+  .kanban-card.done .card-id {
+    opacity: 0.85;
+  }
+  .kanban-card.done::after {
+    content: "✓ done";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    background: var(--mint);
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+  }
+  .kanban-card.blocked {
+    background: linear-gradient(180deg, #fffbf0 0%, #fff6e0 100%);
+    border-color: rgba(217, 119, 6, 0.4);
+  }
+  .kanban-card.blocked::after {
+    content: "needs you";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+    background: var(--amber);
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+  }
+  .card-id {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    color: white;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 8px;
+    display: inline-block;
+    letter-spacing: 0.02em;
+    vertical-align: 2px;
+  }
+  .card-id.A { background: var(--flame); }
+  .card-id.B { background: var(--mint); }
+  .card-id.C { background: #5c5fcc; }
+  .card-id.D { background: var(--amber); }
+  .card-id.E { background: var(--rose); }
+  .card-id.SEC { background: #be123c; }
+  .card-id.IDEA { background: var(--text-muted); }
+  .card-id.WEDGE {
+    background: linear-gradient(135deg, var(--flame) 0%, var(--flame-deep) 100%);
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.35);
+    letter-spacing: 0.04em;
+  }
+  .card-note {
+    font-size: 11px;
+    color: #92400e;
+    background: rgba(217, 119, 6, 0.08);
+    border-left: 2px solid var(--amber);
+    padding: 6px 9px;
+    margin-top: 7px;
+    border-radius: 0 4px 4px 0;
+    line-height: 1.45;
+  }
+  .card-note strong { color: #78350f; font-weight: 700; }
+  .card-title {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .card-effort {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 5px;
+  }
+  .kanban-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 14px 0 0;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .kanban-actions button {
+    font-family: "Geist", sans-serif;
+    background: white;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    padding: 7px 14px;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .kanban-actions button:hover { background: var(--ink-2); border-color: var(--text-muted); }
+  .kanban-actions .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Small viewports */
+  @media (max-width: 640px) {
+    .container { padding: 0 20px; }
+    h1 { font-size: 36px; }
+    .lede { font-size: 17px; }
+    .phase { padding: 22px 20px; }
+    .callout { padding: 22px 20px; }
+    table { font-size: 13px; }
+    th, td { padding: 10px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="container">
+    <a class="brand" href="#"><span class="dot"></span> ClaritiTMS</a>
+    <span class="meta-chip">internal · 2026-05-22</span>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="container">
+    <div class="eyebrow">Roadmap</div>
+    <h1>From scaffolding to <span class="accent">a launched product.</span></h1>
+    <p class="lede">
+      We've shipped the MCP server and the one-command bootstrap, but the platform has never translated a single string for a real app. This document is the path from "agent-integration scaffolding" to "developer-first OSS, on Product Hunt, with a credible monetization story."
+    </p>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <h2>Reality check</h2>
+    <p class="section-sub">What's actually validated end-to-end vs. what's still theory.</p>
+    <table>
+      <thead>
+        <tr><th>Area</th><th>Status</th><th>Reality</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Core translation pipeline</td>
+          <td><span class="pill pill-done">UNIT TESTS</span></td>
+          <td>Never run on a real customer app. Demo uses a mock provider.</td>
+        </tr>
+        <tr>
+          <td>Parsers (iOS / Android / i18next)</td>
+          <td><span class="pill pill-done">CODE + TESTS</span></td>
+          <td>Never round-tripped through a shipped product.</td>
+        </tr>
+        <tr>
+          <td>MCP server</td>
+          <td><span class="pill pill-done">SHIPPED</span></td>
+          <td>Never driven by an agent doing real work end-to-end.</td>
+        </tr>
+        <tr>
+          <td><code>loc agent install</code></td>
+          <td><span class="pill pill-done">SHIPPED TODAY</span></td>
+          <td>Used only on a smoke-test fixture in <code>/tmp</code>.</td>
+        </tr>
+        <tr>
+          <td>Flutter (.arb) support</td>
+          <td><span class="pill pill-todo">NOT SUPPORTED</span></td>
+          <td>The thing you want to test on. No parser/writer exists.</td>
+        </tr>
+        <tr>
+          <td>Marketing site</td>
+          <td><span class="pill pill-amber">LIVE WITH GAPS</span></td>
+          <td>~30 false claims tracked in <code>marketing/TODO.md</code>.</td>
+        </tr>
+        <tr>
+          <td>PyPI install</td>
+          <td><span class="pill pill-todo">NOT PUBLISHED</span></td>
+          <td><code>pip install clariti-tms</code> doesn't work. Name is free.</td>
+        </tr>
+        <tr>
+          <td>Hosted instance</td>
+          <td><span class="pill pill-todo">DOES NOT EXIST</span></td>
+          <td>"Managed (waitlist)" pricing tier is fake until built.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Timeline at a glance</h2>
+    <p class="section-sub">Eight-week view. <strong>Phase A is the lock</strong>; B runs in parallel; D is the long-tail stretch. <span style="color:var(--rose);font-weight:600;">★</span> = Product Hunt launch day.</p>
+
+    <div class="gantt-wrap">
+      <div class="gantt">
+        <div class="gantt-header">
+          <div class="gantt-label"></div>
+          <div>W1</div>
+          <div>W2</div>
+          <div>W3</div>
+          <div>W4</div>
+          <div class="ph">W5 · LAUNCH</div>
+          <div>W6</div>
+          <div>W7</div>
+          <div>W8</div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label"><span class="phase-letter A">A</span>Flutter validation</div>
+          <div class="gantt-track">
+            <div class="gantt-bar A" style="grid-column: 1 / 3;"><span>~1 week · the unblock</span></div>
+          </div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label"><span class="phase-letter B">B</span>Marketing honesty</div>
+          <div class="gantt-track">
+            <div class="gantt-bar B" style="grid-column: 1 / 2;"><span>~1 day</span></div>
+          </div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label"><span class="phase-letter C">C</span>PyPI publish</div>
+          <div class="gantt-track">
+            <div class="gantt-bar C" style="grid-column: 3 / 4; max-width: 30%;"><span>~1h</span></div>
+          </div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label"><span class="phase-letter D">D</span>Hosted trial (stretch)</div>
+          <div class="gantt-track">
+            <div class="gantt-bar D" style="grid-column: 3 / 9;"><span>~3–5 weeks · parallel</span></div>
+          </div>
+        </div>
+
+        <div class="gantt-row">
+          <div class="gantt-label"><span class="phase-letter E">E</span>Product Hunt launch</div>
+          <div class="gantt-track">
+            <div class="gantt-bar E" style="grid-column: 3 / 6;"><span>~1 week prep</span></div>
+            <div class="gantt-launch" title="Product Hunt launch day">★</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gantt-legend">
+        <span class="lg"><span class="swatch A"></span> A · the lock (must validate)</span>
+        <span class="lg"><span class="swatch B"></span> B · honesty (parallel quick wins)</span>
+        <span class="lg"><span class="swatch C"></span> C · ship to PyPI</span>
+        <span class="lg"><span class="swatch D"></span> D · monetization wedge</span>
+        <span class="lg"><span class="swatch E"></span> E · launch</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Phases</h2>
+    <p class="section-sub">Five phases. Phase A is the lock; everything else is gated on it.</p>
+
+    <div class="phase lock">
+      <header>
+        <h3><span class="num">A</span>Validate on your Flutter app</h3>
+        <span class="effort">~1 week · the unblock</span>
+      </header>
+      <p class="goal"><strong>Goal:</strong> ClaritiTMS translates a real, shipped Flutter app from English to 2–3 locales, and the translated <code>.arb</code> files render correctly in the simulator.</p>
+      <p class="why">If translation quality is bad on a real app, none of the other phases matter. If it's good, the recording becomes the hero demo video for everything downstream.</p>
+      <table>
+        <thead><tr><th>#</th><th>Task</th><th>Effort</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>A1</td><td>Add <code>.arb</code> parser to <code>app/ingestion/parsers/</code></td><td>1 day</td><td>Treat values as flat-JSON; use <code>@key</code> metadata as <code>description</code> context — this is what makes us smarter than Tolgee on Flutter.</td></tr>
+          <tr><td>A2</td><td>Add <code>.arb</code> writer to <code>app/publication/</code></td><td>0.5 day</td><td>Reverse of A1; preserve <code>@key</code> metadata in output.</td></tr>
+          <tr><td>A3</td><td>Add <code>flutter</code> to <code>PLATFORM_FORMATS</code></td><td>5 min</td><td><code>cli/main.py:27</code></td></tr>
+          <tr><td>A4</td><td>Wire Flutter format detection into MCP <code>ingest_strings</code></td><td>30 min</td><td><code>app/mcp/tools.py</code></td></tr>
+          <tr><td>A5</td><td>Fork your Flutter app to a clean branch</td><td>30 min</td><td>You drive.</td></tr>
+          <tr><td>A6</td><td><strong>End-to-end smoke test</strong></td><td>2 hrs</td><td><code>loc agent install</code> → ingest → translate → review → pull. This is THE test.</td></tr>
+          <tr><td>A7</td><td>Verify translated <code>.arb</code> in the simulator</td><td>1 hr</td><td>Text fits, no encoding issues, plurals work.</td></tr>
+          <tr><td>A8</td><td>Record 60–90s screencast</td><td>1 hr</td><td>The marketing video.</td></tr>
+          <tr><td>A9</td><td>Write up as <code>docs/14-flutter-case-study.md</code></td><td>1–2 hrs</td><td>Real numbers: # strings, MT cost, review time, % approved unchanged.</td></tr>
+        </tbody>
+      </table>
+      <p class="goal"><strong>Definition of done:</strong> your Flutter app, in your simulator, with FR/ES/DE translations produced by ClaritiTMS, looks correct.</p>
+    </div>
+
+    <div class="phase">
+      <header>
+        <h3><span class="num">B</span>Marketing honesty</h3>
+        <span class="effort">~1 day · parallel with A</span>
+      </header>
+      <p class="goal"><strong>Goal:</strong> a hostile prospect reading the site can't find a false claim.</p>
+      <p class="why">Source: <code>marketing/TODO.md</code> Sections A–E. Specific items below.</p>
+      <ul>
+        <li>Remove the "● all systems operational" footer indicator (no status page exists).</li>
+        <li>Replace the <code>v0.7</code> hero chip with a real version read from <code>pyproject.toml</code> at build time.</li>
+        <li>Either ship <code>loc publish</code> or remove every reference to it in marketing copy.</li>
+        <li>Either build a real waitlist form (Tally / ConvertKit) or remove the "Managed (waitlist)" pricing tier.</li>
+        <li>Add favicon + JSON-LD logo (currently default Next.js icon).</li>
+        <li>Re-verify Lokalise / Phrase / Crowdin pricing claims at launch time.</li>
+        <li>Add <code>/compare/tolgee</code> page (currently missing — Tolgee is the closest OSS competitor with an MCP server).</li>
+        <li>Add OpenRouter to the provider list (it's shipped in code but not advertised).</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <header>
+        <h3><span class="num">C</span>Publish to PyPI</h3>
+        <span class="effort">~1 hour · after A validates</span>
+      </header>
+      <p class="goal"><strong>Goal:</strong> <code>pip install clariti-tms</code> works for an external developer.</p>
+      <p class="why">Metadata in <code>pyproject.toml</code> is mostly ready: name <code>clariti-tms</code> is free on PyPI (404 check), version 0.1.0, AGPL-3.0, entry points wired.</p>
+      <ul>
+        <li>Add <code>[project.urls]</code> block (Homepage, Repository, Issues).</li>
+        <li>README audit for PyPI rendering — relative links to <code>docs/</code> and <code>marketing/</code> break.</li>
+        <li>Build + inspect: <code>python -m build</code>, <code>unzip -l dist/*.whl</code> — verify no <code>.env</code>, no test fixtures, no secrets ship.</li>
+        <li>TestPyPI dry run — catches metadata + entry-point bugs before they're permanent.</li>
+        <li>Real PyPI release with API token. <strong>Irreversible:</strong> can't delete, only yank.</li>
+        <li>Later: GH Actions trusted publishing (OIDC, no secret in CI).</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <header>
+        <h3><span class="num">D</span>Hosted trial path <span style="font-family:'Geist Mono';font-size:12px;color:var(--text-muted);font-weight:400;">(monetization wedge)</span></h3>
+        <span class="effort">~3–5 weeks · parallel stretch</span>
+      </header>
+      <p class="goal"><strong>Goal:</strong> a prospect tries ClaritiTMS in 60 seconds without spinning up Postgres + uvicorn locally.</p>
+      <p class="why">AGPL keeps self-hosted free; managed tier is the revenue source. Without D, the marketing site's pricing tiers stay fake. <strong>Don't gate Product Hunt on D</strong> — a real "Managed (early access)" email form is enough for launch day.</p>
+      <table>
+        <thead><tr><th>#</th><th>Task</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>D1</td><td>Pick a host</td><td>Fly.io recommended — runs Python + Postgres + pgvector natively, volumes, $0–50/mo to start. Render and Railway also viable. Vercel won't work for the backend (needs long-running Postgres).</td></tr>
+          <tr><td>D2</td><td>Register a domain</td><td><code>clariti.dev</code> / <code>claritihq.com</code> / <code>clariti-tms.com</code>. Marketing TODO already flagged this.</td></tr>
+          <tr><td>D3</td><td>Production hardening</td><td>Secrets via Doppler or Fly Secrets, automated DB backups, observability (Grafana / Better Stack).</td></tr>
+          <tr><td>D4</td><td>Multi-tenant signup</td><td><code>Organization</code> model exists. Need email signup, verification, per-org API key flow.</td></tr>
+          <tr><td>D5</td><td>Status page</td><td>Better Stack free tier, point at <code>/health</code>. Closes the "all systems operational" honesty gap from B.</td></tr>
+          <tr><td>D6</td><td>Billing (Stripe)</td><td><strong>Only if monetizing at launch.</strong> Could defer — free hosted tier for 6 months works for PH launch.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="phase">
+      <header>
+        <h3><span class="num">E</span>Product Hunt launch</h3>
+        <span class="effort">~1 week prep · after A + B + C</span>
+      </header>
+      <p class="goal"><strong>Goal:</strong> top-5 in Developer Tools. 200+ upvotes. Real signups/installs from the traffic spike.</p>
+      <p class="why">Tolgee is the biggest credible competitor. The angle that beats them: <strong>screen-batch translation context + a real review queue + a deterministic LLM pipeline.</strong> Tolgee is a glorified i18n library; ClaritiTMS is a translation management platform.</p>
+      <h4 style="margin:18px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600;">Assets</h4>
+      <ul>
+        <li>Hunter + maker accounts (LinkedIn or X verified)</li>
+        <li>Tagline (60 chars): e.g. "Self-hosted i18n that ships with an MCP server"</li>
+        <li>Description (260 chars): the wedge — agent-first, AGPL, vs Lokalise's $1,400/mo</li>
+        <li>Gallery (4–7 images): hero, MCP demo screenshot, <code>loc agent install</code> terminal recording, reviewer UI, "vs Lokalise" diff</li>
+        <li>60–90s product video (output of A8)</li>
+        <li>Maker comment (~200 words): your own "why I built this" story</li>
+        <li>Pricing card: Self-hosted free + "Managed (early access)" form</li>
+      </ul>
+      <h4 style="margin:18px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600;">Tech</h4>
+      <ul>
+        <li>Marketing site holds up under traffic spike (Vercel — should be fine)</li>
+        <li>PyPI install works (output of C)</li>
+        <li>Signup form delivers email (D5 or a Tally/ConvertKit MVP)</li>
+        <li>Demo video on a fast host (Vimeo / Loom)</li>
+        <li>Real status page badge on the marketing site (D5)</li>
+      </ul>
+      <h4 style="margin:18px 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600;">Launch day</h4>
+      <ul>
+        <li>Schedule for 12:01 AM PT, Tuesday–Thursday</li>
+        <li>Day-before tease on HN, r/programming, r/flutterdev, dev Twitter</li>
+        <li>Be online 12 hours to reply to every comment</li>
+        <li>Prepared answers: "vs Lokalise" / "vs Tolgee" / "why AGPL" / "why not just DeepL"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Prioritization backlog</h2>
+    <p class="section-sub">Drag cards between columns to reshape priorities. <strong>Layout persists in <code>localStorage</code></strong> — refresh the page, your prioritization sticks. Pre-populated from <code>IDEAS.md</code>, <code>marketing/TODO.md</code>, <code>docs/09</code>, and memory files.</p>
+
+    <div class="kanban">
+      <div class="kanban-col" data-col="now">
+        <h4>
+          <span class="col-label"><span class="toggle-arrow">▶</span><span class="col-name">Now · this week</span></span>
+          <span class="count">0</span>
+        </h4>
+        <div class="kanban-list"></div>
+      </div>
+      <div class="kanban-col" data-col="next">
+        <h4>
+          <span class="col-label"><span class="toggle-arrow">▶</span><span class="col-name">Next · pre-launch</span></span>
+          <span class="count">0</span>
+        </h4>
+        <div class="kanban-list"></div>
+      </div>
+      <div class="kanban-col" data-col="later">
+        <h4>
+          <span class="col-label"><span class="toggle-arrow">▶</span><span class="col-name">Later · launch arc</span></span>
+          <span class="count">0</span>
+        </h4>
+        <div class="kanban-list"></div>
+      </div>
+      <div class="kanban-col" data-col="defer">
+        <h4>
+          <span class="col-label"><span class="toggle-arrow">▶</span><span class="col-name">Defer · post-launch</span></span>
+          <span class="count">0</span>
+        </h4>
+        <div class="kanban-list"></div>
+      </div>
+    </div>
+
+    <div class="kanban-actions">
+      <button id="reset-backlog" type="button">Reset to defaults</button>
+      <button id="export-backlog" type="button">Export as JSON</button>
+      <span class="hint">Tip: drag a card to reorder within a column or move it to a different bucket.</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>End-state mental model</h2>
+    <p class="section-sub">What this looks like 90 days from now.</p>
+    <ul style="font-size:15px;line-height:1.7;">
+      <li><strong>AGPL OSS.</strong> Anyone can self-host for free. Mass adoption, transparent moat.</li>
+      <li><strong>Managed tier (paid).</strong> Hosted version for teams who don't want to operate Postgres + uvicorn. AGPL pushes companies that need to embed it into commercial licensing.</li>
+      <li><strong>Agent-first.</strong> The MCP server is the differentiator vs Lokalise. The pitch: "Cursor / Claude Code drives translation."</li>
+      <li><strong>Developer-minded.</strong> CLI-first, JSON output, structured logs, AGPL — everything engineers respect.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="callout">
+      <h3>The immediate next concrete action</h3>
+      <p style="color:var(--text);"><strong>Start Phase A1 — add the Flutter <code>.arb</code> parser.</strong></p>
+      <p>Specifically:</p>
+      <ul>
+        <li>Create <code>app/ingestion/parsers/flutter_arb.py</code> with <code>parse_arb(content: str, filename: str) -&gt; ParseResult</code></li>
+        <li>Plain string values become translatable keys; <code>@key</code> metadata dicts populate <code>description</code> (placeholders, descriptions) — this is the bit that makes ClaritiTMS smarter than Tolgee on Flutter</li>
+        <li>Register in <code>app/ingestion/parsers/__init__.py:parse_file</code> dispatcher</li>
+        <li>Add <code>flutter-arb</code> to <code>FILE_FORMAT_EXTENSIONS</code> in <code>cli/main.py:34</code></li>
+        <li>Tests in <code>tests/ingestion/test_flutter_arb_parser.py</code>: plain strings, placeholders (<code>{name}</code>), ICU plurals, descriptions, <code>@@locale</code> directive</li>
+      </ul>
+      <p>Then A2 (writer), A3–A4 (wire-up), then you bring the Flutter app and we run A5–A9 together.</p>
+      <div class="next-actions">
+        <button class="primary">Start A1 (Flutter parser)</button>
+        <button>Save roadmap to ROADMAP.md</button>
+        <button>Adjust prioritization</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    ClaritiTMS · internal roadmap · 2026-05-22<br/>
+    <a href="https://clariti-tms.vercel.app">clariti-tms.vercel.app</a> · <a href="https://github.com/ravishchandra/clariti-tms">github.com/ravishchandra/clariti-tms</a>
+  </div>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  const STORAGE_KEY = 'clariti-roadmap-backlog-v1';
+  const COLLAPSED_KEY = 'clariti-roadmap-collapsed-v1';
+  // Default: keep the active columns open, hide the long-tail ones.
+  const DEFAULT_COLLAPSED = { now: false, next: false, later: true, defer: true };
+
+  // Phase letter is used for the badge color. SEC = security cleanup, IDEA = post-launch.
+  const ITEMS = [
+    // Phase A — Flutter validation
+    { id: 'A1', phase: 'A', done: true, title: 'Flutter <code>.arb</code> parser (pure Python)', effort: 'shipped · commit <code>e316e7f</code> · 18 unit tests' },
+    { id: 'A2', phase: 'A', done: true, title: 'Flutter <code>.arb</code> writer', effort: 'shipped · 10 round-trip tests · preserves <code>@key</code> metadata' },
+    { id: 'A3', phase: 'A', done: true, title: 'Add <code>flutter</code> to PLATFORM_FORMATS', effort: 'shipped · <code>cli/main.py</code>' },
+    { id: 'A4', phase: 'A', done: true, title: 'Wire Flutter into MCP <code>ingest_strings</code>', effort: 'shipped · also in REST <code>POST /ingest</code>' },
+    { id: 'A5', phase: 'A', blocked: true, title: 'Pick a Flutter app: your fork, or a public OSS stand-in', effort: 'gate · which app gates A6–A9' },
+    { id: 'A6', phase: 'A', title: 'End-to-end smoke test: install → ingest → translate → review → pull', effort: '2h · once A5 lands · I drive' },
+    { id: 'A7', phase: 'A', blocked: true, title: 'Verify translated <code>.arb</code> in simulator', effort: 'your machine · text fits, encoding OK, plurals work' },
+    { id: 'A8', phase: 'A', blocked: true, title: 'Record 60–90s screencast of the full flow', effort: 'your screen recording · marketing video' },
+    { id: 'A9', phase: 'A', title: 'Flutter case-study writeup', effort: '1–2h · gated on A6 numbers · I draft, you sign off' },
+
+    // Phase B — Marketing honesty
+    { id: 'B1', phase: 'B', done: true, title: 'Remove "● all systems operational" footer indicator', effort: 'shipped · commit <code>fe3ff57</code>' },
+    { id: 'B2', phase: 'B', done: true, title: 'Real version chip from <code>pyproject.toml</code>', effort: 'shipped · build-time read · resolves to <code>v0.1.0</code>' },
+    { id: 'B3', phase: 'B', title: 'Decide: ship <code>loc publish</code> or remove every reference', effort: '1h · currently false claim' },
+    { id: 'B4', phase: 'B', title: 'Decide: real waitlist form or remove "Managed" tier', effort: '1h · Tally/ConvertKit MVP' },
+    { id: 'B5', phase: 'B', done: true, title: 'Favicon + JSON-LD <code>Organization.logo</code>', effort: 'shipped · <code>icon.svg</code> + <code>apple-icon.tsx</code> + <code>logo.svg</code>' },
+    { id: 'B6', phase: 'B', title: 'Re-verify Lokalise/Phrase/Crowdin pricing claims', effort: '30m · at launch time' },
+    { id: 'B7', phase: 'B', done: true, title: 'Add <code>/compare/tolgee</code> page', effort: 'shipped · balanced comparison · Apache vs AGPL framing' },
+    { id: 'B8', phase: 'B', done: true, title: 'List OpenRouter on home + playground', effort: 'shipped · 5th provider · "one key, any model"' },
+
+    // Phase C — PyPI publish
+    { id: 'C1', phase: 'C', title: 'Add <code>[project.urls]</code> to pyproject.toml', effort: '5m · Homepage/Repo/Issues' },
+    { id: 'C2', phase: 'C', title: 'README audit for PyPI rendering', effort: '30m · relative links break' },
+    { id: 'C3', phase: 'C', title: 'TestPyPI dry run + fresh-venv install check', effort: '15m · catches metadata bugs' },
+    { id: 'C4', phase: 'C', title: 'Real PyPI release (irreversible)', effort: '5m · twine upload' },
+    { id: 'C5', phase: 'C', title: 'GH Actions trusted publishing (OIDC)', effort: '1h · later, more secure' },
+
+    // Phase D — Hosted trial path
+    { id: 'D1', phase: 'D', title: 'Pick host (Fly.io / Render / Railway)', effort: '30m decision · Fly.io recommended' },
+    { id: 'D2', phase: 'D', title: 'Register a real domain', effort: '30m · clariti.dev / claritihq.com' },
+    { id: 'D3', phase: 'D', title: 'Production hardening (secrets, backups, obs)', effort: '~1w' },
+    { id: 'D4', phase: 'D', title: 'Multi-tenant signup + email verification', effort: '~1w' },
+    { id: 'D5', phase: 'D', title: 'Real status page (Better Stack → /health)', effort: '~1d · closes B1 properly' },
+    { id: 'D6', phase: 'D', title: 'Stripe billing for managed tier', effort: '~1w · only if monetizing at launch' },
+
+    // Phase E — Product Hunt launch
+    { id: 'E1', phase: 'E', title: 'PH assets: gallery, tagline, description, pricing card', effort: '~1d' },
+    { id: 'E2', phase: 'E', title: 'Demo video edit + host (Vimeo/Loom)', effort: '~1d · from A8' },
+    { id: 'E3', phase: 'E', title: 'Maker comment + prepared answers (vs Lokalise/Tolgee/AGPL/DeepL)', effort: '~4h' },
+    { id: 'E4', phase: 'E', title: 'Distribution prep: HN, r/flutterdev, dev Twitter, IndieHackers', effort: '~1d · day-before tease' },
+
+    // Deferred / post-launch ideas
+    { id: 'I1', phase: 'IDEA', title: 'Claude Code skill/slash command pack', effort: 'post-E · /translate-screen, /review-queue' },
+    { id: 'I2', phase: 'IDEA', title: 'JSON CLI output mode (<code>--format json</code>)', effort: 'post-E · agent-friendly output contract' },
+    { id: 'I3', phase: 'IDEA', title: '<code>tm_search</code> MCP tool', effort: 'post-E · blocked on REST endpoint' },
+    { id: 'I4', phase: 'IDEA', title: 'Brand voice / tone-of-voice system', effort: 'post-E · big feature' },
+    { id: 'I5', phase: 'IDEA', title: 'Cross-batch bulk actions UI', effort: 'post-E' },
+    { id: 'I6', phase: 'IDEA', title: 'Magic-link / SSO auth', effort: 'D4 if at all' },
+    { id: 'I7', phase: 'IDEA', title: 'CLI → /api/v1/ refactor (F-OPS-3)', effort: 'post-E · tracked in docs/11' },
+    { id: 'I8', phase: 'IDEA', title: 'pgmq job queue integration', effort: 'scale problem, not launch' },
+    { id: 'I9', phase: 'IDEA', title: 'Locale bootstrap UI flow', effort: 'CLI works for launch' },
+    { id: 'I10', phase: 'IDEA', title: 'API tool-use ergonomics audit', effort: 'post-E' },
+    { id: 'I11', phase: 'IDEA', title: 'CLAUDE.md template generator (standalone)', effort: 'partly in agent install' },
+
+    // Wedge feature — closes the biggest adoption gap. Plan hard before building.
+    {
+      id: 'WEDGE1',
+      phase: 'WEDGE',
+      title: '<code>loc extract</code> — agent-driven i18n adoption for single-locale apps',
+      effort: 'post-validation · genuine differentiator · no incumbent ships this',
+      note: '<strong>PLAN HARD first.</strong> LLM rewriting a developer\'s source code is high-leverage and high-risk. Must not break the host project before adding value. Required design work: dry-run + diff preview, idempotent re-runs, git-based rollback, integration compat (deps / lint / format / build), respect for existing partial i18n setups, conservative defaults (skip ternaries / template literals / concatenations without explicit confirmation). Design doc required before any code. <strong>Downstream payoff:</strong> unlocks WEDGE2 (full marketing-site dogfood without manual extraction work).'
+    },
+
+    // Downstream of WEDGE1 — the marketing-site dogfood becomes cheap once extract exists.
+    {
+      id: 'WEDGE2',
+      phase: 'WEDGE',
+      title: 'Dogfood the marketing site via <code>loc extract</code>',
+      effort: 'depends on WEDGE1 · hours not days · v0.2 launch story',
+      note: 'After WEDGE1 ships, the full marketing-site dogfood becomes a cheap follow-up: run <code>loc extract</code> on <code>marketing/src/</code>, review the diff, land the refactor behind a feature branch, ingest the locale JSON, translate via the MCP server, deploy at <code>/fr/*</code>, <code>/de/*</code>, <code>/ja/*</code>. <strong>The "v0.2 launch" Product Hunt follow-up:</strong> "Our marketing site, in 5 languages — translated by our own product." Strongest possible credibility story, gated on WEDGE1 being safe enough to run on production code.'
+    }
+  ];
+
+  const ITEM_BY_ID = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+
+  const DEFAULTS = {
+    now:   ['A1','A2','A3','A4','A5','A6','A7','A8','A9'],
+    next:  ['B1','B2','B5','B7','B8','C1','C2','C3','C4'],
+    later: ['C5','D1','D2','D3','D4','D5','E1','E2','E3','E4'],
+    defer: ['WEDGE1','WEDGE2','B3','B4','B6','D6','I1','I2','I3','I4','I5','I6','I7','I8','I9','I10','I11']
+  };
+
+  function loadLayout() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if (saved && saved.now && saved.next && saved.later && saved.defer) {
+        // Drop IDs that no longer exist in ITEMS (e.g. removed cards).
+        ['now','next','later','defer'].forEach(col => {
+          saved[col] = (saved[col] || []).filter(id => ITEM_BY_ID[id]);
+        });
+        // Add new IDs that aren't in the saved layout (drop them in 'defer').
+        const seen = new Set([...saved.now, ...saved.next, ...saved.later, ...saved.defer]);
+        ITEMS.forEach(i => { if (!seen.has(i.id)) saved.defer.push(i.id); });
+        return saved;
+      }
+    } catch (e) { /* fall through */ }
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  function saveLayout(layout) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(layout)); } catch (e) {}
+  }
+
+  function createCard(id) {
+    const item = ITEM_BY_ID[id];
+    if (!item) return null;
+    const card = document.createElement('div');
+    let classes = 'kanban-card';
+    if (item.done) classes += ' done';
+    else if (item.blocked) classes += ' blocked';
+    card.className = classes;
+    card.draggable = true;
+    card.dataset.id = id;
+    const titleLine = document.createElement('div');
+    const idBadge = document.createElement('span');
+    idBadge.className = 'card-id ' + item.phase;
+    idBadge.textContent = id;
+    titleLine.appendChild(idBadge);
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'card-title';
+    titleSpan.innerHTML = item.title;
+    titleLine.appendChild(titleSpan);
+    card.appendChild(titleLine);
+    if (item.effort) {
+      const eff = document.createElement('div');
+      eff.className = 'card-effort';
+      eff.innerHTML = item.effort;
+      card.appendChild(eff);
+    }
+    if (item.note) {
+      const note = document.createElement('div');
+      note.className = 'card-note';
+      note.innerHTML = item.note;
+      card.appendChild(note);
+    }
+    attachCardHandlers(card);
+    return card;
+  }
+
+  let draggedCard = null;
+
+  function attachCardHandlers(card) {
+    card.addEventListener('dragstart', e => {
+      draggedCard = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Required for Firefox to actually start a drag.
+      try { e.dataTransfer.setData('text/plain', card.dataset.id); } catch (err) {}
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      draggedCard = null;
+      document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drop-target'));
+    });
+  }
+
+  function getCardAfter(list, clientY) {
+    // Vertical-stack layout — drop position is determined by cursor Y
+    // relative to each card's vertical midpoint.
+    const cards = [...list.querySelectorAll('.kanban-card:not(.dragging)')];
+    return cards.find(card => {
+      const box = card.getBoundingClientRect();
+      return clientY < box.top + box.height / 2;
+    }) || null;
+  }
+
+  function updateCounts() {
+    document.querySelectorAll('.kanban-col').forEach(col => {
+      col.querySelector('.count').textContent = col.querySelectorAll('.kanban-card').length;
+    });
+  }
+
+  function getCurrentLayout() {
+    const layout = {};
+    document.querySelectorAll('.kanban-col').forEach(col => {
+      layout[col.dataset.col] = [...col.querySelectorAll('.kanban-card')].map(c => c.dataset.id);
+    });
+    return layout;
+  }
+
+  function render(layout) {
+    document.querySelectorAll('.kanban-col').forEach(col => {
+      const list = col.querySelector('.kanban-list');
+      list.innerHTML = '';
+      (layout[col.dataset.col] || []).forEach(id => {
+        const card = createCard(id);
+        if (card) list.appendChild(card);
+      });
+    });
+    updateCounts();
+  }
+
+  // Column drop handlers (attached once at init).
+  document.querySelectorAll('.kanban-col').forEach(col => {
+    col.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      col.classList.add('drop-target');
+      // Auto-expand collapsed rows when something is dragged onto them so
+      // the user can see where the card will land.
+      if (col.classList.contains('collapsed')) {
+        col.classList.remove('collapsed');
+        const state = loadCollapsed();
+        state[col.dataset.col] = false;
+        saveCollapsed(state);
+      }
+    });
+    col.addEventListener('dragleave', e => {
+      // Only un-highlight when leaving the column entirely (not entering a child).
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drop-target');
+    });
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      col.classList.remove('drop-target');
+      if (!draggedCard) return;
+      const list = col.querySelector('.kanban-list');
+      const after = getCardAfter(list, e.clientY);
+      if (after) list.insertBefore(draggedCard, after);
+      else list.appendChild(draggedCard);
+      updateCounts();
+      saveLayout(getCurrentLayout());
+    });
+  });
+
+  // Collapse / expand toggle on the row header.
+  function loadCollapsed() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(COLLAPSED_KEY) || 'null');
+      if (saved && typeof saved === 'object') return { ...DEFAULT_COLLAPSED, ...saved };
+    } catch (e) { /* fall through */ }
+    return { ...DEFAULT_COLLAPSED };
+  }
+  function saveCollapsed(state) {
+    try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function applyCollapsed(state) {
+    document.querySelectorAll('.kanban-col').forEach(col => {
+      const name = col.dataset.col;
+      col.classList.toggle('collapsed', !!state[name]);
+    });
+  }
+  document.querySelectorAll('.kanban-col h4').forEach(h4 => {
+    h4.addEventListener('click', () => {
+      const col = h4.closest('.kanban-col');
+      col.classList.toggle('collapsed');
+      const state = loadCollapsed();
+      state[col.dataset.col] = col.classList.contains('collapsed');
+      saveCollapsed(state);
+    });
+  });
+  applyCollapsed(loadCollapsed());
+
+  // Buttons
+  document.getElementById('reset-backlog').addEventListener('click', () => {
+    if (confirm('Reset the backlog to default prioritization? Your current arrangement will be lost.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      render(JSON.parse(JSON.stringify(DEFAULTS)));
+    }
+  });
+  document.getElementById('export-backlog').addEventListener('click', () => {
+    const layout = getCurrentLayout();
+    const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'clariti-roadmap-backlog.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // Cross-tab + cross-window sync. If the layout or collapsed state is
+  // updated in another tab, the `storage` event fires here and we re-render
+  // without needing a manual refresh. Also covers the "fetch updates from
+  // localStorage" intent for any external editor of the same keys.
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) {
+      render(loadLayout());
+      applyCollapsed(loadCollapsed());
+    } else if (e.key === COLLAPSED_KEY) {
+      applyCollapsed(loadCollapsed());
+    }
+  });
+
+  // Also re-sync when the tab regains focus, in case localStorage was
+  // edited via devtools or by an external script while the tab was hidden.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      render(loadLayout());
+      applyCollapsed(loadCollapsed());
+    }
+  });
+
+  // Initial render
+  render(loadLayout());
+})();
+</script>
+
+</body>
+</html>

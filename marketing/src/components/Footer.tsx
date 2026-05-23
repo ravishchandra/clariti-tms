@@ -101,9 +101,6 @@ export function Footer() {
             © {new Date().getFullYear()} ClaritiTMS contributors. Released under the AGPL-3.0.
           </div>
           <div className="flex items-center gap-4">
-            <div className="font-mono text-[11px]">
-              <span className="text-[var(--color-flame)]">●</span> all systems operational
-            </div>
             <ThemeToggle />
           </div>
         </div>

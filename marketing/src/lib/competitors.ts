@@ -211,6 +211,84 @@ export const competitors: CompetitorPage[] = [
       },
     ],
   },
+
+  {
+    slug: "tolgee",
+    name: "Tolgee",
+    oneLiner: "The OSS-native TMS — best-in-class in-context editor, hosted SaaS upsell.",
+    tagline: "ClaritiTMS vs Tolgee",
+    pricingHook: "Tolgee is free self-hosted (Apache 2.0). Tolgee Cloud paid tiers add LLM translation, larger string budgets, and team features.",
+    intro:
+      "Tolgee is the closest credible open-source TMS to ClaritiTMS in spirit: self-hostable, developer-first, and built around an in-context Chrome plugin that lets non-engineers edit strings directly in a rendered app. It is Apache 2.0 licensed, with a paid hosted SaaS (Tolgee Cloud) that adds LLM-based machine translation, larger string budgets, and team workflows. ClaritiTMS overlaps heavily on the self-hosted footprint and the developer-first ethos, but is built around a different bet: LLM translation is the core pipeline (not a paid add-on), context is delivered as screen-batches (not per-string), and back-translation QA is built into every MT output. Both ship MCP servers; ClaritiTMS shipped its agent-native integration surface in the v0.1 line.",
+    whenThem: [
+      "You want a polished in-context editor for non-engineer translators on the rendered app, and the Chrome plugin is the workflow your team prefers.",
+      "Your stack already runs on JVM and you'd rather keep operations homogeneous than introduce a Python service.",
+      "You want a hosted SaaS option (Tolgee Cloud) for the same product you self-host — a managed escape hatch that ClaritiTMS does not offer yet.",
+      "Apache 2.0 fits your commercial-embedding requirements better than AGPL-3.0 — you plan to ship a downstream product that includes the TMS without releasing source.",
+    ],
+    whenClariti: [
+      "You want LLM-driven translation as the core pipeline, BYO-provider, with no paid tier between you and the model.",
+      "Translation context should be a screen-batch (the whole UI screen as one prompt), not per-string — better quality on UI strings that share component context.",
+      "Back-translation QA on every MT output matters to you as a correctness signal, not as a manual reviewer hint.",
+      "You want a deterministic, auditable LLM pipeline: pinned model versions, recorded temperatures, replayable prompts.",
+      "AGPL-3.0 is a feature, not a friction — strong copyleft is the moat you want against vendor fork-and-monetise.",
+    ],
+    features: [
+      { label: "Open source", clariti: "AGPL-3.0 — copyleft.", them: "Apache 2.0 — permissive.", winner: "tie" },
+      { label: "Self-hosted", clariti: "Yes — Docker, single Postgres.", them: "Yes — Docker, Postgres + Java runtime.", winner: "tie" },
+      { label: "Hosted SaaS", clariti: "Not yet (managed tier on the roadmap).", them: "Yes — Tolgee Cloud with paid tiers.", winner: "them" },
+      { label: "In-context editor (Chrome plugin)", clariti: "Screenshot SDK + per-screen context, no live overlay.", them: "Mature in-browser editor — best-in-class.", winner: "them" },
+      { label: "LLM translation", clariti: "Core pipeline — BYO Claude / GPT / OpenRouter / Ollama / DeepL.", them: "Paid add-on (Tolgee Cloud tiers).", winner: "clariti" },
+      { label: "Screen-batch context", clariti: "First-class — whole UI screen as one prompt.", them: "Per-string with optional screenshot context.", winner: "clariti" },
+      { label: "Back-translation QA", clariti: "Built-in, scored per MT output.", them: "Not built-in.", winner: "clariti" },
+      { label: "MCP server (agent integration)", clariti: "First-party, stdio + 8 tools, ships in the wheel.", them: "Recently announced.", winner: "tie" },
+      { label: "Translation memory", clariti: "pgvector HNSW, project-scoped, platform-ranked.", them: "Built-in TM with fuzzy match.", winner: "tie" },
+      { label: "Stack", clariti: "Python + FastAPI + Postgres (with pgvector).", them: "Kotlin / Java Spring + Postgres.", winner: "tie" },
+      { label: "Formats", clariti: "iOS .strings/.xcstrings/.stringsdict, Android XML, i18next, ICU, Flutter .arb, XLIFF, XLSX.", them: "Broad — including Flutter, i18next, XLIFF, .properties, .po, .resx, and more.", winner: "tie" },
+      { label: "Deterministic LLM pipeline (pinned model + temperature)", clariti: "Yes — every MT run records model_id and temperature.", them: "Vendor-managed; less inspectable.", winner: "clariti" },
+      { label: "Data residency", clariti: "Wherever you deploy.", them: "Self-host: yours. Tolgee Cloud: vendor-managed regions.", winner: "tie" },
+    ],
+    migration: [
+      {
+        step: "Export Tolgee project as XLIFF or JSON",
+        body: "Tolgee's export covers XLIFF, JSON (flat / nested), iOS, Android, .po, and more. ClaritiTMS's XLIFF and i18next-JSON importers read these natively, preserving source / target / approval state and translator comments.",
+      },
+      {
+        step: "Re-create projects with `loc init`",
+        body: "Map each Tolgee project to a ClaritiTMS project + repositories. ClaritiTMS's hierarchy (org → project → repo → component) is similar to Tolgee's; component grouping is automatic for iOS / Android and explicit for i18next via namespace.",
+      },
+      {
+        step: "Switch translation provider configuration",
+        body: "Where Tolgee Cloud's LLM was a paid tier, ClaritiTMS expects a provider configured via environment variables: ANTHROPIC_API_KEY (default), OPENAI_API_KEY (fallback), OPENROUTER_API_KEY (any model), DEEPL_AUTH_KEY (plain-text locales), or OLLAMA_HOST (on-prem).",
+      },
+      {
+        step: "Re-do screen-context if you used Tolgee's in-context editor",
+        body: "Tolgee's Chrome plugin captures context as the translator hovers. ClaritiTMS does not have a live overlay yet — use the screenshot SDK to upload representative screens per component, or write a one-line component_context per UI screen in `loc add`.",
+      },
+      {
+        step: "Wire CI and GitHub or Contentful",
+        body: "Install the ClaritiTMS GitHub App on locale repos for source-push detection and translation PRs. For non-GitHub flows, the REST API and `loc ingest` cover both push-based and pull-based ingestion.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is ClaritiTMS a Tolgee alternative?",
+        a: "Yes, with a meaningful difference in shape. Tolgee's strength is its in-context Chrome editor for non-engineer translators and its hosted SaaS upsell on top of open-source self-hosting. ClaritiTMS's strength is its LLM-first, screen-batch translation pipeline with back-translation QA, ships free for self-host under AGPL, and has the MCP server + `loc agent install` for an agent-driven workflow. Both teams that want self-hosted open source. Pick Tolgee if your translator workflow is the headline; pick ClaritiTMS if your translation quality and engineering control are.",
+      },
+      {
+        q: "Tolgee is Apache 2.0 and ClaritiTMS is AGPL-3.0 — does the license matter for my project?",
+        a: "It depends on what you're building on top. Apache 2.0 lets you embed the TMS into a closed-source downstream product without sharing your changes. AGPL-3.0 requires that if you run a modified version as a network service, the modifications are also available under AGPL. For internal use or self-hosted SaaS that doesn't redistribute the TMS to third parties, both licenses behave the same. For a commercial product that wraps the TMS as a service for others, AGPL means you'd typically buy a commercial license from ClaritiTMS — which is the point of the licensing model.",
+      },
+      {
+        q: "Does ClaritiTMS have an in-context editor like Tolgee's Chrome plugin?",
+        a: "Not yet. ClaritiTMS has the screenshot SDK (developer uploads a representative screenshot for a component, and the LLM gets it as context) and per-component context strings (`component_context` table), but there is no live overlay that lets a translator edit strings directly in the rendered app. If your translator workflow depends on that overlay, Tolgee is a better fit today. The agent-native integration surface (MCP server, `loc agent install`) is the workflow ClaritiTMS optimises for instead — let an AI coding agent drive the platform, not a human translator.",
+      },
+      {
+        q: "Tolgee Cloud has LLM translation as a paid tier — does ClaritiTMS charge for LLM use?",
+        a: "No. ClaritiTMS uses your LLM provider directly — you bring an API key (Anthropic, OpenAI, OpenRouter, DeepL, Ollama) and pay the provider for tokens used. There is no per-string or per-seat charge from ClaritiTMS at any tier. Self-hosting is free under AGPL, and the platform never proxies your LLM calls.",
+      },
+    ],
+  },
 ];
 
 export function getCompetitor(slug: string) {

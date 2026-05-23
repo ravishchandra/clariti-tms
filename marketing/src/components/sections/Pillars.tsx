@@ -111,6 +111,7 @@ function ProvidersVisual() {
   const rows = [
     { p: "claude-sonnet-4", note: "default · UI" },
     { p: "gpt-4-turbo", note: "fallback" },
+    { p: "openrouter/any", note: "one key · any model" },
     { p: "deepl/api", note: "fr, es, de plain" },
     { p: "ollama/llama3.1", note: "on-prem" },
   ];

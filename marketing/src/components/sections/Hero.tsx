@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LocaleCycler } from "./LocaleCycler";
 import { Reveal } from "../Reveal";
+import { PROJECT_VERSION } from "@/lib/version";
 
 export function Hero() {
   return (
@@ -18,9 +19,9 @@ export function Hero() {
             >
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-flame)] pulse-dot" />
               <span className="font-mono uppercase tracking-[0.14em] text-[10px] text-[var(--color-flame-soft)]">
-                v0.7
+                {PROJECT_VERSION}
               </span>
-              <span>Phases 1–6 + XLIFF, OTA, screenshot SDK shipped</span>
+              <span>Phases 1–6 + XLIFF, OTA, screenshot SDK, MCP server, Flutter shipped</span>
               <span className="text-[var(--color-text-muted)] transition-transform group-hover:translate-x-0.5">
                 →
               </span>

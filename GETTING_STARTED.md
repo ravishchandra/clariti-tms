@@ -86,9 +86,9 @@ cd ~/code/my-app
 loc init
 ```
 
-It prompts for the repo name, platform (`ios`/`android`/`web`/`backend`), file format (`ios-strings`, `i18next`, `android-xml`, etc.), source file path, and target locales. The generated `tms.yml` is gitignore-safe — secrets aren't stored there, just config.
+It prompts for the repo name, platform (`ios`/`android`/`web`/`backend`/`flutter`), file format (auto-detected from the platform; `ios-strings`/`ios-xcstrings`, `android-xml`, `i18next`/`icu`/`flat-json`, `flutter-arb`), source file path, and target locales. The generated `tms.yml` is gitignore-safe — secrets aren't stored there, just config.
 
-Then:
+The common loop is the same for every platform:
 
 ```bash
 loc ingest-file <your-source-file> --repo <name>
@@ -96,7 +96,72 @@ loc translate --project <project-slug> --locale fr-FR
 loc pull --project <project-slug> --locale fr-FR
 ```
 
-`pull` fetches approved translations back into the locale-specific file in your repo.
+`pull` fetches approved translations and writes them to the locale-specific file in your repo — path conventions below are inferred from `repository.file_format`.
+
+### iOS (`.strings` / `.xcstrings`)
+
+```
+loc init →
+  platform: ios
+  file format: ios-strings        # or ios-xcstrings — preferred for Xcode 15+
+  source file: App/en.lproj/Localizable.strings
+
+loc ingest-file App/en.lproj/Localizable.strings --repo my-ios
+loc translate --project my-ios --locale fr-FR
+loc pull       --project my-ios --locale fr-FR
+# Writes: App/fr-FR.lproj/Localizable.strings
+# (or, for ios-xcstrings: a single App/Localizable.xcstrings with all locales)
+```
+
+Format specifiers `%@`, `%d`, `%1$@` are extracted as placeholders and preserved through translation. `InfoPlist.strings` keys auto-route to `high_risk` review.
+
+### Android (`strings.xml`)
+
+```
+loc init →
+  platform: android
+  file format: android-xml
+  source file: app/src/main/res/values/strings.xml
+
+loc ingest-file app/src/main/res/values/strings.xml --repo my-android
+loc translate --project my-android --locale fr-FR
+loc pull       --project my-android --locale fr-FR
+# Writes: app/src/main/res/values-fr-rFR/strings.xml   (BCP-47 fr-FR → Android fr-rFR)
+```
+
+`translatable="false"` strings are skipped at ingest. `<plurals>` get the full CLDR category set at publication (Arabic = 6, Russian = 4, French = 2…). HTML-in-strings is pre-processed before MT and restored after.
+
+### React / TypeScript (i18next, ICU)
+
+```
+loc init →
+  platform: web
+  file format: i18next            # or icu / flat-json
+  source file: src/locales/en/common.json
+
+loc ingest-file src/locales/en/common.json --repo my-web
+loc translate --project my-web --locale fr-FR
+loc pull       --project my-web --locale fr-FR
+# Writes: src/locales/fr-FR/common.json
+```
+
+The namespace filename (`common.json`) groups all its keys as one screen batch — the preferred structure. Trans component `<N>` tags become named placeholders before MT and are restored after.
+
+### Flutter (`.arb`)
+
+```
+loc init →
+  platform: flutter
+  file format: flutter-arb        # auto-detected from .arb
+  source file: lib/l10n/app_en.arb
+
+loc ingest-file lib/l10n/app_en.arb --repo my-flutter
+loc translate --project my-flutter --locale fr-FR
+loc pull       --project my-flutter --locale fr-FR
+# Writes: lib/l10n/app_fr_FR.arb   (Flutter convention: underscored locale)
+```
+
+ICU placeholders use single-curly `{name}`. `@key` metadata blocks (descriptions, placeholder type hints, `x-*` extensions) are captured at ingest into the key's `source_metadata` and emitted verbatim on publish, so `flutter_localizations` codegen keeps working unchanged. `@@locale` is rewritten to the target locale.
 
 ---
 

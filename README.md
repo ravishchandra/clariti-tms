@@ -7,7 +7,7 @@
 
 A self-hosted translation management system (TMS) for web and mobile apps, built for teams whose UI text lives in GitHub and Contentful, with English (en-US) as the base language.
 
-The project shipped Phases 1–6 plus three Phase 7 extensions (XLIFF, OTA delivery, screenshot SDK) — a working end-to-end platform: FastAPI backend, Next.js review UI, REST API, CLI, Excel + XLIFF round-trip, and GitHub + Contentful publication. The research that motivated the build (vs. Transifex / Lokalise / Crowdin / Phrase / Weblate / Tolgee) is preserved in `docs/01-research-summary.md`.
+The project shipped Phases 1–6 plus five Phase 7 extensions (XLIFF, OTA delivery, screenshot SDK, MCP server for AI agents, Flutter `.arb` support) — a working end-to-end platform: FastAPI backend, Next.js review UI, REST API, CLI, Excel + XLIFF round-trip, GitHub + Contentful publication, and per-platform parsers/writers for iOS, Android, React/TS, and Flutter. The research that motivated the build (vs. Transifex / Lokalise / Crowdin / Phrase / Weblate / Tolgee) is preserved in `docs/01-research-summary.md`.
 
 ## Why this exists
 
@@ -50,7 +50,7 @@ These are explicitly out of scope. They are well-served by existing tools, or th
 - **Backend:** Python (FastAPI) + Postgres + pgvector
 - **Frontend:** Next.js + React + TypeScript
 - **LLM:** Anthropic Claude (primary), OpenAI GPT-4 (fallback). DeepL for languages where it beats LLMs.
-- **File formats:** ICU MessageFormat in JSON (i18next-compatible). XLIFF for LSP exchange. XLSX for human reviewers.
+- **File formats:** iOS (`.strings`, `.xcstrings`, `.stringsdict`), Android (`strings.xml` with `<plurals>`), React/TS (i18next namespace JSON, ICU MessageFormat), Flutter (`.arb` with `@key` metadata round-trip). XLIFF for LSP exchange. XLSX for human reviewers.
 - **Source control:** GitHub (existing repos hold source `en-US.json` files)
 - **CMS:** Contentful (existing — sync via Contentful Management API)
 - **Deployment:** Docker, runs on our own infra (data residency requirement)
@@ -74,13 +74,29 @@ loc demo --locale fr-FR
 
 `loc demo` creates a fresh project, ingests 5 sample strings, and walks them through the full translation pipeline with a mock provider so you can see the round-trip. The output table shows each string, its source, the mock-translated value, and the resulting status.
 
-To swap in a real provider:
+To swap in a real provider, pick the example matching your platform:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-loc ingest-file path/to/locales/en/common.json --repo my-web
+
+# React / TypeScript (i18next)
+loc ingest-file src/locales/en/common.json --repo my-web
+
+# iOS (.strings or .xcstrings)
+loc ingest-file App/en.lproj/Localizable.strings --repo my-ios
+
+# Android (strings.xml)
+loc ingest-file app/src/main/res/values/strings.xml --repo my-android
+
+# Flutter (.arb)
+loc ingest-file lib/l10n/app_en.arb --repo my-flutter
+
+# Then translate and pull, same for all platforms
 loc translate --project <slug> --locale fr-FR
+loc pull --project <slug> --locale fr-FR
 ```
+
+See **[GETTING_STARTED.md](GETTING_STARTED.md)** for the per-platform walkthrough (file paths, `loc init` answers, output filenames).
 
 To run the web review UI:
 
@@ -120,11 +136,13 @@ Without `github_installation_id` set, `POST /api/v1/repositories/{id}/publish` r
 
 ## Project status
 
-**Phases 1–6 are on `main`** (foundation, LLM pipeline, REST API + SDKs, GitHub + Contentful adapters, Excel round-trip, web review UI). Plus three Phase 7 extensions:
+**Phases 1–6 are on `main`** (foundation, LLM pipeline, REST API + SDKs, GitHub + Contentful adapters, Excel round-trip, web review UI). Plus five Phase 7 extensions:
 
 - **XLIFF round-trip** (`loc export-xliff` / `loc import-xliff`) — for LSP exchange.
 - **OTA delivery** (`GET /api/v1/ota/{slug}/{locale}.json`) — mobile apps fetch locale updates at runtime. See [docs/12-ota.md](docs/12-ota.md).
 - **Screenshot capture SDK** (`screenshot-sdk/`) — browser library that auto-captures contextual screenshots of rendered strings.
+- **MCP server for AI agents** (`clariti-mcp` / `loc mcp serve`, `loc agent install`) — one-command wiring for Claude Code, Cursor, Cline. See [docs/13-agent-integration.md](docs/13-agent-integration.md).
+- **Flutter `.arb` platform support** — parser + writer with `@key` metadata round-trip; ICU placeholders in `{name}` form.
 
 What's left from the Phase 7 menu (none required for MVP): Swift AST screen grouping, Android layout XML grouping, GitLab adapter, additional CMS adapters (Sanity/Strapi/Prismic), in-context Chrome extension, Slack notifications, analytics dashboard. See `docs/09-build-phases.md` for the full plan, `docs/11-audit-followups.md` for closed audit items, and `IDEAS.md` for parked ideas (e.g. sales/SE documentation).
 

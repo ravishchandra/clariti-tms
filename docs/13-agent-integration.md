@@ -181,6 +181,30 @@ all work without per-format agent logic.
 }
 ```
 
+**Android `strings.xml`:**
+
+```json
+{
+  "format": "android-xml",
+  "path": "app/src/main/res/values/strings.xml",
+  "content": "<resources>\n  <string name=\"checkout_pay\">Pay %1$s</string>\n  <string name=\"checkout_card_declined\">Your card was declined.</string>\n  <string name=\"brand_name\" translatable=\"false\">ClaritiTMS</string>\n</resources>\n"
+}
+```
+
+`translatable="false"` keys are skipped at parse. Format specifiers (`%1$s`, `%2$d`) become placeholders. `<plurals>` get full CLDR categories at publish time.
+
+**Flutter `.arb`:**
+
+```json
+{
+  "format": "flutter-arb",
+  "path": "lib/l10n/app_en.arb",
+  "content": "{\n  \"@@locale\": \"en\",\n  \"checkoutPay\": \"Pay {amount}\",\n  \"@checkoutPay\": {\n    \"description\": \"Primary CTA on the cart review screen.\",\n    \"placeholders\": {\"amount\": {\"type\": \"String\", \"example\": \"$24.00\"}}\n  },\n  \"cardDeclined\": \"Your card was declined.\"\n}"
+}
+```
+
+`@@locale` is skipped. `@key` metadata blocks are captured into `Key.source_metadata` and re-emitted verbatim on publish — Flutter's `flutter_localizations` / `intl_translation` codegen continues to work unchanged.
+
 **Response (HTTP 200):**
 
 ```json

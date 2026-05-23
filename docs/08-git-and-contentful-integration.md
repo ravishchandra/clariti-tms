@@ -159,6 +159,44 @@ Strings containing `<N>` index-based tags: `has_structural_tags = true`. Pre-pro
 **TypeScript key validation:**
 If the project uses `i18next-typescript` or similar typed keys, the publication writer must output a valid TypeScript-compatible key structure. No keys can be added or removed; only values change.
 
+### Flutter parser
+
+**`.arb` (flutter-arb)**
+```json
+{
+  "@@locale": "en",
+  "checkoutPay": "Pay {amount}",
+  "@checkoutPay": {
+    "description": "Primary CTA on the cart review screen.",
+    "placeholders": {"amount": {"type": "String", "example": "$24.00"}}
+  },
+  "itemCount": "{count, plural, =0{No items} =1{1 item} other{{count} items}}",
+  "@itemCount": {
+    "description": "Items in cart",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "brandName": "ClaritiTMS"
+}
+```
+
+Top-level keys partition into three categories:
+
+- **`@@`-prefixed directives** (`@@locale`, `@@last_modified`, …): skipped at parse, regenerated on publish.
+- **`@`-prefixed metadata blocks** (`@checkoutPay`): captured into `Key.source_metadata` JSONB column. The `description` sub-field is mirrored into `key.description` for reviewer visibility; everything else (placeholder type hints, `x-*` extensions) is read-only metadata, preserved verbatim and re-emitted by the writer.
+- **Plain string keys**: translatable. ICU shape detected on the value (`{count, plural, …}` → `icu_shape='plural'`). Single-curly `{name}` placeholders extracted.
+
+**Filename conventions**
+
+Source files in Flutter projects live under `lib/l10n/` by convention. The parser strips the locale suffix from the filename stem to derive the component:
+
+- `app_en.arb` → component `shared` (filename stems `app`, `intl`, `intl_messages`, `common`, `shared`, `global` all map to `shared`)
+- `checkout_en_US.arb` → component `checkout`
+- Keys with their own dotted prefix (`checkout.button.pay`) override the filename-derived component.
+
+**Round-trip and codegen**
+
+Flutter projects use `flutter_localizations` / `intl_translation` codegen against the `.arb` files. The writer preserves every `@key` block verbatim so generated `AppLocalizations` classes — and any tooling that consumes `placeholders` type hints — continue to work after a translation push. Orphan metadata (a `@K` block with no matching `K`) is dropped.
+
 ## GitHub integration
 
 ### Webhook receiver
@@ -329,8 +367,10 @@ async def publish_to_github(repository: Repository):
 
 `locale_file_path` and `serialize_locale_file` are platform-aware:
 - iOS: `{github_path}{locale}.lproj/Localizable.strings`
-- Android: `{github_path}values-{locale_tag}/strings.xml`
-- React: `{github_path}{locale_code}/{namespace}.json`
+- iOS xcstrings: `{github_path}Localizable.xcstrings` (single file, all locales)
+- Android: `{github_path}values-{android_locale_tag}/strings.xml` (e.g. `fr-FR` → `values-fr-rFR`)
+- React (i18next): `{github_path}{locale_code}/{namespace}.json`
+- Flutter: `{github_path}app_{locale_underscore}.arb` (e.g. `fr-FR` → `app_fr_FR.arb`)
 
 ## Contentful integration
 

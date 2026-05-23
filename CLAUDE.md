@@ -14,7 +14,7 @@ A from-scratch in-house translation management system. The full requirements, ar
 - **Translation unit:** Screen batch, not individual string. All strings in a component/screen go in one LLM call.
 - **Context hierarchy:** Organization → Project → Repository → Component/Screen → String. Per-string context is an override only. Screen context (`component_contexts`) is the primary input.
 - **Multi-tenancy hierarchy:** Organizations → Projects → Repositories → Keys → Translations.
-- **Platform support:** iOS (.strings, .xcstrings, .stringsdict), Android (strings.xml + layout XML grouping), React/TS (i18next namespace JSON, ICU). Each platform has its own parser and writer.
+- **Platform support:** iOS (.strings, .xcstrings, .stringsdict), Android (strings.xml + layout XML grouping), React/TS (i18next namespace JSON, ICU), Flutter (.arb with `@key` metadata round-trip via `Key.source_metadata`). Each platform has its own parser and writer.
 - **Self-hosted.** No vendor SaaS dependencies for core platform. Data residency is a feature.
 - **Module boundaries:** Each module owns its DB tables. Cross-module calls go through exported functions, never direct SQL. Async coordination via in-process event bus (upgrade to Redis Streams only if scale demands). Enforced by code review + `no-cross-module-db-access` lint rule.
 - **API-first.** REST API at `/api/v1/` with OpenAPI spec. TypeScript SDK (npm) and Python SDK (PyPI).

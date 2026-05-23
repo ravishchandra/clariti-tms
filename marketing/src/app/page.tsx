@@ -6,6 +6,7 @@ import { Problem } from "@/components/sections/Problem";
 import { Pillars } from "@/components/sections/Pillars";
 import { Pipeline } from "@/components/sections/Pipeline";
 import { Compare } from "@/components/sections/Compare";
+import { PlatformsStrip } from "@/components/sections/PlatformsStrip";
 import { Install } from "@/components/sections/Install";
 import { OpenSource } from "@/components/sections/OpenSource";
 import { Faq, FaqJsonLd } from "@/components/sections/Faq";
@@ -23,6 +24,7 @@ export default function HomePage() {
         <Pillars />
         <Pipeline />
         <Compare />
+        <PlatformsStrip />
         <Install />
         <OpenSource />
         <Faq />

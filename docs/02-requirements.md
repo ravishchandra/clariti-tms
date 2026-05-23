@@ -12,7 +12,7 @@
 
 ### Multi-tenancy and hierarchy
 - **R-MT-1.** Organizations → Projects → Repositories → Keys → Translations. Four-level hierarchy.
-- **R-MT-2.** A project groups multiple repos (ios, android, web, backend) under shared context: glossary, TM, style guide, target locales.
+- **R-MT-2.** A project groups multiple repos (ios, android, web, backend, flutter) under shared context: glossary, TM, style guide, target locales.
 - **R-MT-3.** A repository owns the platform-specific config: file format, platform type, GitHub/Contentful credentials, platform context notes.
 - **R-MT-4.** Users belong to an organization with role-based access. Locales are assigned per user.
 
@@ -20,8 +20,9 @@
 - **R-P-1.** iOS: `.strings`, `.xcstrings` (Xcode 15+), `.stringsdict` plurals. Screen grouping via Swift AST analysis or key prefix inference.
 - **R-P-2.** Android: `strings.xml` with `<plurals>`. Screen grouping via layout XML analysis. `translatable="false"` respected. HTML-in-strings pre-processed.
 - **R-P-3.** React / TypeScript: i18next namespace JSON, ICU MessageFormat (react-intl / next-intl). Namespace file = screen batch (preferred structure). Trans component `<N>` tag handling.
-- **R-P-4.** Format specifier handling is platform-aware: `%@`/`%1$@` (iOS), `%1$s`/`%2$d` (Android), `{{name}}` (i18next), `{name}` (ICU).
-- **R-P-5.** CLDR plural categories generated correctly per locale at publication time (Arabic = 6 categories, Russian = 4, etc.).
+- **R-P-4.** Flutter: `.arb` (Application Resource Bundle) with ICU MessageFormat. `@@locale` directive rewritten on publish. `@key` metadata blocks (description, `placeholders`, `x-*` extensions) captured into `Key.source_metadata` and emitted verbatim on publish so `flutter_localizations` / `intl_translation` codegen keeps working. File naming: `app_{locale_underscore}.arb` (e.g. `app_fr_FR.arb`).
+- **R-P-5.** Format specifier handling is platform-aware: `%@`/`%1$@` (iOS), `%1$s`/`%2$d` (Android), `{{name}}` (i18next), `{name}` (ICU, Flutter).
+- **R-P-6.** CLDR plural categories generated correctly per locale at publication time (Arabic = 6 categories, Russian = 4, etc.).
 
 ### Core translation features
 - **R1.** Base language is `en-US`. Source strings live in GitHub repos and Contentful.

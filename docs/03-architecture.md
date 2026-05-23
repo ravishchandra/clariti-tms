@@ -8,11 +8,11 @@ A single FastAPI application with clean internal module boundaries. Not six serv
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         Developer's project                          │
 │                                                                      │
-│  iOS repo          Android repo         React/TS repo               │
-│  .strings /        strings.xml          locales/en/                 │
-│  .xcstrings        layout XMLs          checkout.json               │
-│      │                  │                     │                      │
-│      └──────── git push / webhook ────────────┘                      │
+│  iOS repo      Android repo    React/TS repo   Flutter repo        │
+│  .strings /    strings.xml     locales/en/     lib/l10n/            │
+│  .xcstrings    layout XMLs     checkout.json   app_en.arb           │
+│      │              │                │              │                │
+│      └──────── git push / webhook ───┴──────────────┘                │
 └──────────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -28,6 +28,7 @@ A single FastAPI application with clean internal module boundaries. Not six serv
 │  │    iOS: .strings / .xcstrings / .stringsdict                │    │
 │  │    Android: strings.xml + layout XML grouping               │    │
 │  │    React: namespace JSON / ICU / i18next                    │    │
+│  │    Flutter: .arb with @key metadata round-trip              │    │
 │  └───────────────────────────┬─────────────────────────────────┘    │
 │                              │                                       │
 │                              ▼                                       │
@@ -70,6 +71,7 @@ A single FastAPI application with clean internal module boundaries. Not six serv
 │  │    iOS: .strings / .xcstrings output                        │    │
 │  │    Android: strings.xml with CLDR plural categories         │    │
 │  │    React: namespace JSON / ICU output                       │    │
+│  │    Flutter: .arb with @@locale rewrite + @key passthrough   │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
@@ -85,7 +87,8 @@ A single FastAPI application with clean internal module boundaries. Not six serv
   - **iOS**: `.strings` key=value parser, `.xcstrings` JSON parser, `.stringsdict` XML plural parser
   - **Android**: `strings.xml` parser + layout XML analysis for screen grouping, CLDR plural category map
   - **React/TS**: namespace JSON parser (file = screen), ICU shape detection, i18next suffix convention
-- Grouping logic: Swift AST → ViewController grouping (iOS), layout XML reference analysis (Android), namespace filename (React)
+  - **Flutter**: `.arb` JSON parser; `@@`-prefixed directives skipped; `@key` metadata blocks captured into `Key.source_metadata` for round-trip; ICU single-curly `{name}` placeholders
+- Grouping logic: Swift AST → ViewController grouping (iOS), layout XML reference analysis (Android), namespace filename (React), filename stem with locale-suffix stripping (Flutter: `app_en.arb` → component `app`/`shared`)
 - Structural tag detection and pre-processing: `<1>` Trans tags → named placeholders, HTML → rendered text
 - Key upsert, source hash change detection, downstream invalidation
 - Screen batch assembly: group all keys by `(repository, component, screen)` before queuing MT
@@ -131,6 +134,7 @@ A single FastAPI application with clean internal module boundaries. Not six serv
   - iOS: writes `.strings` key=value, `.xcstrings` JSON, `.stringsdict` XML with correct CLDR categories
   - Android: writes `strings.xml` with full CLDR plural category set per locale
   - React: writes namespace JSON preserving nested structure
+  - Flutter: writes `.arb` with `@@locale` rewritten to target locale, key/value pairs, and `@key` metadata blocks re-emitted from `Key.source_metadata` so codegen continues to work
 - Scheduled (every 15 minutes) and on-demand via API
 - Nightly reconciliation job: walks source repos, detects drift vs DB
 

@@ -25,7 +25,7 @@ scoped API key).
 - **Transport:** stdio. HTTP/SSE is deferred (see "Not yet" below).
 - **Auth:** the server reads `CLARITI_API_URL` and `CLARITI_API_KEY` from
   its environment. The API key is a regular ClaritiTMS key — create one
-  through `loc keys create` or the REST API, scope it to the org you want
+  through `loc api-key` or the REST API, scope it to the org you want
   the agent to operate on.
 
 ## Available tools
@@ -45,14 +45,54 @@ Each tool returns a trimmed payload — id + name + a few human-readable
 fields, never the raw SQLAlchemy row. Pagination is exposed where it
 exists upstream (`limit` / `offset` on `get_review_queue`).
 
-## Wiring it into Claude Code
+## Quick start — `loc agent install`
 
-Add to `~/.claude/mcp.json` (or the project-local `.mcp.json`):
+One-shot setup. Detects which editors are installed, mints an API key,
+and writes the MCP server entry into each editor's config file —
+preserving every other entry already there:
+
+```bash
+loc agent install
+```
+
+What it does:
+
+1. Detects Claude Code (`~/.claude.json` exists) and Cursor (`~/.cursor/`
+   exists), or use `--editor claude` / `--editor cursor` to pick one.
+2. Mints an API key for the first organization in the DB (or pass
+   `--org <slug>`) and labels it `claude-code` by default
+   (`--name <label>` to override). Skip minting entirely with
+   `--api-key <existing>`.
+3. Merges a `clariti-tms` entry into the editor's `mcpServers` object
+   without touching any other key in the file — the merge is atomic
+   (tmp file + rename), so a crash mid-write cannot truncate the editor
+   config.
+4. Writes (or updates) a marker-bounded `## ClaritiTMS` block in
+   `CLAUDE.md` in the current directory so agents working in this
+   checkout know the platform is available. Skip with `--no-claude-md`.
+
+Preview the changes before they happen:
+
+```bash
+loc agent install --dry-run
+```
+
+After running, restart your editor and try:
+
+> "List my ClaritiTMS projects."
+
+The agent should call the `clariti-tms.list_projects` tool.
+
+## Manual setup
+
+If you prefer to hand-edit the config (or are scripting an install
+where `loc` is not available), add a `clariti-tms` entry under
+`mcpServers` in `~/.claude.json`:
 
 ```json
 {
   "mcpServers": {
-    "clariti": {
+    "clariti-tms": {
       "command": "clariti-mcp",
       "env": {
         "CLARITI_API_URL": "https://tms.example.com",
@@ -69,7 +109,7 @@ on the agent host:
 ```json
 {
   "mcpServers": {
-    "clariti": {
+    "clariti-tms": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
@@ -86,15 +126,16 @@ on the agent host:
 }
 ```
 
-Cursor and Cline use the same config schema; only the file location
-differs (see each tool's documentation).
+Cursor uses the same schema at `~/.cursor/mcp.json`. Cline reads its
+own per-workspace settings; see its docs for the exact path.
 
 ## Talking to a local dev backend
 
 ```bash
 export CLARITI_API_URL=http://localhost:8000
-export CLARITI_API_KEY=$(loc keys create --name mcp-dev --json | jq -r .token)
-clariti-mcp  # serves on stdio; use the MCP inspector or a client to drive
+loc api-key --name mcp-dev   # prints a key; export it as CLARITI_API_KEY
+export CLARITI_API_KEY=...   # paste the key from the previous command
+clariti-mcp                  # serves on stdio; drive with the MCP inspector or a client
 ```
 
 ## Design choices worth knowing
@@ -186,9 +227,14 @@ all work without per-format agent logic.
   surface in a later phase.
 - **HTTP/SSE transport.** Remote agents (hosted Claude, web-based IDEs)
   need this. Holds on a clean story for transport-level auth.
-- **One-shot bootstrap (`loc agent install`).** Configures the host
-  project's framework, writes a `CLAUDE.md`, registers the MCP server.
-  Depends on this server existing first — that's now done.
+- **GitHub App OAuth in `loc agent install`.** The current install
+  command writes editor config and CLAUDE.md but does not wire the
+  GitHub App connection. Pending a real second user to validate the
+  flow before automating it.
+- **First-translation run in `loc agent install`.** The full IDEAS.md
+  spec includes running an initial translation as proof-of-life.
+  Deferred — the existing `loc demo` covers this for a mock provider;
+  doing it for real keys without per-user judgment is risky.
 
 See `IDEAS.md` (entry: "Agent-native integration surface") for the rest
 of the roadmap.

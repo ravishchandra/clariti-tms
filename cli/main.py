@@ -395,7 +395,33 @@ def api_key(
     asyncio.run(_api_key(name, org))
 
 
-async def _api_key(name: str, org_slug: str | None) -> None:
+async def _ensure_default_org() -> tuple[str, bool]:
+    """Ensure at least one organization exists. Returns (slug, was_created).
+
+    Called by `loc agent install` so a brand-new developer with an empty DB
+    can run one command and get a working setup. `loc api-key` deliberately
+    does NOT use this — it should still fail loudly when invoked against an
+    empty DB, since that means the operator hasn't run the bootstrap path.
+    """
+    from app.core.database import AsyncSessionLocal
+    from app.models import Organization
+
+    async with AsyncSessionLocal() as db:
+        existing = await db.scalar(select(Organization))
+        if existing is not None:
+            return existing.slug, False
+        org = Organization(name="Default Organization", slug="default")
+        db.add(org)
+        await db.commit()
+        return org.slug, True
+
+
+async def _mint_api_key(name: str, org_slug: str | None) -> tuple[str, str, bool]:
+    """Mint a new API key. Returns (raw_key, organization_slug, is_admin).
+
+    Raises typer.Exit(1) if the requested organization is missing or no orgs exist.
+    Shared by `loc api-key` and `loc agent install`.
+    """
     import hashlib
     import secrets
 
@@ -413,7 +439,11 @@ async def _api_key(name: str, org_slug: str | None) -> None:
         else:
             organization = await db.scalar(select(Organization))
             if organization is None:
-                err.print("[red]No organizations found. Run `loc init` first.[/red]")
+                err.print(
+                    "[red]No organizations found in the database.[/red]\n"
+                    "Run [bold]loc agent install[/bold] to bootstrap a default organization, "
+                    "or create one via the REST API."
+                )
                 raise typer.Exit(1)
 
         # The first key in an empty database is an org-admin (allowed to create
@@ -432,9 +462,15 @@ async def _api_key(name: str, org_slug: str | None) -> None:
         )
         db.add(api_key_obj)
         await db.commit()
+        org_slug_resolved = organization.slug
 
+    return raw_key, org_slug_resolved, is_admin
+
+
+async def _api_key(name: str, org_slug: str | None) -> None:
+    raw_key, resolved_org, is_admin = await _mint_api_key(name, org_slug)
     role = "org-admin" if is_admin else "tenant"
-    console.print(f"\n[bold green]API key created[/bold green] ({name} / {organization.slug}) [{role}]")
+    console.print(f"\n[bold green]API key created[/bold green] ({name} / {resolved_org}) [{role}]")
     console.print(f"\n  [bold]{raw_key}[/bold]\n")
     console.print("[dim]This is shown once. Add it to your .env as API_KEY= or pass via X-API-Key header.[/dim]\n")
 
@@ -1539,6 +1575,218 @@ def mcp_serve() -> None:
     from app.mcp.server import main as _mcp_main
 
     _mcp_main()
+
+
+# ---------------------------------------------------------------------------
+# Agent subcommand — one-shot bootstrap that wires the MCP server into editors.
+# ---------------------------------------------------------------------------
+
+agent_app = typer.Typer(
+    name="agent",
+    help="Wire AI coding agents (Claude Code, Cursor) to this ClaritiTMS instance.",
+    no_args_is_help=True,
+)
+app.add_typer(agent_app)
+
+
+@agent_app.command("install")
+def agent_install(
+    editor: str = typer.Option(
+        None,
+        "--editor",
+        help="Editor to configure: claude, cursor, or all (default: auto-detect installed editors).",
+    ),
+    api_url: str = typer.Option(
+        None,
+        "--api-url",
+        help="ClaritiTMS API URL. Default: tms.yml 'server' value, else http://localhost:8000.",
+    ),
+    api_key_arg: str = typer.Option(
+        None,
+        "--api-key",
+        help="Use this API key instead of minting a new one. Skips the DB hit entirely.",
+    ),
+    org: str = typer.Option(None, "--org", help="Organization slug for the minted key (default: first org)."),
+    key_name: str = typer.Option("claude-code", "--name", help="Label for the minted API key."),
+    write_claude_md: bool = typer.Option(
+        True,
+        "--claude-md/--no-claude-md",
+        help="Also write a CLAUDE.md section in the current directory.",
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print what would happen, write nothing."),
+) -> None:
+    """Wire the ClaritiTMS MCP server into your AI coding editor in one command.
+
+    Detects Claude Code (~/.claude.json) and Cursor (~/.cursor/mcp.json), mints
+    an API key (or uses --api-key), and merges a `clariti-tms` MCP server entry
+    into the editor config(s) — preserving every other key in those files.
+    Optionally writes a CLAUDE.md section so agents working in this checkout
+    know the platform is available.
+
+    Examples:
+        loc agent install
+        loc agent install --editor claude
+        loc agent install --api-key sk-... --no-claude-md
+        loc agent install --dry-run
+    """
+    asyncio.run(
+        _agent_install(
+            editor=editor,
+            api_url_override=api_url,
+            api_key_arg=api_key_arg,
+            org_slug=org,
+            key_name=key_name,
+            write_claude_md=write_claude_md,
+            dry_run=dry_run,
+        )
+    )
+
+
+async def _agent_install(
+    *,
+    editor: str | None,
+    api_url_override: str | None,
+    api_key_arg: str | None,
+    org_slug: str | None,
+    key_name: str,
+    write_claude_md: bool,
+    dry_run: bool,
+) -> None:
+    from sqlalchemy.exc import DBAPIError, OperationalError
+
+    from cli.agent_install import (
+        atomic_write_json,
+        build_mcp_entry,
+        check_backend_reachable,
+        detect_editors,
+        merge_mcp_config,
+        read_editor_config,
+        render_claude_md_section,
+        upsert_claude_md_section,
+    )
+
+    if editor not in (None, "all", "claude", "cursor"):
+        err.print(f"[red]--editor must be one of: claude, cursor, all (got {editor!r}).[/red]")
+        raise typer.Exit(1)
+
+    # Resolve API URL: --api-url > tms.yml server > localhost default.
+    cwd = Path.cwd()
+    tms_path = cwd / TMS_YML_NAME
+    tms_config: dict = {}
+    if tms_path.exists():
+        import yaml
+
+        tms_config = yaml.safe_load(tms_path.read_text()) or {}
+
+    api_url = api_url_override or tms_config.get("server") or "http://localhost:8000"
+
+    only = None if editor in (None, "all") else editor
+    editors = detect_editors(only=only)
+    if not editors:
+        err.print(
+            "[red]No supported editor configs detected.[/red] "
+            "Pass [bold]--editor claude[/bold] or [bold]--editor cursor[/bold] to create the config explicitly."
+        )
+        raise typer.Exit(1)
+
+    # Probe the backend before any DB or config writes. Non-fatal — the editor
+    # config can be written ahead of the backend coming up. But if we're also
+    # going to mint a key (which talks to the DB directly, not the API), the
+    # probe also serves as a "is the developer's local env up at all" signal.
+    backend_reachable, backend_error = await check_backend_reachable(api_url)
+
+    # Resolve API key.
+    if api_key_arg:
+        api_key = api_key_arg
+        key_source = "(provided via --api-key)"
+    elif dry_run:
+        api_key = "<would-mint>"
+        key_source = "(would mint in non-dry-run)"
+    else:
+        # Auto-bootstrap a default org on first install so the developer
+        # doesn't have to know the org model exists. Idempotent — no-op
+        # if any org already exists. Suppressed when --org is passed
+        # (an explicit org request should fail loudly, not silently
+        # auto-create something different).
+        org_bootstrapped: str | None = None
+        if org_slug is None:
+            try:
+                ensured_slug, was_created = await _ensure_default_org()
+            except (OperationalError, DBAPIError) as exc:
+                err.print(
+                    f"[red]Cannot connect to the database.[/red] {type(exc).__name__}: {exc}\n"
+                    "Start Postgres with: "
+                    "[bold]docker compose -f infra/docker-compose.yml up -d postgres[/bold]\n"
+                    "Then re-run [bold]loc agent install[/bold]."
+                )
+                raise typer.Exit(1) from exc
+            if was_created:
+                org_bootstrapped = ensured_slug
+
+        try:
+            api_key, resolved_org, is_admin = await _mint_api_key(key_name, org_slug)
+        except (OperationalError, DBAPIError) as exc:
+            err.print(
+                f"[red]Cannot connect to the database.[/red] {type(exc).__name__}: {exc}\n"
+                "Start Postgres with: "
+                "[bold]docker compose -f infra/docker-compose.yml up -d postgres[/bold]"
+            )
+            raise typer.Exit(1) from exc
+
+        role = "org-admin" if is_admin else "tenant"
+        bootstrap_note = " — created" if org_bootstrapped == resolved_org else ""
+        key_source = f"(minted: {key_name} / {resolved_org}{bootstrap_note} / {role})"
+
+    entry = build_mcp_entry(api_url=api_url, api_key=api_key)
+
+    masked = f"{api_key[:8]}…{api_key[-4:]}" if len(api_key) >= 12 else "***"
+    console.print("\n[bold]Installing ClaritiTMS MCP server[/bold]")
+    console.print(f"  api_url:  {api_url}")
+    console.print(f"  api_key:  {masked} {key_source}")
+    if backend_reachable:
+        console.print(f"  backend:  [green]reachable[/green] at {api_url}")
+    else:
+        reason = backend_error or "connection failed"
+        console.print(f"  backend:  [yellow]not reachable[/yellow] at {api_url} ({reason})")
+        console.print("            Start it later with:")
+        console.print("              [bold]docker compose -f infra/docker-compose.yml up -d postgres[/bold]")
+        console.print("              [bold]uvicorn app.main:app --reload --port 8000[/bold]")
+        console.print("            Install continues — config writes do not require the backend.")
+    console.print()
+
+    for ed in editors:
+        existing = read_editor_config(ed.path)
+        existing_servers = sorted((existing.get("mcpServers") or {}).keys())
+        will_update = "clariti-tms" in existing_servers
+        action = "update" if will_update else "add"
+        merged = merge_mcp_config(existing, entry)
+
+        if dry_run:
+            console.print(f"  [dim]would {action}[/dim] {ed.display} ({ed.path})")
+            console.print(f"    [dim]existing mcpServers: {existing_servers or 'none'}[/dim]")
+        else:
+            atomic_write_json(ed.path, merged)
+            console.print(f"  [green]✓[/green] {action} {ed.display}: {ed.path}")
+
+    if write_claude_md:
+        claude_md_path = cwd / "CLAUDE.md"
+        repo_name = tms_config.get("repo")
+        section = render_claude_md_section(repo_name=repo_name, server_url=api_url)
+        if dry_run:
+            action = "update" if claude_md_path.exists() else "create"
+            console.print(f"  [dim]would {action}[/dim] CLAUDE.md section at {claude_md_path}")
+        else:
+            modified = upsert_claude_md_section(claude_md_path, section)
+            verb = "updated" if modified else "unchanged"
+            console.print(f"  [green]✓[/green] CLAUDE.md {verb}: {claude_md_path}")
+
+    console.print()
+    if dry_run:
+        console.print("[yellow]Dry run — nothing written.[/yellow]")
+    else:
+        console.print("[bold green]Done.[/bold green] Restart your editor and try:")
+        console.print('  [bold]"List my ClaritiTMS projects."[/bold]')
+        console.print("  The agent should call the [bold]clariti-tms.list_projects[/bold] tool.")
 
 
 if __name__ == "__main__":

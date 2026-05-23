@@ -68,9 +68,7 @@ class GitHubAdapter:
             # An earlier revision called it as (repository, locale, key_values)
             # which crashed at runtime — mypy caught it during the 2026-05-18
             # type-check cleanup.
-            serialized = serialize_locale_file(
-                key_values, repository, locale, key_metadata=key_metadata
-            )
+            serialized = serialize_locale_file(key_values, repository, locale, key_metadata=key_metadata)
             await self._client.upsert_file(
                 repo=github_repo,
                 path=path,

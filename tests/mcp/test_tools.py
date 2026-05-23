@@ -169,9 +169,7 @@ async def test_ingest_strings_posts_body_and_returns_envelope() -> None:
                     {"id": "k_b", "key": "checkout.error.card_declined"},
                     {"id": "k_c", "key": "checkout.label.shipping"},
                 ],
-                "batches": [
-                    {"id": "b_1", "locale": "fr-FR", "component": "checkout", "status": "pending"}
-                ],
+                "batches": [{"id": "b_1", "locale": "fr-FR", "component": "checkout", "status": "pending"}],
             },
             status=201,
         )

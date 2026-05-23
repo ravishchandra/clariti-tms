@@ -180,9 +180,7 @@ async def test_ingest_creates_keys_and_queues_batch(fixture: Fixture, client: As
 
     # Verify the row landed.
     async with AsyncSessionLocal() as db:
-        rows = await db.scalars(
-            select(Key).where(Key.repository_id == fixture.org_a.repository_id)
-        )
+        rows = await db.scalars(select(Key).where(Key.repository_id == fixture.org_a.repository_id))
         keys_in_db = sorted(row.key for row in rows.all())
     assert "checkout.button.pay" in keys_in_db
 

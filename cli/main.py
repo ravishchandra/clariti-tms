@@ -722,9 +722,7 @@ async def _pull(project_slug: str, locale_filter: str | None, output_dir: str) -
                     key_metadata[key_name] = source_metadata
 
             for loc, translations in by_locale.items():
-                content = serialize_locale_file(
-                    translations, repository, loc, key_metadata=key_metadata or None
-                )
+                content = serialize_locale_file(translations, repository, loc, key_metadata=key_metadata or None)
                 rel_path = locale_file_path(repository, loc)
                 dest = out_root / rel_path
                 dest.parent.mkdir(parents=True, exist_ok=True)

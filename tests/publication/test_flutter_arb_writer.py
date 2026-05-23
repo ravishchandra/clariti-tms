@@ -19,9 +19,7 @@ class TestSerializeFlutterArb:
         assert loaded == {"@@locale": "fr-FR"}
 
     def test_keys_emitted_in_insertion_order(self):
-        out = serialize_flutter_arb(
-            {"a": "Alpha", "b": "Bravo", "c": "Charlie"}, locale="es-ES"
-        )
+        out = serialize_flutter_arb({"a": "Alpha", "b": "Bravo", "c": "Charlie"}, locale="es-ES")
         loaded = json.loads(out)
         # @@locale first, then translations in given order
         assert list(loaded.keys()) == ["@@locale", "a", "b", "c"]
@@ -41,9 +39,7 @@ class TestSerializeFlutterArb:
                 "placeholders": {"name": {"type": "String"}},
             }
         }
-        out = serialize_flutter_arb(
-            {"greeting": "Bonjour, {name}!"}, locale="fr-FR", metadata=meta
-        )
+        out = serialize_flutter_arb({"greeting": "Bonjour, {name}!"}, locale="fr-FR", metadata=meta)
         loaded = json.loads(out)
         assert loaded["greeting"] == "Bonjour, {name}!"
         assert loaded["@greeting"] == meta["greeting"]
@@ -87,9 +83,7 @@ class TestRoundTrip:
         assert pk.placeholders == ["{name}"]
 
     def test_icu_plural_round_trip(self):
-        translations = {
-            "itemCount": "{count, plural, =0{Aucun} =1{1 article} other{{count} articles}}"
-        }
+        translations = {"itemCount": "{count, plural, =0{Aucun} =1{1 article} other{{count} articles}}"}
         meta = {
             "itemCount": {
                 "description": "Number of items in cart",

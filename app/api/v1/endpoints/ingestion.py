@@ -104,18 +104,14 @@ async def ingest_repository(
         ) from exc
 
     # Project (for target_locales) is reached through the repository's project.
-    project_row = await db.scalar(
-        select(Project).where(Project.id == repository.project_id)
-    )
+    project_row = await db.scalar(select(Project).where(Project.id == repository.project_id))
     if project_row is None:
         # Shouldn't happen — ScopedRepository already proved the repo's
         # project belongs to the caller's org — but treat as 404 if it does.
         raise HTTPException(status_code=404, detail="Project not found")
 
     # Target locales come from configured LocaleConfig rows on the project.
-    locale_rows = await db.scalars(
-        select(LocaleConfig.locale).where(LocaleConfig.project_id == repository.project_id)
-    )
+    locale_rows = await db.scalars(select(LocaleConfig.locale).where(LocaleConfig.project_id == repository.project_id))
     target_locales = [row for row in locale_rows.all() if row != project_row.source_locale]
 
     summary = await upsert_keys(
@@ -161,9 +157,7 @@ async def ingest_repository(
         # through a set-diff avoids racing with concurrent calls and keeps
         # the response payload focused on this call's work.
         existing_rows = await db.scalars(
-            select(TranslationBatch.id).where(
-                TranslationBatch.repository_id == repository.id
-            )
+            select(TranslationBatch.id).where(TranslationBatch.repository_id == repository.id)
         )
         before_ids = {row for row in existing_rows.all()}
 
@@ -172,9 +166,7 @@ async def ingest_repository(
         )
 
         if batch_count > 0:
-            new_batches_q = select(TranslationBatch).where(
-                TranslationBatch.repository_id == repository.id
-            )
+            new_batches_q = select(TranslationBatch).where(TranslationBatch.repository_id == repository.id)
             if before_ids:
                 new_batches_q = new_batches_q.where(TranslationBatch.id.notin_(before_ids))
             new_batches = await db.scalars(new_batches_q)

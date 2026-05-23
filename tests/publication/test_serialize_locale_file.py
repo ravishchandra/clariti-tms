@@ -20,6 +20,7 @@ from app.publication.helpers import serialize_locale_file
 class _RepoStub:
     """Minimal stand-in for app.models.Repository — only the fields the
     helpers touch. Avoids dragging in SQLAlchemy + a real session."""
+
     file_format: str
     github_path: str | None = ""
     source_file: str | None = None

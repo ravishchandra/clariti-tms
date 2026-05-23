@@ -260,10 +260,12 @@ class TestH6PublishRepositoryRespectsBoundary:
                 repository,
                 translations_by_locale,
                 branch_name,
+                key_metadata=None,
             ) -> str:
                 captured["repository_id"] = repository.id
                 captured["translations_by_locale"] = translations_by_locale
                 captured["branch_name"] = branch_name
+                captured["key_metadata"] = key_metadata
                 return "https://github.com/acme/repo/pull/42"
 
         # Patch the symbol used by service.publish_repository (it imports lazily).

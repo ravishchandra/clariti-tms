@@ -7,6 +7,7 @@ imports SQLAlchemy — these are pure data containers.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -34,6 +35,10 @@ class ParsedKey:
     risk_class: str = "standard"
     # Free-text description (xcstrings comment, developer annotation, …)
     description: str | None = None
+    # Format-native per-key metadata (Flutter ``@key`` block, future xcstrings
+    # extras). Stored verbatim so the writer can round-trip the locale file
+    # without losing developer-authored hints (placeholder types, context).
+    source_metadata: dict[str, Any] | None = None
 
 
 @dataclass

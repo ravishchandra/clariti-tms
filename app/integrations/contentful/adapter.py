@@ -78,6 +78,7 @@ class ContentfulAdapter:
         repository: Repository,
         translations_by_locale: dict[str, dict[str, str]],
         branch_name: str,  # ignored for Contentful — no branches
+        key_metadata: dict[str, dict] | None = None,  # ignored — Contentful entries carry their own metadata
     ) -> str:
         """Write translated values back to Contentful and publish each entry.
 

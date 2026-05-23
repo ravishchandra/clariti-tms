@@ -47,6 +47,7 @@ VALID_FORMATS = {
     "i18next",
     "icu",
     "flat-json",
+    "flutter-arb",
 }
 
 

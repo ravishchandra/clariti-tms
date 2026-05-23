@@ -29,6 +29,7 @@ PLATFORM_FORMATS = {
     "android": ["android-xml"],
     "web": ["i18next", "icu", "flat-json"],
     "backend": ["i18next", "flat-json"],
+    "flutter": ["flutter-arb"],
 }
 
 FILE_FORMAT_EXTENSIONS = {
@@ -37,6 +38,7 @@ FILE_FORMAT_EXTENSIONS = {
     ".stringsdict": "ios-stringsdict",
     ".xml": "android-xml",
     ".json": "i18next",
+    ".arb": "flutter-arb",
 }
 
 
@@ -79,7 +81,7 @@ def init(
     repo_name = typer.prompt("Repository name (e.g. ios, android, frontend)", default=cwd.name)
 
     # Platform
-    platform_choices = ["ios", "android", "web", "backend", "other"]
+    platform_choices = ["ios", "android", "web", "backend", "flutter", "other"]
     console.print(f"Platform: {', '.join(platform_choices)}")
     platform = typer.prompt("Platform", default="web")
     while platform not in platform_choices:
@@ -103,6 +105,7 @@ def init(
             "android": "app/src/main/res/values/strings.xml",
             "web": "src/locales/en/common.json",
             "backend": "locales/en.json",
+            "flutter": "lib/l10n/app_en.arb",
             "other": "locales/en.json",
         }.get(platform, "locales/en.json"),
     )
@@ -193,7 +196,7 @@ async def _ingest_file(
         err.print(
             f"[red]Cannot detect file format for {file_path.name}.[/red]\n"
             "Use [bold]--format[/bold] to specify: ios-strings, ios-xcstrings, "
-            "android-xml, i18next, icu, flat-json"
+            "android-xml, i18next, icu, flat-json, flutter-arb"
         )
         raise typer.Exit(1)
 
@@ -690,7 +693,7 @@ async def _pull(project_slug: str, locale_filter: str | None, output_dir: str) -
 
         for repository in repos:
             q = (
-                select(Key.key, Translation.locale, Translation.value)
+                select(Key.key, Key.source_metadata, Translation.locale, Translation.value)
                 .join(Translation, Translation.key_id == Key.id)
                 .where(
                     Key.repository_id == repository.id,
@@ -707,15 +710,21 @@ async def _pull(project_slug: str, locale_filter: str | None, output_dir: str) -
             if not rows:
                 continue
 
-            # Group by locale
+            # Group by locale, collect per-key source_metadata once (it's
+            # the same across all locales for a given key).
             from collections import defaultdict
 
             by_locale: dict[str, dict[str, str]] = defaultdict(dict)
-            for key_name, loc, value in rows:
+            key_metadata: dict[str, dict] = {}
+            for key_name, source_metadata, loc, value in rows:
                 by_locale[loc][key_name] = value
+                if source_metadata and key_name not in key_metadata:
+                    key_metadata[key_name] = source_metadata
 
             for loc, translations in by_locale.items():
-                content = serialize_locale_file(translations, repository, loc)
+                content = serialize_locale_file(
+                    translations, repository, loc, key_metadata=key_metadata or None
+                )
                 rel_path = locale_file_path(repository, loc)
                 dest = out_root / rel_path
                 dest.parent.mkdir(parents=True, exist_ok=True)

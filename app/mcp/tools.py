@@ -298,8 +298,10 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "Ingest a source-strings file into a repository. The backend parses with "
             "the same parser the GitHub/Contentful webhook uses, so the agent doesn't "
-            "need per-format logic. Runs in partial mode — keys absent from this "
-            "upload are not deactivated."
+            "need per-format logic. Supported platforms: iOS (.strings, .xcstrings, "
+            ".stringsdict), Android (strings.xml), web (i18next/ICU JSON), Flutter "
+            "(.arb). Runs in partial mode — keys absent from this upload are not "
+            "deactivated."
         ),
         "input_schema": {
             "type": "object",
@@ -315,6 +317,7 @@ TOOLS: list[dict[str, Any]] = [
                         "i18next",
                         "icu",
                         "flat-json",
+                        "flutter-arb",
                     ],
                 },
                 "path": {

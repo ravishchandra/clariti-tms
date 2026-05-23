@@ -28,6 +28,10 @@ async def publish_repository(
         return None
 
     translations_by_locale: dict[str, dict[str, str]] = defaultdict(dict)
+    # Per-key format-native metadata (e.g. Flutter ARB @key blocks). Shared
+    # across locales — every locale file is emitted with the same source
+    # metadata, just with the value strings translated.
+    key_metadata: dict[str, dict] = {}
     translation_ids: list = []
     for translation, key in pairs:
         # list_approved_translations already filters value IS NOT NULL, but the
@@ -36,6 +40,8 @@ async def publish_repository(
             continue
         translations_by_locale[translation.locale][key.key] = translation.value
         translation_ids.append(translation.id)
+        if key.source_metadata and key.key not in key_metadata:
+            key_metadata[key.key] = key.source_metadata
 
     from app.integrations.github.adapter import GitHubAdapter  # local import avoids circular
 
@@ -47,6 +53,7 @@ async def publish_repository(
         repository=repository,
         translations_by_locale=dict(translations_by_locale),
         branch_name=branch_name,
+        key_metadata=key_metadata or None,
     )
 
     await mark_translations_published(

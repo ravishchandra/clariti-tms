@@ -41,6 +41,7 @@ class PlatformType(str, enum.Enum):  # noqa: UP042 — StrEnum changes __str__ s
     android = "android"
     web = "web"
     backend = "backend"
+    flutter = "flutter"
     other = "other"
 
 
@@ -52,6 +53,7 @@ class FileFormatType(str, enum.Enum):  # noqa: UP042 — StrEnum changes __str__
     android_xml = "android-xml"
     gettext_po = "gettext-po"
     flat_json = "flat-json"
+    flutter_arb = "flutter-arb"
 
 
 class PluralConvention(str, enum.Enum):  # noqa: UP042 — StrEnum changes __str__ semantics; keep explicit (str, Enum) for SQLAlchemy native_enum + Pydantic JSON serialization stability
@@ -302,6 +304,10 @@ class Key(Base):
     source_hash: Mapped[str] = mapped_column(Text, nullable=False)
     string_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Format-native per-key metadata (Flutter ARB @key blocks, future xcstrings
+    # / Android comments). Stored verbatim from the parser; passed to the
+    # writer at publish time so locale files round-trip cleanly.
+    source_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     component: Mapped[str | None] = mapped_column(Text, nullable=True)
     screen: Mapped[str | None] = mapped_column(Text, nullable=True)
     max_length: Mapped[int | None] = mapped_column(Integer, nullable=True)

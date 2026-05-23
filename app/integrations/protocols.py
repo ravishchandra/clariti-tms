@@ -20,5 +20,6 @@ class PublicationAdapter(Protocol):
         repository: Repository,
         translations_by_locale: dict[str, dict[str, str]],
         branch_name: str,
+        key_metadata: dict[str, dict] | None = None,
     ) -> str:  # returns PR URL
         ...

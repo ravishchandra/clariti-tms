@@ -74,6 +74,7 @@ async def upsert_keys(
                 string_type=parsed.string_type,
                 risk_class=parsed.risk_class,
                 description=parsed.description,
+                source_metadata=parsed.source_metadata,
                 source=result.platform,
             )
             db.add(key)
@@ -105,6 +106,10 @@ async def upsert_keys(
             row.has_structural_tags = parsed.has_structural_tags
             row.icu_shape = parsed.icu_shape
             row.plural_format = parsed.plural_format
+            # source_metadata is parser-authored, refreshed on every change
+            # so the publish-time @key block stays in sync with what the
+            # developer most recently authored.
+            row.source_metadata = parsed.source_metadata
 
             stale = await db.execute(
                 select(Translation).where(

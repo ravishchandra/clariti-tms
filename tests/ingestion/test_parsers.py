@@ -18,6 +18,7 @@ from app.ingestion.parsers.common import (
     infer_risk_class,
     infer_string_type,
 )
+from app.ingestion.parsers.flutter_arb import parse_flutter_arb
 from app.ingestion.parsers.ios import (
     parse_ios_file,
     parse_strings_file,
@@ -735,6 +736,137 @@ class TestReactParser:
 
 
 # ===========================================================================
+# Flutter ARB parser
+# ===========================================================================
+
+
+class TestFlutterArbParser:
+    BASIC_ARB = """{
+  "@@locale": "en",
+  "@@last_modified": "2024-01-15T10:30:00Z",
+  "greeting": "Hello, {name}!",
+  "@greeting": {
+    "description": "Welcome greeting on the home screen",
+    "placeholders": {"name": {"type": "String", "example": "Jane"}}
+  },
+  "itemCount": "{count, plural, =0{No items} =1{1 item} other{{count} items}}",
+  "@itemCount": {
+    "description": "Number of items in cart",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "simpleLabel": "Settings"
+}"""
+
+    def test_plain_key_no_metadata(self):
+        keys = parse_flutter_arb('{"simpleLabel": "Settings"}', "app_en.arb")
+        assert len(keys) == 1
+        assert keys[0].key == "simpleLabel"
+        assert keys[0].source_text == "Settings"
+        assert keys[0].description is None
+        assert keys[0].source_metadata is None
+
+    def test_metadata_populates_description(self):
+        keys = parse_flutter_arb(self.BASIC_ARB, "app_en.arb")
+        by_key = {k.key: k for k in keys}
+        assert by_key["greeting"].description == "Welcome greeting on the home screen"
+        assert by_key["itemCount"].description == "Number of items in cart"
+        assert by_key["simpleLabel"].description is None
+
+    def test_source_metadata_preserved_full_at_key_block(self):
+        """The whole `@key` block is carried verbatim on ParsedKey.source_metadata
+        so the publication writer can round-trip it back into the locale file.
+        """
+        keys = parse_flutter_arb(self.BASIC_ARB, "app_en.arb")
+        by_key = {k.key: k for k in keys}
+        assert by_key["greeting"].source_metadata == {
+            "description": "Welcome greeting on the home screen",
+            "placeholders": {"name": {"type": "String", "example": "Jane"}},
+        }
+        assert by_key["itemCount"].source_metadata == {
+            "description": "Number of items in cart",
+            "placeholders": {"count": {"type": "int"}},
+        }
+        assert by_key["simpleLabel"].source_metadata is None
+
+    def test_locale_directive_skipped(self):
+        keys = parse_flutter_arb(self.BASIC_ARB, "app_en.arb")
+        key_names = [k.key for k in keys]
+        assert "@@locale" not in key_names
+        assert "@@last_modified" not in key_names
+
+    def test_directives_skipped_in_general(self):
+        content = '{"@@locale": "en", "@@x_custom": "anything", "label": "Hi"}'
+        keys = parse_flutter_arb(content, "app_en.arb")
+        assert len(keys) == 1
+        assert keys[0].key == "label"
+
+    def test_at_metadata_blocks_skipped(self):
+        keys = parse_flutter_arb(self.BASIC_ARB, "app_en.arb")
+        key_names = [k.key for k in keys]
+        # @greeting and @itemCount should not be emitted as their own keys
+        assert "@greeting" not in key_names
+        assert "@itemCount" not in key_names
+
+    def test_single_curly_placeholders_extracted(self):
+        keys = parse_flutter_arb('{"hello": "Hi {name}, age {age}"}', "app_en.arb")
+        assert keys[0].placeholders == ["{name}", "{age}"]
+
+    def test_multiple_placeholders_dedup(self):
+        keys = parse_flutter_arb('{"x": "{a} and {b} and {a}"}', "app_en.arb")
+        assert keys[0].placeholders == ["{a}", "{b}"]
+
+    def test_icu_plural_inline_detected(self):
+        keys = parse_flutter_arb(self.BASIC_ARB, "app_en.arb")
+        by_key = {k.key: k for k in keys}
+        assert by_key["itemCount"].icu_shape == "plural"
+        assert by_key["itemCount"].plural_format == "icu"
+
+    def test_plain_string_icu_shape(self):
+        keys = parse_flutter_arb('{"label": "Hello"}', "app_en.arb")
+        assert keys[0].icu_shape == "plain"
+        assert keys[0].plural_format is None
+
+    def test_component_from_filename(self):
+        keys = parse_flutter_arb('{"label": "Hi"}', "checkout_en.arb")
+        # checkout_en → strip locale suffix → checkout
+        assert keys[0].component == "checkout"
+
+    def test_component_app_filename_maps_to_shared(self):
+        keys = parse_flutter_arb('{"label": "Hi"}', "app_en.arb")
+        assert keys[0].component == "shared"
+
+    def test_component_from_dotted_key_overrides_filename(self):
+        keys = parse_flutter_arb('{"checkout.confirm": "Confirm"}', "app_en.arb")
+        assert keys[0].component == "checkout"
+
+    def test_malformed_json_raises(self):
+        with pytest.raises(ValueError, match="Invalid JSON"):
+            parse_flutter_arb("not json", "app_en.arb")
+
+    def test_non_object_root_raises(self):
+        with pytest.raises(ValueError, match="Top-level JSON"):
+            parse_flutter_arb('["a", "b"]', "app_en.arb")
+
+    def test_empty_arb(self):
+        keys = parse_flutter_arb("{}", "app_en.arb")
+        assert keys == []
+
+    def test_only_directives_no_keys(self):
+        keys = parse_flutter_arb('{"@@locale": "en", "@@author": "ops"}', "app_en.arb")
+        assert keys == []
+
+    def test_orphan_metadata_block_silently_ignored(self):
+        # @greeting has no matching plain `greeting` key
+        keys = parse_flutter_arb(
+            '{"@greeting": {"description": "no match"}, "label": "Hi"}',
+            "app_en.arb",
+        )
+        assert len(keys) == 1
+        assert keys[0].key == "label"
+        assert keys[0].description is None
+
+
+# ===========================================================================
 # Top-level parse_file dispatcher
 # ===========================================================================
 
@@ -761,6 +893,12 @@ class TestParseFileDispatcher:
     def test_icu_dispatched(self):
         result = parse_file('{"greeting": "Hello {name}"}', "common.json", "icu")
         assert result.platform == "web"
+
+    def test_flutter_arb_dispatched(self):
+        result = parse_file('{"label": "Hi"}', "app_en.arb", "flutter-arb")
+        assert result.platform == "flutter"
+        assert result.file_format == "flutter-arb"
+        assert result.keys[0].key == "label"
 
     def test_unknown_format_raises(self):
         with pytest.raises(ValueError, match="Unknown file_format"):

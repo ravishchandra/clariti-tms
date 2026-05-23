@@ -10,6 +10,7 @@ Public API
 from __future__ import annotations
 
 from .android import parse_android_file
+from .flutter_arb import parse_flutter_arb
 from .ios import parse_ios_file
 from .react import parse_react_file
 from .types import ParsedKey, ParseResult
@@ -29,6 +30,7 @@ _DISPATCH: dict[str, tuple[object, str, str]] = {
     "i18next": (parse_react_file, "web", "i18next"),
     "icu": (parse_react_file, "web", "icu"),
     "flat-json": (parse_react_file, "web", "flat-json"),
+    "flutter-arb": (parse_flutter_arb, "flutter", "flutter-arb"),
 }
 
 
@@ -46,7 +48,7 @@ def parse_file(content: str, filename: str, file_format: str) -> ParseResult:
         are used by parsers.
     file_format:
         One of: ``ios-strings``, ``ios-xcstrings``, ``ios-stringsdict``,
-        ``android-xml``, ``i18next``, ``icu``, ``flat-json``.
+        ``android-xml``, ``i18next``, ``icu``, ``flat-json``, ``flutter-arb``.
 
     Raises
     ------

@@ -9,6 +9,7 @@ import os
 
 from app.models import Repository
 from app.publication.writers.android import serialize_android_xml
+from app.publication.writers.flutter_arb import serialize_flutter_arb
 from app.publication.writers.ios import serialize_strings, serialize_stringsdict, serialize_xcstrings
 from app.publication.writers.react import serialize_react_json
 
@@ -22,6 +23,7 @@ def locale_file_path(repository: Repository, locale: str) -> str:
     - android-xml:     {github_path}values-{android_locale_tag(locale)}/strings.xml
     - i18next:         {github_path}{locale}/{namespace_from_source_file(repository)}.json
     - icu/flat-json:   {github_path}{locale}.json
+    - flutter-arb:     {github_path}app_{locale_underscore(locale)}.arb
     """
     base = repository.github_path or ""
 
@@ -38,6 +40,8 @@ def locale_file_path(repository: Repository, locale: str) -> str:
     if fmt == "i18next":
         ns = namespace_from_source_file(repository)
         return f"{base}{locale}/{ns}.json"
+    if fmt == "flutter-arb":
+        return f"{base}app_{locale.replace('-', '_')}.arb"
     # icu, flat-json, and any unknown format
     return f"{base}{locale}.json"
 
@@ -77,8 +81,14 @@ def serialize_locale_file(
     translations: dict[str, str],
     repository: Repository,
     locale: str,
+    key_metadata: dict[str, dict] | None = None,
 ) -> str:
-    """Dispatch to the correct writer based on repository.file_format."""
+    """Dispatch to the correct writer based on repository.file_format.
+
+    ``key_metadata`` maps source key → format-native metadata block (currently
+    only consumed by the Flutter ARB writer to emit ``@key`` blocks). Other
+    writers ignore it.
+    """
     fmt = repository.file_format
     if fmt == "ios-strings":
         return serialize_strings(translations)
@@ -90,6 +100,8 @@ def serialize_locale_file(
         return serialize_android_xml(translations, locale=locale)
     if fmt in ("i18next", "icu", "flat-json"):
         return serialize_react_json(translations)
+    if fmt == "flutter-arb":
+        return serialize_flutter_arb(translations, locale=locale, metadata=key_metadata)
     raise ValueError(f"Unsupported file_format: {fmt!r}")
 
 

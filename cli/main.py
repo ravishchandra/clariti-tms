@@ -327,28 +327,36 @@ def translate(
 
 async def _translate(project_slug: str, locale: str | None, provider_name: str, max_batches: int | None) -> None:
     from app.core.database import AsyncSessionLocal
-    from app.core.settings import get_settings
+    from app.llm.app_config import load_app_settings, seed_app_settings_if_missing
     from app.llm.providers.anthropic import AnthropicProvider
     from app.llm.providers.openai import OpenAIProvider
     from app.llm.providers.openrouter import OpenRouterProvider
     from app.models import BatchStatus, Project, TranslationBatch
     from app.mt.worker import run_worker
 
-    settings = get_settings()
-
     providers: dict = {}
-    if settings.ANTHROPIC_API_KEY:
-        providers["anthropic"] = AnthropicProvider(api_key=settings.ANTHROPIC_API_KEY)
-    if settings.OPENAI_API_KEY:
-        providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
-    if settings.OPENROUTER_API_KEY:
-        providers["openrouter"] = OpenRouterProvider(
-            api_key=settings.OPENROUTER_API_KEY,
-            model=settings.OPENROUTER_MODEL,
-        )
+    async with AsyncSessionLocal() as cfg_db:
+        # The CLI can be the first process to touch a fresh DB after the
+        # migration runs (operators run `loc translate` before booting the
+        # API). Seed here too so the row exists by the time we read it.
+        await seed_app_settings_if_missing(cfg_db)
+        app_settings = await load_app_settings(cfg_db)
+        from app.core.crypto import decrypt
+
+        if app_settings.anthropic_api_key_encrypted:
+            providers["anthropic"] = AnthropicProvider(
+                api_key=decrypt(app_settings.anthropic_api_key_encrypted) or ""
+            )
+        if app_settings.openai_api_key_encrypted:
+            providers["openai"] = OpenAIProvider(api_key=decrypt(app_settings.openai_api_key_encrypted) or "")
+        if app_settings.openrouter_api_key_encrypted:
+            providers["openrouter"] = OpenRouterProvider(
+                api_key=decrypt(app_settings.openrouter_api_key_encrypted) or "",
+                model=app_settings.openrouter_model,
+            )
 
     if not providers:
-        err.print("[red]No API keys configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.[/red]")
+        err.print("[red]No API keys configured. Edit them in Settings → Providers or seed via .env.[/red]")
         raise typer.Exit(1)
 
     if provider_name not in providers:
@@ -1114,23 +1122,29 @@ def eval(
 
 
 async def _eval(reference: str, prompt_version: str, provider_name: str, output: str | None) -> None:
-    from app.core.settings import get_settings
+    from app.core.crypto import decrypt
+    from app.core.database import AsyncSessionLocal
+    from app.llm.app_config import load_app_settings, seed_app_settings_if_missing
     from app.llm.providers.anthropic import AnthropicProvider
     from app.llm.providers.openai import OpenAIProvider
     from app.llm.providers.openrouter import OpenRouterProvider
     from app.mt.eval import run_eval
 
-    settings = get_settings()
     providers: dict = {}
-    if settings.ANTHROPIC_API_KEY:
-        providers["anthropic"] = AnthropicProvider(api_key=settings.ANTHROPIC_API_KEY)
-    if settings.OPENAI_API_KEY:
-        providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
-    if settings.OPENROUTER_API_KEY:
-        providers["openrouter"] = OpenRouterProvider(
-            api_key=settings.OPENROUTER_API_KEY,
-            model=settings.OPENROUTER_MODEL,
-        )
+    async with AsyncSessionLocal() as cfg_db:
+        await seed_app_settings_if_missing(cfg_db)
+        app_settings = await load_app_settings(cfg_db)
+        if app_settings.anthropic_api_key_encrypted:
+            providers["anthropic"] = AnthropicProvider(
+                api_key=decrypt(app_settings.anthropic_api_key_encrypted) or ""
+            )
+        if app_settings.openai_api_key_encrypted:
+            providers["openai"] = OpenAIProvider(api_key=decrypt(app_settings.openai_api_key_encrypted) or "")
+        if app_settings.openrouter_api_key_encrypted:
+            providers["openrouter"] = OpenRouterProvider(
+                api_key=decrypt(app_settings.openrouter_api_key_encrypted) or "",
+                model=app_settings.openrouter_model,
+            )
 
     if provider_name not in providers:
         err.print(f"[red]Provider '{provider_name}' not available.[/red]")

@@ -45,7 +45,6 @@ from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.settings import get_settings
 from app.llm.protocol import LLMProvider, TokenUsage
 from app.llm.registry import RoutingContext, select_fallback_provider, select_provider
 from app.models import (
@@ -602,17 +601,27 @@ async def translate_batch(
 
     `translate_temperature` and `evaluate_temperature` control sampling for
     the translation and QA-evaluation LLM calls respectively. ``None`` (the
-    default) falls back to the settings defaults
-    (``TRANSLATE_TEMPERATURE`` / ``EVALUATE_TEMPERATURE``). Both default to
-    0.0 (deterministic) so eval baselines and TM stay consistent — see
+    default) falls back to the values stored on the singleton
+    ``app_settings`` row (editable via Settings → Providers). Both default
+    to 0.0 (deterministic) so eval baselines and TM stay consistent — see
     docs/05 "Determinism & reproducibility". Back-translation QA always
     runs at 0.0 regardless; see `app.mt.qa.back_translation_qa`.
 
     Returns a summary dict with counts and cost.
     """
-    settings = get_settings()
-    translate_temp = translate_temperature if translate_temperature is not None else settings.TRANSLATE_TEMPERATURE
-    evaluate_temp = evaluate_temperature if evaluate_temperature is not None else settings.EVALUATE_TEMPERATURE
+    from app.llm.app_config import load_app_settings
+
+    app_settings = await load_app_settings(db)
+    translate_temp = (
+        translate_temperature
+        if translate_temperature is not None
+        else float(app_settings.translate_temperature)
+    )
+    evaluate_temp = (
+        evaluate_temperature
+        if evaluate_temperature is not None
+        else float(app_settings.evaluate_temperature)
+    )
 
     deepl_locales = deepl_locales or []
 

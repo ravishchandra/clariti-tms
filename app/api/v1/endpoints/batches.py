@@ -181,7 +181,10 @@ async def trigger_project_mt(
     db: DB,
     locale: str | None = Query(
         None,
-        description="Restrict to batches in this BCP-47 locale (e.g. 'de-DE'). Omitting fans out across every locale in the project.",
+        description=(
+            "Restrict to batches in this BCP-47 locale (e.g. 'de-DE'). "
+            "Omitting fans out across every locale in the project."
+        ),
     ),
     status_filter: str = Query(
         "pending",
@@ -208,7 +211,10 @@ async def trigger_project_mt(
     except ValueError as exc:
         raise HTTPException(
             status_code=422,
-            detail=f"Invalid batch status '{status_filter}'. Use 'pending', 'mt_running', 'mt_complete', 'needs_review', or 'approved'.",
+            detail=(
+                f"Invalid batch status '{status_filter}'. Use 'pending', 'mt_running', "
+                "'mt_complete', 'needs_review', or 'approved'."
+            ),
         ) from exc
 
     q = select(TranslationBatch).where(

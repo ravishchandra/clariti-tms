@@ -103,6 +103,7 @@ async def enqueue_batch_for_mt(db: AsyncSession, batch: TranslationBatch) -> boo
     batch.status = BatchStatus.pending
     return True
 
+
 # Per-1K-token pricing now lives on the LLMProvider Protocol (M5); real
 # token counts come back with every `translate()` / `evaluate()` call as a
 # `TokenUsage` dict (D2). See `app/llm/protocol.py` and each provider in

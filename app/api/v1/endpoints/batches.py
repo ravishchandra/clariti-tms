@@ -7,14 +7,21 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
-from app.api.deps import DB, CurrentKey, ScopedBatch, assert_project_in_org
+from app.api.deps import DB, CurrentKey, ScopedBatch, ScopedProject, assert_project_in_org
 from app.api.v1.schemas.batches import BatchRead, BatchTrigger, MtRunRead
 from app.models import BatchStatus, MtRun, Translation, TranslationBatch, TranslationStatus
+from app.mt.service import enqueue_batch_for_mt
 from app.mt.transitions import IllegalTransitionError, apply_transition
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Companion router for project-scoped batch operations (docs/15 F3).
+# Mounted in router.py under `/projects` so the path resolves to
+# `POST /projects/{project_id}/trigger-mt` — alongside the existing
+# locale-configs / glossary endpoints that already live under that prefix.
+project_router = APIRouter()
 
 
 @router.get("")
@@ -78,10 +85,10 @@ async def trigger_mt(
     db: DB,
     batch: ScopedBatch,
 ) -> dict[str, Any]:
-    if batch.status == BatchStatus.mt_running:
+    queued = await enqueue_batch_for_mt(db, batch)
+    if not queued:
         raise HTTPException(status_code=409, detail="MT is already running for this batch")
 
-    batch.status = BatchStatus.pending
     await db.commit()
     await db.refresh(batch)
 
@@ -166,6 +173,77 @@ async def reject_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
         "rejected": rejected_count,
         "skipped": skipped_count,
     }
+
+
+@project_router.post("/{project_id}/trigger-mt")
+async def trigger_project_mt(
+    project: ScopedProject,
+    db: DB,
+    locale: str | None = Query(
+        None,
+        description="Restrict to batches in this BCP-47 locale (e.g. 'de-DE'). Omitting fans out across every locale in the project.",
+    ),
+    status_filter: str = Query(
+        "pending",
+        alias="status",
+        description=(
+            "Batch status to enqueue. Default 'pending' covers the typical "
+            "'Translate N pending' flow. Pass 'mt_proposed' to retry batches "
+            "whose primary MT call failed and need re-running."
+        ),
+    ),
+) -> dict[str, Any]:
+    """Bulk-enqueue every matching batch in *project* for MT (docs/15 F3).
+
+    Per the plan, this avoids the N-auth-checks / N-network-round-trips path
+    the client-side fan-out would otherwise take. One auth check, one DB
+    transaction, returns counts. Idempotent at the worker layer — the MT
+    worker dedupes by batch id, so re-running this immediately produces a
+    fully-skipped result rather than double-translating anything.
+    """
+    # Validate the status string against the enum. We accept the literal
+    # `BatchStatus` values; anything else is a 422.
+    try:
+        target_status = BatchStatus(status_filter)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid batch status '{status_filter}'. Use 'pending', 'mt_running', 'mt_complete', 'needs_review', or 'approved'.",
+        ) from exc
+
+    q = select(TranslationBatch).where(
+        TranslationBatch.project_id == project.id,
+        TranslationBatch.status == target_status,
+    )
+    if locale is not None:
+        q = q.where(TranslationBatch.locale == locale)
+
+    rows = await db.execute(q)
+    batches = rows.scalars().all()
+
+    queued = 0
+    skipped = 0
+    for batch in batches:
+        # `enqueue_batch_for_mt` already short-circuits batches that are
+        # mt_running; everything else passes (the default `status=pending`
+        # query already excludes them, but the helper double-guards in case
+        # callers pass a different `status` filter that could include them).
+        if await enqueue_batch_for_mt(db, batch):
+            queued += 1
+        else:
+            skipped += 1
+
+    await db.commit()
+    logger.info(
+        "bulk-mt enqueued for project %s: queued=%d skipped=%d (locale=%s, status=%s)",
+        project.id,
+        queued,
+        skipped,
+        locale,
+        status_filter,
+    )
+
+    return {"queued": queued, "skipped": skipped}
 
 
 @router.get("/{batch_id}/mt-runs", response_model=dict)

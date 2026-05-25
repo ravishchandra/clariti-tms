@@ -1,16 +1,21 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownToLine, ArrowUpFromLine, ChevronRight } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusChip } from "@/components/status-chip";
-import { api, getApiKey } from "@/lib/api";
+import { ApiError, api, getApiKey } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -56,6 +61,18 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
     queryKey: ["review", "batches", projectId, locale, statusFilter],
     queryFn: () => api.batches.listByProject(projectId, { locale, status: statusFilter }),
   });
+  // Pull the locale config so we can gate the Translate button on
+  // is_bootstrapped (docs/15 F3 spec). One query — reused by the bulk-MT
+  // button and also covers any future header chrome (e.g. "Bootstrapping…"
+  // pill) without a second fetch.
+  const localeConfigsQuery = useQuery({
+    queryKey: ["review", "locale-configs", projectId],
+    queryFn: () => api.localeConfigs.list(projectId),
+  });
+  const localeConfig = useMemo(
+    () => localeConfigsQuery.data?.find((c) => c.locale === locale),
+    [localeConfigsQuery.data, locale],
+  );
 
   const grouped = useMemo(() => {
     if (!batchesQuery.data) return [];
@@ -91,6 +108,15 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <BulkTranslateAction
+            projectId={projectId}
+            locale={locale}
+            pendingCount={
+              batchesQuery.data?.filter((b) => b.status === "pending").length ?? 0
+            }
+            isBootstrapped={localeConfig?.is_bootstrapped ?? false}
+            localeConfigLoading={localeConfigsQuery.isLoading}
+          />
           <Link
             href={`/exports?locale=${encodeURIComponent(locale)}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -140,8 +166,8 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
       ) : grouped.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-sm text-app-text-muted">
-            No batches match this filter. Try a different filter or kick off MT with{" "}
-            <code className="font-mono">loc translate --locale {locale}</code>.
+            No batches match this filter. Pick a different filter, or use the
+            Translate button above to kick off MT for any pending batches.
           </CardContent>
         </Card>
       ) : (
@@ -219,6 +245,151 @@ function ComponentSection({
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Bulk Translate action — header pill on /review/[locale] (docs/15 F3).
+ *
+ * Three states:
+ *   1. Locale config still loading       → render nothing (don't flash).
+ *   2. Locale not bootstrapped           → "Bootstrap {locale} first" link
+ *      to /settings/locales (the wizard owner).
+ *   3. Bootstrapped + N pending batches  → "Translate {N} batches" button.
+ *      During the call, label becomes "Triggering…" and the button is
+ *      disabled (aria-busy=true). After the call, the button is replaced
+ *      by an inline result strip with queued / skipped counts and a
+ *      "See progress" link that refetches the queue.
+ *
+ * Per design review §1 the result is an inline strip, not a toast — the
+ * sonner primitive isn't wired in v1 and the count is too useful to
+ * vanish after 5s.
+ */
+function BulkTranslateAction({
+  projectId,
+  locale,
+  pendingCount,
+  isBootstrapped,
+  localeConfigLoading,
+}: {
+  projectId: string;
+  locale: string;
+  pendingCount: number;
+  isBootstrapped: boolean;
+  localeConfigLoading: boolean;
+}) {
+  const qc = useQueryClient();
+  const [result, setResult] = useState<
+    | { kind: "ok"; queued: number; skipped: number }
+    | { kind: "error"; message: string }
+    | null
+  >(null);
+
+  const mutation = useMutation({
+    mutationFn: () => api.batches.triggerProjectMt(projectId, { locale }),
+    onSuccess: (data) => {
+      setResult({ kind: "ok", queued: data.queued, skipped: data.skipped });
+    },
+    onError: (err) => {
+      let message = "Couldn't kick off MT.";
+      if (err instanceof ApiError) {
+        const detail = err.detail as { detail?: string; message?: string } | string;
+        if (typeof detail === "string") message = detail;
+        else if (typeof detail === "object" && detail.detail) message = detail.detail;
+        else if (typeof detail === "object" && detail.message) message = detail.message;
+        else message = `${err.status}: ${err.message}`;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setResult({ kind: "error", message });
+    },
+  });
+
+  if (localeConfigLoading) {
+    return null;
+  }
+
+  if (!isBootstrapped) {
+    // Gate per docs/15 F3 + docs/06:109. The locale wizard lives at
+    // /settings/locales; ferry the admin there.
+    return (
+      <Link
+        href="/settings/locales"
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+      >
+        Bootstrap {locale} first →
+      </Link>
+    );
+  }
+
+  // Inline result strip (success path) — replaces the button so it's not
+  // ambiguous which run the counts came from. Click "See progress" to
+  // refetch the queue list (the worker may have started transitioning
+  // statuses already).
+  if (result?.kind === "ok") {
+    const skippedFragment =
+      result.skipped > 0 ? ` · ${result.skipped} skipped (already in flight)` : "";
+    return (
+      <div
+        role="status"
+        className="flex items-center gap-2 rounded-md border border-status-approved/30 bg-status-approved/10 px-3 py-1.5 text-[12.5px] text-status-approved"
+      >
+        <Sparkles className="size-3.5" />
+        <span>
+          {result.queued} batches queued{skippedFragment}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            qc.invalidateQueries({ queryKey: ["review", "batches", projectId, locale] });
+            setResult(null);
+          }}
+          className="ml-1 underline-offset-2 hover:underline"
+        >
+          See progress →
+        </button>
+      </div>
+    );
+  }
+
+  if (result?.kind === "error") {
+    return (
+      <div
+        role="status"
+        className="flex items-center gap-2 rounded-md border border-status-rejected/30 bg-status-rejected/10 px-3 py-1.5 text-[12.5px] text-status-rejected"
+      >
+        <span>Couldn't kick off MT — {result.message}.</span>
+        <button
+          type="button"
+          onClick={() => {
+            setResult(null);
+            mutation.mutate();
+          }}
+          className="ml-1 underline-offset-2 hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Default — the action button itself. Disabled when N = 0 so admins
+  // don't fire empty triggers. The endpoint would no-op anyway, but the
+  // disabled state communicates "nothing to do".
+  return (
+    <Button
+      size="sm"
+      onClick={() => mutation.mutate()}
+      disabled={pendingCount === 0 || mutation.isPending}
+      aria-busy={mutation.isPending}
+    >
+      <Sparkles className="size-3.5" />
+      {mutation.isPending
+        ? "Triggering…"
+        : pendingCount === 0
+          ? "No pending batches"
+          : `Translate ${pendingCount} batches`}
+    </Button>
   );
 }
 

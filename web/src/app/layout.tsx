@@ -26,20 +26,26 @@ export const metadata: Metadata = {
   description: "Self-hosted translation management system.",
 };
 
+// Inline pre-paint theme script — same key + shape as marketing so the
+// dashboard and marketing share theme state across same-origin tabs.
+// Default is light to match the marketing site; honors a saved 'dark'
+// preference if one exists. Runs before paint, so no FOUC.
+const themeScript = `(function(){try{var s=localStorage.getItem('clariti-theme');var d=document.documentElement;if(s==='dark'){d.classList.add('dark');}else{d.classList.remove('dark');}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    // `dark` is the product default (DESIGN.md: developer tool, dark-first).
-    // Font variables on <html> so all descendant Tailwind classes can pick
-    // them up — globals.css' @theme inline binds --font-sans to
-    // var(--font-geist-sans) so `font-sans` resolves to Geist everywhere.
     <html
       lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full bg-background text-foreground flex flex-col font-sans">
         <Providers>{children}</Providers>
       </body>

@@ -16,15 +16,24 @@ async def publish_repository(
     db: AsyncSession,
     repository: Repository,
     github_token: str,
+    locale: str | None = None,
 ) -> str | None:
     """Fetch all approved translations, commit locale files to GitHub, open a PR.
 
     Returns the PR URL, or None if there were no approved translations to publish.
+
+    When *locale* is provided (docs/15 F4), only approved translations for
+    that BCP-47 locale ship in the PR. The default ``None`` preserves the
+    all-locales behavior the bulk CLI / webhook callers depend on.
     """
-    pairs = await list_approved_translations(db, repository.id)
+    pairs = await list_approved_translations(db, repository.id, locale=locale)
 
     if not pairs:
-        logger.info("no approved translations for repository %s — skipping publish", repository.id)
+        logger.info(
+            "no approved translations for repository %s (locale=%s) — skipping publish",
+            repository.id,
+            locale,
+        )
         return None
 
     translations_by_locale: dict[str, dict[str, str]] = defaultdict(dict)

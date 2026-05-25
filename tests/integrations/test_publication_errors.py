@@ -92,7 +92,9 @@ def _build_app(
             return result
         return install_token_side_effect
 
-    async def _fake_publish_repository(db: Any, repository: Any, github_token: str) -> str | None:
+    async def _fake_publish_repository(
+        db: Any, repository: Any, github_token: str, locale: str | None = None
+    ) -> str | None:
         if isinstance(publish_side_effect, Exception):
             raise publish_side_effect
         if callable(publish_side_effect):

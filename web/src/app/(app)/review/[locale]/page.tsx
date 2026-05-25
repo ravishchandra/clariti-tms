@@ -5,6 +5,8 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   ChevronRight,
+  ExternalLink,
+  GitPullRequestIcon,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
@@ -107,7 +109,7 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
             Batches grouped by component. Pick one to review screen-by-screen.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
           <BulkTranslateAction
             projectId={projectId}
             locale={locale}
@@ -116,6 +118,13 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
             }
             isBootstrapped={localeConfig?.is_bootstrapped ?? false}
             localeConfigLoading={localeConfigsQuery.isLoading}
+          />
+          <PublishLocaleAction
+            projectId={projectId}
+            locale={locale}
+            approvedCount={
+              batchesQuery.data?.filter((b) => b.status === "approved").length ?? 0
+            }
           />
           <Link
             href={`/exports?locale=${encodeURIComponent(locale)}`}
@@ -389,6 +398,220 @@ function BulkTranslateAction({
         : pendingCount === 0
           ? "No pending batches"
           : `Translate ${pendingCount} batches`}
+    </Button>
+  );
+}
+
+/**
+ * Per-locale Publish action — header pill on /review/[locale] (docs/15 F4).
+ *
+ * Opens a PR against the linked repo's `github_repo` containing every
+ * approved translation for this locale. v1 ships per-locale only — the
+ * per-repo Publish button is F7+ per the design review §6 decision.
+ *
+ * States:
+ *   1. Repos still loading        → render nothing.
+ *   2. No connected GitHub repo   → disabled button + tooltip.
+ *   3. Zero approved batches      → disabled button + tooltip.
+ *   4. Ready                      → primary button.
+ *   5. In flight                  → "Publishing…" with aria-busy.
+ *   6. Success                    → inline strip with PR link
+ *      ("PR #42 opened against owner/repo · [Open PR ↗]"). Persists
+ *      across re-renders until the user navigates away.
+ *   7. Error                      → inline strip with case-specific copy
+ *      for App-revoked, PR-already-open, timeout, network.
+ *
+ * Timeout: 30s via AbortController; backend is durable so a dropped
+ * client connection doesn't lose data — the message tells the user to
+ * check GitHub.
+ *
+ * The sticky "Reconnect GitHub App" badge on the Repositories row
+ * (eng review §7) is intentional follow-up; for v1 the inline error
+ * here is sufficient.
+ */
+function PublishLocaleAction({
+  projectId,
+  locale,
+  approvedCount,
+}: {
+  projectId: string;
+  locale: string;
+  approvedCount: number;
+}) {
+  const reposQuery = useQuery({
+    queryKey: ["review", "repos", projectId],
+    queryFn: () => api.repositories.list(projectId),
+  });
+  const [result, setResult] = useState<
+    | { kind: "ok"; prUrl: string; prNumber: number | null; githubRepo: string | null }
+    | { kind: "error"; message: string; prUrl?: string; prNumber?: number | null }
+    | null
+  >(null);
+
+  // Most projects have one repo today. Multi-repo handling is deferred
+  // (audit + docs/15 plan §"Defer to F7+"). Use the first repo with a
+  // configured github_repo; if none, the button is disabled.
+  const targetRepo = useMemo(() => {
+    const repos = reposQuery.data ?? [];
+    return repos.find((r) => !!r.github_repo) ?? repos[0] ?? null;
+  }, [reposQuery.data]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!targetRepo) throw new Error("No repository linked to this project.");
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 30_000);
+      try {
+        return await api.publications.publishRepo(targetRepo.id, {
+          locale,
+          signal: ctrl.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+    },
+    onSuccess: (data) => {
+      if (data.status === "no_op" || !data.pr_url) {
+        setResult({
+          kind: "error",
+          message: `Nothing to publish — no approved translations for ${locale}.`,
+        });
+        return;
+      }
+      const match = /\/pull\/(\d+)/.exec(data.pr_url);
+      setResult({
+        kind: "ok",
+        prUrl: data.pr_url,
+        prNumber: match ? Number(match[1]) : null,
+        githubRepo: targetRepo?.github_repo ?? null,
+      });
+    },
+    onError: (err) => {
+      // Timeout via AbortController surfaces as DOMException AbortError.
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setResult({
+          kind: "error",
+          message: "Still running — check GitHub directly or refresh.",
+        });
+        return;
+      }
+      if (err instanceof ApiError) {
+        const detail =
+          typeof err.detail === "string"
+            ? err.detail
+            : ((err.detail as { detail?: string })?.detail ?? "");
+        const detailLower = detail.toLowerCase();
+        // 422 App-revoked / installation-missing path (publication.py
+        // raises 422 with operator-actionable detail for 401/404 from
+        // GitHub when minting the install token).
+        if (err.status === 422 && /install|app|credentials|revok/.test(detailLower)) {
+          setResult({
+            kind: "error",
+            message: "GitHub access expired. Reconnect in Settings → Repositories.",
+          });
+          return;
+        }
+        // 422 PR-already-open path — the publication adapter surfaces this
+        // via the GitHub branch-exists error path. Detail copy varies; we
+        // catch on a substring.
+        if (err.status === 422 && /already/.test(detailLower)) {
+          setResult({
+            kind: "error",
+            message: detail || `A PR for ${locale} is already open.`,
+          });
+          return;
+        }
+        setResult({
+          kind: "error",
+          message: detail || `${err.status}: ${err.message}`,
+        });
+        return;
+      }
+      setResult({
+        kind: "error",
+        message:
+          err instanceof Error
+            ? `Couldn't reach the publish service. ${err.message}`
+            : "Couldn't reach the publish service.",
+      });
+    },
+  });
+
+  if (reposQuery.isLoading) return null;
+
+  if (result?.kind === "ok") {
+    return (
+      <div
+        role="status"
+        className="flex items-center gap-2 rounded-md border border-status-approved/30 bg-status-approved/10 px-3 py-1.5 text-[12.5px] text-status-approved"
+      >
+        <GitPullRequestIcon className="size-3.5" />
+        <span>
+          {result.prNumber !== null ? <>PR #{result.prNumber}</> : <>PR</>} opened
+          {result.githubRepo ? (
+            <>
+              {" "}
+              against{" "}
+              <span className="font-mono text-text-soft">{result.githubRepo}</span>
+            </>
+          ) : null}
+        </span>
+        <a
+          href={result.prUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-1 inline-flex items-center gap-0.5 underline-offset-2 hover:underline"
+        >
+          Open PR
+          <ExternalLink className="size-3" aria-hidden="true" />
+          <span className="sr-only">
+            Pull request {result.prNumber ?? ""} opened, opens in new tab
+          </span>
+        </a>
+      </div>
+    );
+  }
+
+  if (result?.kind === "error") {
+    return (
+      <div
+        role="status"
+        className="flex items-center gap-2 rounded-md border border-status-rejected/30 bg-status-rejected/10 px-3 py-1.5 text-[12.5px] text-status-rejected"
+      >
+        <span>{result.message}</span>
+        <button
+          type="button"
+          onClick={() => {
+            setResult(null);
+            mutation.mutate();
+          }}
+          className="ml-1 underline-offset-2 hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const hasRepo = !!targetRepo?.github_repo;
+  const disabled = !hasRepo || approvedCount === 0 || mutation.isPending;
+  const tooltip = !hasRepo
+    ? "Connect a GitHub repository in Settings → Repositories to publish."
+    : approvedCount === 0
+      ? "Approve at least one batch to publish."
+      : undefined;
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => mutation.mutate()}
+      disabled={disabled}
+      aria-busy={mutation.isPending}
+      title={tooltip}
+    >
+      <GitPullRequestIcon className="size-3.5" />
+      {mutation.isPending ? "Publishing…" : `Publish approved ${locale}`}
     </Button>
   );
 }

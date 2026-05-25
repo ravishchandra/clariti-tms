@@ -1,9 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,6 +24,11 @@ import { ApiError, api, getApiKey, type AppSettings, type AppSettingsUpdate } fr
  * Edits the singleton `app_settings` row that backs LLM provider
  * configuration. API keys are write-only (server returns booleans) and
  * empty submit on a key field clears that provider.
+ *
+ * Visual rhythm matches sibling Settings tabs (Project, Repositories, API
+ * keys): each section is `<h2 text-sm font-semibold>` above a `<Card>` with
+ * `p-5` padding. Tokens are marketing-aligned (`text-text-soft`,
+ * `text-mint`, `text-status-rejected`); no raw Tailwind color primitives.
  */
 const PROVIDERS = ["anthropic", "openai", "openrouter", "ollama", "deepl"] as const;
 
@@ -29,7 +36,7 @@ export default function ProvidersPage() {
   const apiKey = typeof window !== "undefined" ? getApiKey() : null;
   if (!apiKey) {
     return (
-      <div className="rounded-md border border-app-border bg-app-surface p-6 text-sm">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
         Sign in with an API key to edit provider settings.
       </div>
     );
@@ -48,13 +55,22 @@ function ProvidersForm() {
   if (query.isLoading) return <FormSkeleton />;
   if (query.isError || !query.data) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-        Could not load app settings. The migration may not have run yet.
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl">
+        <Card className="border-status-rejected/30 bg-status-rejected/5">
+          <CardContent className="p-4 text-sm text-status-rejected">
+            Couldn&apos;t load provider settings. The migration may not have run yet.
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  return <ProvidersFormBody initial={query.data} onSaved={() => qc.invalidateQueries({ queryKey: ["app-settings"] })} />;
+  return (
+    <ProvidersFormBody
+      initial={query.data}
+      onSaved={() => qc.invalidateQueries({ queryKey: ["app-settings"] })}
+    />
+  );
 }
 
 type SavedState =
@@ -63,9 +79,9 @@ type SavedState =
   | { kind: "error"; message: string };
 
 function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved: () => void }) {
-  // The form mirrors the server's two distinct concerns: non-key fields
+  // The form mirrors the server's two concerns: non-key fields
   // (round-tripped verbatim) and key fields (write-only, with a "set" /
-  // "not set" status hint based on the boolean from the GET response).
+  // "not set" pill driven by the boolean from the GET response).
   const [primaryProvider, setPrimaryProvider] = useState(initial.primary_provider);
   const [fallbackChain, setFallbackChain] = useState(initial.fallback_chain.join(", "));
   const [openrouterModel, setOpenrouterModel] = useState(initial.openrouter_model);
@@ -73,9 +89,6 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
   const [evaluateTemp, setEvaluateTemp] = useState(String(initial.evaluate_temperature));
   const [ollamaHost, setOllamaHost] = useState(initial.ollama_host ?? "");
 
-  // Each key input maps to "leave alone" (untouched/never typed) vs "clear"
-  // (typed then emptied) vs "set" (typed something). We track touched state
-  // so a blank input that the user never touched is omitted from the PATCH.
   const [anthropicKey, setAnthropicKey] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
   const [openrouterKey, setOpenrouterKey] = useState("");
@@ -84,8 +97,6 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
 
   const [saved, setSaved] = useState<SavedState>({ kind: "idle" });
 
-  // If the underlying data refreshes (e.g. after save), reset the displayed
-  // non-key field values to the server's truth. Key fields stay blank.
   useEffect(() => {
     setPrimaryProvider(initial.primary_provider);
     setFallbackChain(initial.fallback_chain.join(", "));
@@ -94,6 +105,13 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
     setEvaluateTemp(String(initial.evaluate_temperature));
     setOllamaHost(initial.ollama_host ?? "");
   }, [initial]);
+
+  // Clear the "Saved" badge after 3s so it doesn't linger forever.
+  useEffect(() => {
+    if (saved.kind !== "saved") return;
+    const t = setTimeout(() => setSaved({ kind: "idle" }), 3000);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   const mutation = useMutation({
     mutationFn: (body: AppSettingsUpdate) => api.appSettings.update(body),
@@ -140,8 +158,6 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
       body.ollama_host = ollamaHost === "" ? null : ollamaHost;
     }
 
-    // Key fields: only send if the operator touched them. Typing then
-    // emptying clears the provider; never-touching leaves it alone.
     if (touched.anthropic) body.anthropic_api_key = anthropicKey;
     if (touched.openai) body.openai_api_key = openaiKey;
     if (touched.openrouter) body.openrouter_api_key = openrouterKey;
@@ -151,13 +167,19 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-8 max-w-2xl">
-      <Section title="Primary provider" description="The default provider for translate + evaluate calls.">
+    <form
+      onSubmit={handleSubmit}
+      className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-8"
+    >
+      <Section
+        title="Primary provider"
+        description="Chosen first for every translate and evaluate call. Falls back to the chain below on errors."
+      >
         <Select
           value={primaryProvider}
           onValueChange={(v) => setPrimaryProvider(typeof v === "string" ? v : "anthropic")}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger size="sm" className="w-64">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -172,67 +194,72 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
 
       <Section
         title="Fallback chain"
-        description="Comma-separated provider names. Tried in order if the primary fails."
+        description="Comma-separated provider names, tried in order if the primary fails."
       >
         <Input
           value={fallbackChain}
           onChange={(e) => setFallbackChain(e.target.value)}
           placeholder="anthropic, openai, ollama"
-          className="w-full max-w-md"
+          className="font-mono text-[12.5px]"
         />
       </Section>
 
-      <Section title="API keys" description="Empty submit on a key clears that provider. Existing keys stay until replaced.">
-        <KeyInput
-          label="Anthropic"
-          hasKey={initial.has_anthropic_key}
-          value={anthropicKey}
-          onChange={(v) => {
-            setAnthropicKey(v);
-            setTouched((t) => ({ ...t, anthropic: true }));
-          }}
-        />
-        <KeyInput
-          label="OpenAI"
-          hasKey={initial.has_openai_key}
-          value={openaiKey}
-          onChange={(v) => {
-            setOpenaiKey(v);
-            setTouched((t) => ({ ...t, openai: true }));
-          }}
-        />
-        <KeyInput
-          label="OpenRouter"
-          hasKey={initial.has_openrouter_key}
-          value={openrouterKey}
-          onChange={(v) => {
-            setOpenrouterKey(v);
-            setTouched((t) => ({ ...t, openrouter: true }));
-          }}
-        />
-        <KeyInput
-          label="DeepL"
-          hasKey={initial.has_deepl_key}
-          value={deeplKey}
-          onChange={(v) => {
-            setDeeplKey(v);
-            setTouched((t) => ({ ...t, deepl: true }));
-          }}
-        />
+      <Section
+        title="API keys"
+        description="Stored encrypted at rest. Empty submit on a key clears that provider; existing keys stay until replaced."
+      >
+        <div className="flex flex-col gap-4">
+          <KeyInput
+            label="Anthropic"
+            hasKey={initial.has_anthropic_key}
+            value={anthropicKey}
+            onChange={(v) => {
+              setAnthropicKey(v);
+              setTouched((t) => ({ ...t, anthropic: true }));
+            }}
+          />
+          <KeyInput
+            label="OpenAI"
+            hasKey={initial.has_openai_key}
+            value={openaiKey}
+            onChange={(v) => {
+              setOpenaiKey(v);
+              setTouched((t) => ({ ...t, openai: true }));
+            }}
+          />
+          <KeyInput
+            label="OpenRouter"
+            hasKey={initial.has_openrouter_key}
+            value={openrouterKey}
+            onChange={(v) => {
+              setOpenrouterKey(v);
+              setTouched((t) => ({ ...t, openrouter: true }));
+            }}
+          />
+          <KeyInput
+            label="DeepL"
+            hasKey={initial.has_deepl_key}
+            value={deeplKey}
+            onChange={(v) => {
+              setDeeplKey(v);
+              setTouched((t) => ({ ...t, deepl: true }));
+            }}
+          />
+        </div>
       </Section>
 
       <Section
         title="OpenRouter model"
         description={
           <>
-            Model string passed to OpenRouter.{" "}
+            Model string passed to OpenRouter. Free models rotate weekly —{" "}
             <a
               href="https://openrouter.ai/models?q=:free"
               target="_blank"
               rel="noreferrer"
-              className="underline"
+              className="text-flame-soft hover:underline"
             >
-              Browse free models
+              browse the current roster
             </a>
             .
           </>
@@ -242,14 +269,20 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
           value={openrouterModel}
           onChange={(e) => setOpenrouterModel(e.target.value)}
           placeholder="google/gemini-2.0-flash-exp:free"
-          className="w-full max-w-md"
+          className="font-mono text-[12.5px]"
         />
       </Section>
 
-      <Section title="Temperatures" description="Sampling temperature for translate / evaluate calls. 0.0 = deterministic.">
+      <Section
+        title="Temperatures"
+        description="Sampling temperature for translate and evaluate calls. 0.0 is deterministic — use it unless you're prompting variations."
+      >
         <div className="flex gap-4">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="translate-temp" className="text-xs text-app-text-secondary">
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="translate-temp"
+              className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-text-muted"
+            >
               Translate
             </Label>
             <Input
@@ -260,11 +293,14 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
               step={0.1}
               value={translateTemp}
               onChange={(e) => setTranslateTemp(e.target.value)}
-              className="w-28"
+              className="w-28 font-mono text-[12.5px]"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="evaluate-temp" className="text-xs text-app-text-secondary">
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="evaluate-temp"
+              className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-text-muted"
+            >
               Evaluate
             </Label>
             <Input
@@ -275,33 +311,37 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
               step={0.1}
               value={evaluateTemp}
               onChange={(e) => setEvaluateTemp(e.target.value)}
-              className="w-28"
+              className="w-28 font-mono text-[12.5px]"
             />
           </div>
         </div>
       </Section>
 
-      <Section title="Ollama host" description="Optional. Where your local Ollama daemon listens. Defaults to http://localhost:11434.">
+      <Section
+        title="Ollama host"
+        description="Optional. Where your local Ollama daemon listens. Defaults to http://localhost:11434."
+      >
         <Input
           value={ollamaHost}
           onChange={(e) => setOllamaHost(e.target.value)}
           placeholder="http://localhost:11434"
-          className="w-full max-w-md"
+          className="font-mono text-[12.5px]"
         />
       </Section>
 
-      <div className="flex items-center gap-4 pt-2 border-t border-app-border">
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-line/70">
+        {saved.kind === "saved" ? (
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-mint/15 text-mint border border-mint/30">
+            <CheckIcon className="size-3" />
+            Saved
+          </span>
+        ) : null}
+        {saved.kind === "error" ? (
+          <span className="text-[12px] text-status-rejected">{saved.message}</span>
+        ) : null}
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? "Saving…" : "Save"}
         </Button>
-        {saved.kind === "saved" && (
-          <span className="text-sm text-app-text-secondary">
-            Saved · {saved.at.toLocaleTimeString()}
-          </span>
-        )}
-        {saved.kind === "error" && (
-          <span className="text-sm text-red-700">Error: {saved.message}</span>
-        )}
       </div>
     </form>
   );
@@ -318,11 +358,15 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <div>
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {description ? <p className="text-xs text-app-text-secondary mt-1">{description}</p> : null}
+      <div className="flex flex-col gap-1">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">{title}</h2>
+        {description ? (
+          <p className="text-[13px] text-text-soft max-w-prose">{description}</p>
+        ) : null}
       </div>
-      <div className="flex flex-col gap-2">{children}</div>
+      <Card>
+        <CardContent className="p-5 flex flex-col gap-4">{children}</CardContent>
+      </Card>
     </section>
   );
 }
@@ -339,18 +383,12 @@ function KeyInput({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between max-w-md">
-        <Label className="text-xs text-app-text-secondary">{label}</Label>
-        <span
-          className={
-            hasKey
-              ? "text-xs text-emerald-700"
-              : "text-xs text-app-text-secondary"
-          }
-        >
-          {hasKey ? "set" : "not set"}
-        </span>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-text-muted">
+          {label}
+        </Label>
+        <StatusPill set={hasKey} />
       </div>
       <Input
         type="password"
@@ -358,17 +396,38 @@ function KeyInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={hasKey ? "••••••••  (replace or leave blank)" : ""}
-        className="w-full max-w-md"
+        className="font-mono text-[12.5px]"
       />
     </div>
   );
 }
 
+function StatusPill({ set }: { set: boolean }) {
+  if (set) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono uppercase tracking-[0.08em] bg-mint/15 text-mint border border-mint/30">
+        <span className="size-1 rounded-full bg-mint" />
+        set
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono uppercase tracking-[0.08em] bg-ink-2 text-text-muted border border-line">
+      <span className="size-1 rounded-full bg-text-muted" />
+      not set
+    </span>
+  );
+}
+
 function FormSkeleton() {
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-14 w-full" />
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-6">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-64" />
+          <Skeleton className="h-16 w-full" />
+        </div>
       ))}
     </div>
   );

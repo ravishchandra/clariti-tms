@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api, getApiKey, type LocaleConfig, type Project } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 import { cn } from "@/lib/utils";
 
 /**
@@ -53,39 +54,18 @@ export default function LocalesPage() {
 }
 
 function LocalesPicker() {
-  const orgsQuery = useQuery({
-    queryKey: ["locales", "orgs"],
-    queryFn: api.organizations.list,
-    retry: false,
-  });
+  const { current, isLoading, isError } = useCurrentProject();
 
-  if (orgsQuery.isLoading) return <PageSkeleton />;
-  if (orgsQuery.isError || !orgsQuery.data || orgsQuery.data.length === 0) {
+  if (isLoading) return <PageSkeleton />;
+  if (isError || !current) {
     return (
       <EmptyState
-        title="No organizations"
-        body="Your key authenticated, but no organizations are visible."
+        title="No project selected"
+        body="Locale configs live under a project. Pick one from the sidebar switcher, or create one in Settings → Project."
       />
     );
   }
-  return <LocalesForFirstProject orgId={orgsQuery.data[0].id} />;
-}
-
-function LocalesForFirstProject({ orgId }: { orgId: string }) {
-  const projectsQuery = useQuery({
-    queryKey: ["locales", "projects", orgId],
-    queryFn: () => api.projects.list(orgId),
-  });
-  if (projectsQuery.isLoading) return <PageSkeleton />;
-  if (projectsQuery.isError || !projectsQuery.data || projectsQuery.data.length === 0) {
-    return (
-      <EmptyState
-        title="No projects yet"
-        body="Locale configs live under a project. Create one with `loc project create` and reload."
-      />
-    );
-  }
-  return <LocalesEditor project={projectsQuery.data[0]} />;
+  return <LocalesEditor project={current.project} />;
 }
 
 /* ---------------------------------------------------------------------------

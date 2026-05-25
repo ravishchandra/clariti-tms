@@ -10,6 +10,8 @@ secrets/
 # (including curl invocations that can embed dev API keys). NEVER commit this.
 # The shared, safe-to-commit equivalent is `.claude/settings.json`.
 .claude/settings.local.json
+# Background-agent worktrees live here too; harness state only, never commit.
+.claude/worktrees/
 
 # Python
 __pycache__/

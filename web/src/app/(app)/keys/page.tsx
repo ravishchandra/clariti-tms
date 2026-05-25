@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { RiskClassChip } from "@/components/risk-class-chip";
 import { api, getApiKey, type Key } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,18 +47,8 @@ export default function KeysIndexPage() {
 }
 
 function KeysIndex() {
-  const projectQuery = useQuery({
-    queryKey: ["keys-index", "current-project"],
-    queryFn: async () => {
-      const orgs = await api.organizations.list();
-      if (orgs.length === 0) return null;
-      const projects = await api.projects.list(orgs[0].id);
-      if (projects.length === 0) return null;
-      return projects[0];
-    },
-  });
-
-  const project = projectQuery.data ?? null;
+  const { current, isLoading: projectLoading } = useCurrentProject();
+  const project = current?.project ?? null;
 
   const keysQuery = useQuery({
     queryKey: ["keys-index", "keys", project?.id],
@@ -65,7 +56,7 @@ function KeysIndex() {
     enabled: !!project,
   });
 
-  if (projectQuery.isLoading) {
+  if (projectLoading) {
     return <KeysSkeleton />;
   }
   if (!project) {

@@ -28,6 +28,7 @@ import {
   type ImportRollbackResponse,
   type ImportValidationError,
 } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 import { cn } from "@/lib/utils";
 
 /**
@@ -66,15 +67,11 @@ export default function ImportsPage() {
 }
 
 function ImportsContent() {
-  const projectQuery = useQuery({
-    queryKey: ["imports", "first-project"],
-    queryFn: async () => {
-      const orgs = await api.organizations.list();
-      if (orgs.length === 0) return null;
-      const projects = await api.projects.list(orgs[0].id);
-      return projects[0] ?? null;
-    },
-  });
+  const { current, isLoading: projectLoading } = useCurrentProject();
+  const projectQuery = {
+    data: current?.project ?? null,
+    isLoading: projectLoading,
+  };
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-3xl">

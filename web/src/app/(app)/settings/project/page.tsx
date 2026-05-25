@@ -1,0 +1,375 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PlusIcon, TerminalIcon, XIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { api, ApiError, getApiKey } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
+
+/**
+ * Settings → Project (docs/14 §9 tab 1, highest-leverage admin page).
+ *
+ * Closes the add-locale dead-end that previously required SQL. Backend
+ * supports PATCH /organizations/{org}/projects/{id} for name + target_locales
+ * + style_guide; fan-out of draft translations for new locales is a
+ * documented follow-up (see notice below).
+ */
+export default function ProjectSettingsPage() {
+  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  if (!apiKey) {
+    return (
+      <EmptyShell title="Sign in to manage project settings." />
+    );
+  }
+  return <ProjectSettingsContent />;
+}
+
+function ProjectSettingsContent() {
+  const qc = useQueryClient();
+  const { current, isLoading } = useCurrentProject();
+
+  if (isLoading) {
+    return (
+      <div className="p-6 max-w-3xl flex flex-col gap-4">
+        <Skeleton className="h-32" />
+        <Skeleton className="h-48" />
+      </div>
+    );
+  }
+
+  if (!current) {
+    return (
+      <EmptyShell title="No project selected. Use the sidebar switcher, or create one below."  />
+    );
+  }
+
+  const { project, org } = current;
+
+  return (
+    <div className="p-6 max-w-3xl flex flex-col gap-8">
+      <ProjectMeta orgId={org.id} projectId={project.id} name={project.name} slug={project.slug} />
+      <ProjectLocales orgId={org.id} projectId={project.id} locales={project.target_locales} onChanged={() => qc.invalidateQueries({ queryKey: ["all-projects"] })} />
+      <ProjectStyleGuide orgId={org.id} projectId={project.id} initial={project.style_guide ?? ""} />
+    </div>
+  );
+}
+
+function ProjectMeta({
+  orgId,
+  projectId,
+  name,
+  slug,
+}: {
+  orgId: string;
+  projectId: string;
+  name: string;
+  slug: string;
+}) {
+  const qc = useQueryClient();
+  const [draftName, setDraftName] = useState(name);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => setDraftName(name), [name]);
+
+  const updateMutation = useMutation({
+    mutationFn: (body: { name?: string }) => api.projects.update(orgId, projectId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["all-projects"] });
+      setError(null);
+    },
+    onError: (err) => setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
+  });
+
+  const dirty = draftName !== name;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold tracking-tight text-foreground">
+        Project
+      </h2>
+      <Card>
+        <CardContent className="p-5 flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="project-name">Name</Label>
+            <Input
+              id="project-name"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              maxLength={120}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="project-slug">Slug</Label>
+            <Input id="project-slug" value={slug} disabled className="font-mono" />
+            <p className="text-[11.5px] text-text-muted">
+              Slug is immutable after creation. Reach for a fresh project if you need a new one.
+            </p>
+          </div>
+          {error ? (
+            <p className="text-[12px] text-status-rejected">{error}</p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDraftName(name)}
+              disabled={!dirty}
+            >
+              Reset
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => updateMutation.mutate({ name: draftName.trim() })}
+              disabled={!dirty || updateMutation.isPending || !draftName.trim()}
+            >
+              {updateMutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function ProjectLocales({
+  orgId,
+  projectId,
+  locales,
+  onChanged,
+}: {
+  orgId: string;
+  projectId: string;
+  locales: string[];
+  onChanged: () => void;
+}) {
+  const qc = useQueryClient();
+  const [newLocale, setNewLocale] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const updateMutation = useMutation({
+    mutationFn: (next: string[]) => api.projects.update(orgId, projectId, { target_locales: next }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["all-projects"] });
+      onChanged();
+      setError(null);
+      setNewLocale("");
+    },
+    onError: (err) => setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
+  });
+
+  // After adding the locale to target_locales, create a default locale_config
+  // so the locale shows up in Settings → Locales. Bootstrap stays false —
+  // docs/02 R-15a says new locales require a 50-string native-speaker pass.
+  const addLocale = async () => {
+    const candidate = newLocale.trim();
+    if (!candidate) return;
+    if (locales.includes(candidate)) {
+      setError(`Locale ${candidate} already on this project.`);
+      return;
+    }
+    try {
+      await api.projects.update(orgId, projectId, {
+        target_locales: [...locales, candidate],
+      });
+      try {
+        await api.localeConfigs.create(projectId, {
+          locale: candidate,
+          formality: "formal",
+          is_bootstrapped: false,
+        });
+      } catch (cfgErr) {
+        // Locale-config conflict (409) is fine — the row may already exist.
+        if (!(cfgErr instanceof ApiError && cfgErr.status === 409)) throw cfgErr;
+      }
+      qc.invalidateQueries({ queryKey: ["all-projects"] });
+      onChanged();
+      setNewLocale("");
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err));
+    }
+  };
+
+  const removeLocale = (loc: string) => {
+    if (!confirm(`Remove ${loc} from this project? Existing translations stay in the DB but won't appear in the sidebar.`)) return;
+    updateMutation.mutate(locales.filter((l) => l !== loc));
+  };
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          Target locales
+        </h2>
+        <span className="font-mono text-[11px] text-text-muted">
+          {locales.length} locale{locales.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <Card>
+        <CardContent className="p-5 flex flex-col gap-4">
+          {locales.length === 0 ? (
+            <p className="text-sm text-text-muted">
+              No target locales yet — add one below.
+            </p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {locales.map((loc) => (
+                <li
+                  key={loc}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-line bg-ink-1 pl-2.5 pr-1 py-1 text-[12px]"
+                >
+                  <span className="font-mono">{loc}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeLocale(loc)}
+                    className="p-0.5 rounded hover:bg-ink-3 text-text-muted hover:text-foreground"
+                    aria-label={`Remove ${loc}`}
+                  >
+                    <XIcon className="size-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="flex items-end gap-2">
+            <div className="flex-1 flex flex-col gap-2">
+              <Label htmlFor="new-locale">Add locale (BCP-47)</Label>
+              <Input
+                id="new-locale"
+                value={newLocale}
+                placeholder="e.g. de-DE, pt-BR, ja-JP"
+                className="font-mono"
+                onChange={(e) => setNewLocale(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLocale();
+                  }
+                }}
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={addLocale}
+              disabled={!newLocale.trim()}
+              className="mb-px"
+            >
+              <PlusIcon className="size-3.5" />
+              Add
+            </Button>
+          </div>
+          {error ? (
+            <p className="text-[12px] text-status-rejected">{error}</p>
+          ) : null}
+
+          <FanoutNotice />
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function FanoutNotice() {
+  return (
+    <div className="rounded-md border border-line bg-ink-1/60 p-3 flex items-start gap-2.5">
+      <TerminalIcon className="size-3.5 mt-0.5 text-flame-soft shrink-0" />
+      <div className="text-[12px] leading-relaxed text-text-soft">
+        <span className="font-medium text-foreground">
+          Seed translations for a newly added locale
+        </span>{" "}
+        — fan-out of draft rows for every existing key isn't automatic yet.
+        After adding the locale, run:
+        <pre className="mt-1.5 font-mono text-[11px] bg-ink-0 px-2 py-1 rounded border border-line/70 text-text-soft inline-block">
+          loc translate --project {"<slug>"} --locale {"<new-locale>"}
+        </pre>
+        {" "}or use SQL fan-out + <code className="font-mono">loc translate</code> per the
+        recipe in <code className="font-mono">docs/14</code>. A one-click backend endpoint is on the roadmap.
+      </div>
+    </div>
+  );
+}
+
+function ProjectStyleGuide({
+  orgId,
+  projectId,
+  initial,
+}: {
+  orgId: string;
+  projectId: string;
+  initial: string;
+}) {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => setDraft(initial), [initial]);
+
+  const mutation = useMutation({
+    mutationFn: (value: string) =>
+      api.projects.update(orgId, projectId, { style_guide: value || null }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["all-projects"] });
+      setError(null);
+    },
+    onError: (err) => setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
+  });
+
+  const dirty = draft !== initial;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold tracking-tight text-foreground">
+        Style guide
+      </h2>
+      <Card>
+        <CardContent className="p-5 flex flex-col gap-4">
+          <Label htmlFor="style-guide" className="text-text-soft">
+            Project-level brand voice the LLM reads on every batch. Loaded into the system prompt per docs/05.
+          </Label>
+          <Textarea
+            id="style-guide"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={6}
+            placeholder="Professional but friendly. Avoid contractions. Address the user as 'you', never 'thou'…"
+          />
+          {error ? (
+            <p className="text-[12px] text-status-rejected">{error}</p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDraft(initial)}
+              disabled={!dirty}
+            >
+              Reset
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => mutation.mutate(draft)}
+              disabled={!dirty || mutation.isPending}
+            >
+              {mutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function EmptyShell({ title }: { title: string }) {
+  return (
+    <div className="p-6 max-w-3xl text-sm text-text-soft">
+      {title}
+    </div>
+  );
+}

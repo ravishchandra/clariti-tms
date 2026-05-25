@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError, getApiKey } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 
 /**
  * Phase 6 — Export builder UI.
@@ -61,18 +62,13 @@ export default function ExportsPage() {
 }
 
 function ExportsBuilder() {
-  // Resolve the first project the caller can see — same pattern the dashboard
-  // and the sidebar use today. A real project picker is a follow-up; the spec
-  // says "Project picker (first project for now)".
-  const projectQuery = useQuery({
-    queryKey: ["exports", "first-project"],
-    queryFn: async () => {
-      const orgs = await api.organizations.list();
-      if (orgs.length === 0) return null;
-      const projects = await api.projects.list(orgs[0].id);
-      return projects[0] ?? null;
-    },
-  });
+  // Reads the active project from the sidebar switcher (docs/14 §6 #2).
+  const { current, isLoading, isError } = useCurrentProject();
+  const projectQuery = {
+    data: current?.project ?? null,
+    isLoading,
+    isError,
+  };
 
   if (projectQuery.isLoading) {
     return (

@@ -3,20 +3,24 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Database,
-  FileSpreadsheet,
+  FlagIcon,
   FolderTree,
-  Languages,
-  LayoutPanelTop,
+  LayoutDashboardIcon,
+  PlusIcon,
   Settings,
-  Upload,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import logoMark from "@/app/logo.png";
+
+import { ProjectSwitcher } from "@/components/project-switcher";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 import { useKeyBindings } from "@/lib/keyboard";
 import { HelpDialogProvider, useHelpDialogState } from "@/app/(app)/_help/help-dialog";
 
@@ -33,13 +37,21 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-const SECTION_LINKS = [
-  { href: "/glossary", label: "Glossary", icon: FolderTree },
-  { href: "/locales", label: "Locales", icon: Languages },
-  { href: "/contexts", label: "Contexts", icon: LayoutPanelTop },
-  { href: "/imports", label: "Imports", icon: Upload },
-  { href: "/exports", label: "Exports", icon: FileSpreadsheet },
+// Sidebar v2 (audit docs/14 §7 + IA v2). Project-scoped section at top
+// (Dashboard, locale list, project tools), top-level Glossary (daily
+// reference), then Settings hub. Locales / Contexts / Imports / Exports
+// previously lived as top-level peers — they're now folded into Settings.
+const PROJECT_LINKS = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+] as const;
+
+const PROJECT_FOOTER_LINKS = [
   { href: "/keys", label: "Keys", icon: Database },
+  { href: "/flagged", label: "Flagged", icon: FlagIcon },
+] as const;
+
+const TOP_LEVEL_LINKS = [
+  { href: "/glossary", label: "Glossary", icon: FolderTree },
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -87,18 +99,21 @@ function AppShellInner({ children }: AppShellProps) {
  * ------------------------------------------------------------------------ */
 
 function Sidebar() {
-  // Sidebar — restyled to match marketing/'s low-chrome nav signature
-  // (Nav.tsx + Pillars.tsx mono labels). The "C" mark now uses the flame
-  // tint instead of the previous shadcn primary tone, and section labels
-  // use the editorial mono-eyebrow treatment (uppercase, tracking 0.18em,
-  // flame-soft colour) so the dashboard and marketing share the same
-  // information-hierarchy language.
+  // Sidebar — marketing's low-chrome nav signature (Nav.tsx + Pillars.tsx
+  // mono labels). Sections: brand row → project switcher → project-scoped
+  // (Dashboard + locale list + project footer links) → top-level (Glossary,
+  // Settings). docs/14 IA v2.
   return (
     <aside className="w-[220px] shrink-0 border-r border-line bg-app-surface flex flex-col">
       <div className="px-4 h-12 flex items-center gap-2">
-        <div className="size-6 rounded-md bg-flame/12 grid place-items-center text-flame-soft text-sm font-semibold ring-1 ring-flame/25">
-          C
-        </div>
+        <Image
+          src={logoMark}
+          alt="ClaritiTMS"
+          width={24}
+          height={24}
+          className="rounded-md"
+          priority
+        />
         <div className="text-[13.5px] font-semibold tracking-tight text-foreground">
           ClaritiTMS
         </div>
@@ -106,14 +121,29 @@ function Sidebar() {
 
       <Separator />
 
-      <div className="px-3 pt-4 pb-2 mono-eyebrow">Locales</div>
+      <div className="pt-3 pb-2">
+        <ProjectSwitcher />
+      </div>
+
+      <nav className="px-2 pb-2 flex flex-col gap-0.5">
+        {PROJECT_LINKS.map((item) => (
+          <SidebarLink key={item.href} {...item} />
+        ))}
+      </nav>
+
+      <div className="px-3 pt-3 pb-1 mono-eyebrow">Locales</div>
       <LocaleList />
 
-      <Separator className="my-3" />
+      <nav className="px-2 pt-3 pb-3 flex flex-col gap-0.5">
+        {PROJECT_FOOTER_LINKS.map((item) => (
+          <SidebarLink key={item.href} {...item} />
+        ))}
+      </nav>
 
-      <div className="px-3 pb-2 mono-eyebrow">Workspace</div>
-      <nav className="px-2 pb-4 flex flex-col gap-0.5">
-        {SECTION_LINKS.map((item) => (
+      <Separator className="my-1" />
+
+      <nav className="px-2 py-3 flex flex-col gap-0.5">
+        {TOP_LEVEL_LINKS.map((item) => (
           <SidebarLink key={item.href} {...item} />
         ))}
       </nav>
@@ -122,26 +152,15 @@ function Sidebar() {
 }
 
 /**
- * Locale list — currently a static placeholder until the dashboard wires up
- * the actual project's target_locales. Renders the same row shape the
- * dashboard will use so the design is stable across the hand-off.
+ * Locale list — reads `target_locales` off the current project (set by the
+ * project switcher) and renders one row per locale linking to /review/{loc}.
+ * Each row shows a needs-review count chip fetched from `/batches`. The
+ * `+ Add locale` row links to Settings → Project (docs/14 §7).
  */
 function LocaleList() {
-  // Read the currently-selected project from localStorage (set on dashboard).
-  // Falls back to listing all of the caller's orgs' first project's locales.
-  const projectsQuery = useQuery({
-    queryKey: ["sidebar", "locales"],
-    queryFn: async () => {
-      const orgs = await api.organizations.list();
-      if (orgs.length === 0) return { projectName: "—", locales: [] as string[] };
-      const projects = await api.projects.list(orgs[0].id);
-      if (projects.length === 0) return { projectName: orgs[0].name, locales: [] as string[] };
-      const project = projects[0];
-      return { projectName: project.name, locales: project.target_locales };
-    },
-  });
+  const { current, isLoading } = useCurrentProject();
 
-  if (projectsQuery.isLoading) {
+  if (isLoading) {
     return (
       <div className="px-3 flex flex-col gap-1">
         <Skeleton className="h-7" />
@@ -151,7 +170,7 @@ function LocaleList() {
     );
   }
 
-  if (projectsQuery.isError || !projectsQuery.data) {
+  if (!current) {
     return (
       <div className="px-3 py-2 text-xs text-app-text-muted">
         Sign in to load locales.
@@ -159,26 +178,51 @@ function LocaleList() {
     );
   }
 
-  const { locales } = projectsQuery.data;
-  if (locales.length === 0) {
-    return (
-      <div className="px-3 py-2 text-xs text-app-text-muted">No locales yet.</div>
-    );
-  }
+  const locales = current.project.target_locales;
 
   return (
     <ul className="px-2 flex flex-col gap-0.5">
       {locales.map((locale) => (
-        <SidebarLocaleRow key={locale} locale={locale} />
+        <SidebarLocaleRow
+          key={locale}
+          locale={locale}
+          projectId={current.project.id}
+        />
       ))}
+      <li>
+        <Link
+          href="/settings/project"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] text-text-muted hover:bg-ink-2/60 hover:text-text-soft transition-colors"
+        >
+          <PlusIcon className="size-3.5" />
+          <span className="text-[12px]">Add locale</span>
+        </Link>
+      </li>
     </ul>
   );
 }
 
-function SidebarLocaleRow({ locale }: { locale: string }) {
+function SidebarLocaleRow({
+  locale,
+  projectId,
+}: {
+  locale: string;
+  projectId: string;
+}) {
   const pathname = usePathname();
   const href = `/review/${locale}`;
   const isActive = pathname?.startsWith(href);
+
+  // Needs-review queue depth, surfaced per docs/06:39-44. One small request
+  // per locale, cached by TanStack — N=3-5 locales in practice.
+  const queueQuery = useQuery({
+    queryKey: ["sidebar-queue", projectId, locale],
+    queryFn: () =>
+      api.batches.listByProject(projectId, { locale, status: "needs_review" }),
+    staleTime: 30_000,
+  });
+  const count = queueQuery.data?.length ?? 0;
+
   return (
     <li>
       <Link
@@ -191,6 +235,11 @@ function SidebarLocaleRow({ locale }: { locale: string }) {
         )}
       >
         <span className="font-mono text-[11.5px]">{locale}</span>
+        {count > 0 ? (
+          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-flame/15 text-flame-soft text-[10px] font-mono font-medium">
+            {count}
+          </span>
+        ) : null}
       </Link>
     </li>
   );

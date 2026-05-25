@@ -37,6 +37,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api, getApiKey, type GlossaryTerm, type Project } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 import { useKeyBindings } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 
@@ -68,45 +69,20 @@ export default function GlossaryPage() {
 }
 
 function GlossaryPicker() {
-  const orgsQuery = useQuery({
-    queryKey: ["glossary", "orgs"],
-    queryFn: api.organizations.list,
-    retry: false,
-  });
+  const { current, isLoading, isError } = useCurrentProject();
 
-  if (orgsQuery.isLoading) {
+  if (isLoading) {
     return <PageSkeleton />;
   }
-  if (orgsQuery.isError || !orgsQuery.data || orgsQuery.data.length === 0) {
+  if (isError || !current) {
     return (
       <EmptyState
-        title="No organizations"
-        body="Your API key authenticated, but no organizations are visible. Seed dev data with `python scripts/seed_dev.py`."
+        title="No project selected"
+        body="Glossary terms attach to a project. Pick one from the sidebar switcher, or create one in Settings → Project."
       />
     );
   }
-  return <GlossaryForFirstProject orgId={orgsQuery.data[0].id} />;
-}
-
-function GlossaryForFirstProject({ orgId }: { orgId: string }) {
-  const projectsQuery = useQuery({
-    queryKey: ["glossary", "projects", orgId],
-    queryFn: () => api.projects.list(orgId),
-  });
-
-  if (projectsQuery.isLoading) {
-    return <PageSkeleton />;
-  }
-  if (projectsQuery.isError || !projectsQuery.data || projectsQuery.data.length === 0) {
-    return (
-      <EmptyState
-        title="No projects yet"
-        body="Glossary terms attach to a project. Create one with `loc project create` and reload."
-      />
-    );
-  }
-  const project = projectsQuery.data[0];
-  return <GlossaryTable project={project} />;
+  return <GlossaryTable project={current.project} />;
 }
 
 /* ---------------------------------------------------------------------------

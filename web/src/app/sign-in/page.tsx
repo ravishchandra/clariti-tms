@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -8,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { setApiKey } from "@/lib/api";
+
+import logoMark from "@/app/logo.png";
 
 /**
  * Sign-in screen — API-key entry. NextAuth / magic-link / SSO is the
@@ -33,7 +36,15 @@ export default function SignInPage() {
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <Card className="w-full max-w-md">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          <Image
+            src={logoMark}
+            alt="ClaritiTMS"
+            width={48}
+            height={48}
+            className="rounded-md mb-3"
+            priority
+          />
           <CardTitle className="text-lg">Sign in to ClaritiTMS</CardTitle>
         </CardHeader>
         <CardContent>

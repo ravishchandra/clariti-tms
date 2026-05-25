@@ -32,6 +32,7 @@ import {
   type ComponentContext as ComponentCtx,
   type Repository,
 } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 
 /**
  * Component context editor (docs/09-build-phases.md Phase 6: "component
@@ -58,38 +59,22 @@ export default function ContextsPage() {
 }
 
 function ContextsPicker() {
-  const orgsQuery = useQuery({
-    queryKey: ["contexts", "orgs"],
-    queryFn: api.organizations.list,
-    retry: false,
-  });
-  if (orgsQuery.isLoading) return <PageSkeleton />;
-  if (orgsQuery.isError || !orgsQuery.data || orgsQuery.data.length === 0) {
+  const { current, isLoading, isError } = useCurrentProject();
+  if (isLoading) return <PageSkeleton />;
+  if (isError || !current) {
     return (
       <EmptyState
-        title="No organizations"
-        body="Your key authenticated, but no organizations are visible."
+        title="No project selected"
+        body="Component contexts belong to repositories under a project. Pick one from the sidebar switcher, or create one in Settings → Project."
       />
     );
   }
-  return <ContextsForFirstProject orgId={orgsQuery.data[0].id} />;
-}
-
-function ContextsForFirstProject({ orgId }: { orgId: string }) {
-  const projectsQuery = useQuery({
-    queryKey: ["contexts", "projects", orgId],
-    queryFn: () => api.projects.list(orgId),
-  });
-  if (projectsQuery.isLoading) return <PageSkeleton />;
-  if (projectsQuery.isError || !projectsQuery.data || projectsQuery.data.length === 0) {
-    return (
-      <EmptyState
-        title="No projects yet"
-        body="Component contexts belong to repositories under a project. Create one with `loc project create`."
-      />
-    );
-  }
-  return <ContextsForFirstRepo projectId={projectsQuery.data[0].id} projectName={projectsQuery.data[0].name} />;
+  return (
+    <ContextsForFirstRepo
+      projectId={current.project.id}
+      projectName={current.project.name}
+    />
+  );
 }
 
 function ContextsForFirstRepo({

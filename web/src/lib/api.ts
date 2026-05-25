@@ -106,12 +106,37 @@ export const Project = z.object({
 });
 export type Project = z.infer<typeof Project>;
 
+export const ApiKey = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  organization_id: z.string().uuid(),
+  is_active: z.boolean(),
+  is_org_admin: z.boolean(),
+  created_at: z.string(),
+  last_used_at: z.string().nullable().optional(),
+});
+export type ApiKey = z.infer<typeof ApiKey>;
+
+export const ApiKeyCreated = ApiKey.extend({
+  raw_key: z.string(),
+});
+export type ApiKeyCreated = z.infer<typeof ApiKeyCreated>;
+
 export const Repository = z.object({
   id: z.string().uuid(),
   project_id: z.string().uuid(),
   name: z.string(),
   platform: z.string(),
   file_format: z.string(),
+  plural_convention: z.string().optional(),
+  github_repo: z.string().nullable().optional(),
+  github_path: z.string().nullable().optional(),
+  github_installation_id: z.number().nullable().optional(),
+  source_file: z.string().nullable().optional(),
+  context_notes: z.string().nullable().optional(),
+  default_branch: z.string().optional(),
+  has_webhook_secret: z.boolean().optional(),
+  has_contentful_token: z.boolean().optional(),
 });
 export type Repository = z.infer<typeof Repository>;
 
@@ -377,17 +402,135 @@ export const api = {
     get: async (orgId: string, projectId: string) => {
       return Project.parse(await apiFetch(`/organizations/${orgId}/projects/${projectId}`));
     },
+    create: async (
+      orgId: string,
+      body: {
+        name: string;
+        slug: string;
+        source_locale?: string;
+        target_locales?: string[];
+        style_guide?: string | null;
+      },
+    ) => {
+      return Project.parse(
+        await apiFetch(`/organizations/${orgId}/projects`, { method: "POST", body }),
+      );
+    },
+    update: async (
+      orgId: string,
+      projectId: string,
+      body: {
+        name?: string;
+        slug?: string;
+        target_locales?: string[];
+        style_guide?: string | null;
+      },
+    ) => {
+      return Project.parse(
+        await apiFetch(`/organizations/${orgId}/projects/${projectId}`, {
+          method: "PATCH",
+          body,
+        }),
+      );
+    },
+    delete: async (orgId: string, projectId: string) => {
+      await apiFetch<void>(`/organizations/${orgId}/projects/${projectId}`, {
+        method: "DELETE",
+      });
+    },
+  },
+  apiKeys: {
+    list: async () => {
+      const data = await apiFetch<{ items: unknown[] }>(`/api-keys`);
+      return z.object({ items: z.array(ApiKey) }).parse(data).items;
+    },
+    create: async (body: { name: string }) => {
+      return ApiKeyCreated.parse(
+        await apiFetch(`/api-keys`, { method: "POST", body }),
+      );
+    },
+    revoke: async (keyId: string) => {
+      await apiFetch<void>(`/api-keys/${keyId}`, { method: "DELETE" });
+    },
   },
   repositories: {
     list: async (projectId: string) => {
       const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/repositories`);
       return z.object({ items: z.array(Repository) }).parse(data).items;
     },
+    get: async (projectId: string, repoId: string) => {
+      return Repository.parse(
+        await apiFetch(`/projects/${projectId}/repositories/${repoId}`),
+      );
+    },
+    create: async (
+      projectId: string,
+      body: {
+        name: string;
+        platform: string;
+        file_format: string;
+        source_file?: string | null;
+        github_repo?: string | null;
+        github_path?: string | null;
+        github_installation_id?: number | null;
+        context_notes?: string | null;
+      },
+    ) => {
+      return Repository.parse(
+        await apiFetch(`/projects/${projectId}/repositories`, {
+          method: "POST",
+          body,
+        }),
+      );
+    },
+    update: async (
+      projectId: string,
+      repoId: string,
+      body: {
+        name?: string;
+        platform?: string;
+        file_format?: string;
+        source_file?: string | null;
+        github_repo?: string | null;
+        github_path?: string | null;
+        github_installation_id?: number | null;
+        context_notes?: string | null;
+      },
+    ) => {
+      return Repository.parse(
+        await apiFetch(`/projects/${projectId}/repositories/${repoId}`, {
+          method: "PATCH",
+          body,
+        }),
+      );
+    },
+    delete: async (projectId: string, repoId: string) => {
+      await apiFetch<void>(`/projects/${projectId}/repositories/${repoId}`, {
+        method: "DELETE",
+      });
+    },
   },
   translations: {
     listByBatch: async (batchId: string) => {
       const data = await apiFetch<{ items: unknown[] }>(`/translations?batch_id=${batchId}`);
       return z.object({ items: z.array(Translation) }).parse(data).items;
+    },
+    // Project-scoped list, filterable by status. Used by the Flagged inbox
+    // (docs/14 §7 + §10.W5) to surface `needs_more_context` rows.
+    listByProject: async (
+      projectId: string,
+      filter?: { status?: TranslationStatus; page?: number; pageSize?: number },
+    ) => {
+      const params = new URLSearchParams({ project_id: projectId });
+      if (filter?.status) params.set("status", filter.status);
+      params.set("page", String(filter?.page ?? 1));
+      params.set("page_size", String(filter?.pageSize ?? 100));
+      const data = await apiFetch<{ items: unknown[]; total?: number }>(
+        `/translations?${params.toString()}`,
+      );
+      return z
+        .object({ items: z.array(Translation), total: z.number().optional() })
+        .parse(data);
     },
     // List translations for a single key. Filters by project_id (the
     // backend requires it) and key_id. Locale is omitted so we get every

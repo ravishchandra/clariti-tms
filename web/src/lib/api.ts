@@ -268,6 +268,43 @@ export const LocaleConfig = z.object({
 });
 export type LocaleConfig = z.infer<typeof LocaleConfig>;
 
+/* ---------------------------------------------------------------------------
+ * App Settings — singleton row backing Settings → Providers.
+ *
+ * Mirror of the GET /app-settings response shape from
+ * app/api/v1/endpoints/app_settings.py. Plaintext API keys are never sent
+ * over the wire — the response carries `has_*_key` booleans instead.
+ * ------------------------------------------------------------------------ */
+
+export const AppSettings = z.object({
+  has_anthropic_key: z.boolean(),
+  has_openai_key: z.boolean(),
+  has_openrouter_key: z.boolean(),
+  has_deepl_key: z.boolean(),
+  openrouter_model: z.string(),
+  primary_provider: z.string(),
+  fallback_chain: z.array(z.string()),
+  translate_temperature: z.number(),
+  evaluate_temperature: z.number(),
+  ollama_host: z.string().nullable(),
+});
+export type AppSettings = z.infer<typeof AppSettings>;
+
+// PATCH payload — every field optional. Empty string for an *_api_key field
+// clears that provider's key; omitting the field leaves it untouched.
+export type AppSettingsUpdate = {
+  anthropic_api_key?: string;
+  openai_api_key?: string;
+  openrouter_api_key?: string;
+  deepl_api_key?: string;
+  openrouter_model?: string;
+  primary_provider?: string;
+  fallback_chain?: string[];
+  translate_temperature?: number;
+  evaluate_temperature?: number;
+  ollama_host?: string | null;
+};
+
 export const ComponentContext = z.object({
   id: z.string().uuid(),
   repository_id: z.string().uuid(),
@@ -652,6 +689,16 @@ export const api = {
           method: "PATCH",
           body,
         }),
+      );
+    },
+  },
+  appSettings: {
+    get: async (): Promise<AppSettings> => {
+      return AppSettings.parse(await apiFetch("/app-settings"));
+    },
+    update: async (body: AppSettingsUpdate): Promise<AppSettings> => {
+      return AppSettings.parse(
+        await apiFetch("/app-settings", { method: "PATCH", body }),
       );
     },
   },

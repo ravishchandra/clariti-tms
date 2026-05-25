@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.api_keys import router as api_keys_router
+from app.api.v1.endpoints.app_settings import router as app_settings_router
 from app.api.v1.endpoints.component_contexts import router as component_contexts_router
 from app.api.v1.endpoints.glossary import router as glossary_router
 from app.api.v1.endpoints.locale_configs import router as locale_configs_router
@@ -13,6 +14,7 @@ from app.api.v1.endpoints.repositories import router as repositories_router
 router = APIRouter()
 
 router.include_router(api_keys_router, prefix="/api-keys", tags=["API Keys"])
+router.include_router(app_settings_router, tags=["App Settings"])
 router.include_router(orgs_router, prefix="/organizations", tags=["Organizations"])
 # Projects, repositories, locale-configs, and glossary are nested under their parents,
 # so they mount at their parent prefix and carry sub-paths within the router.

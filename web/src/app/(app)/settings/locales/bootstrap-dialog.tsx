@@ -494,7 +494,10 @@ function StepSend({
             speaker.
           </>
         }
-        body="Their edits will become the seed for MT. You can close this and come back when they reply — your progress is saved."
+        body={
+          "Their edits will become the seed for MT. You can close this " +
+          "and come back when they reply — your progress is saved."
+        }
       />
 
       {/* Reviewer brief card — the asymmetric centerpiece of the wizard.

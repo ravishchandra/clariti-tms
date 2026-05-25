@@ -72,7 +72,7 @@ function RepositoriesContent() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-4xl flex flex-col gap-3">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-4xl flex flex-col gap-3">
         <Skeleton className="h-32" />
         <Skeleton className="h-32" />
       </div>
@@ -95,7 +95,7 @@ function RepoList({ projectId }: { projectId: string }) {
   const repos = reposQuery.data ?? [];
 
   return (
-    <div className="p-6 max-w-4xl flex flex-col gap-6">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-4xl flex flex-col gap-6">
       <header className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
@@ -562,5 +562,5 @@ function Field({
 }
 
 function Empty({ title }: { title: string }) {
-  return <div className="p-6 max-w-3xl text-sm text-text-soft">{title}</div>;
+  return <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">{title}</div>;
 }

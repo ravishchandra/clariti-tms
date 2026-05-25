@@ -151,6 +151,8 @@
   --gradient-text-mid: #4f46e5;
   --gradient-text-end: #312e81;
 
+  --grid-line: rgba(18, 19, 23, 0.045);
+
   /* shadcn semantic tokens, mapped onto the editorial palette */
   --background: #ffffff;
   --foreground: #121317;
@@ -227,6 +229,8 @@
   --gradient-text-start: #e0e7ff;
   --gradient-text-mid: #4f46e5;
   --gradient-text-end: #4338ca;
+
+  --grid-line: rgba(255, 255, 255, 0.045);
 
   /* shadcn semantic tokens */
   --background: #07080a;
@@ -375,6 +379,19 @@
   @keyframes pulse-dot {
     0%, 100% { opacity: 0.4; }
     50% { opacity: 1; }
+  }
+
+  /* Subtle backdrop pattern used on the sign-in screen — matches the
+     marketing hero's grid-bg. The mask softens edges so the pattern
+     fades into the page background rather than cutting hard at the
+     viewport edges. */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, var(--grid-line, rgba(127, 127, 127, 0.06)) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line, rgba(127, 127, 127, 0.06)) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: center top;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 75%);
   }
 
   /* Terminal scope class — for code-style mockups and the sign-in screen's

@@ -70,18 +70,23 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
   }, [batchesQuery.data]);
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-5xl">
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-sm text-app-text-secondary">
-            <Link href="/dashboard" className="hover:text-app-text">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-8 max-w-5xl">
+      <header className="flex items-start justify-between gap-6 flex-wrap">
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-[13px] text-text-muted">
+            <Link href="/dashboard" className="hover:text-foreground transition-colors">
               Dashboard
             </Link>
             <ChevronRight className="size-3.5" />
-            <span className="font-mono text-app-text">{locale}</span>
+            <span className="font-mono text-text-soft">{locale}</span>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">Review queue · {locale}</h1>
-          <p className="text-sm text-app-text-secondary">
+          <h1 className="text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
+            Review queue ·{" "}
+            <span className="font-mono text-[26px] text-flame-soft sm:text-[30px]">
+              {locale}
+            </span>
+          </h1>
+          <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
             Batches grouped by component. Pick one to review screen-by-screen.
           </p>
         </div>

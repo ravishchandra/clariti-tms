@@ -164,13 +164,13 @@ function GlossaryTable({ project }: { project: Project }) {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-5 max-w-6xl">
-      <header className="flex flex-col gap-1">
-        <div className="text-xs uppercase tracking-wider text-app-text-secondary">
-          {project.name}
-        </div>
-        <h1 className="text-xl font-semibold tracking-tight">Glossary</h1>
-        <p className="text-sm text-app-text-secondary">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-8 max-w-6xl">
+      <header className="flex flex-col gap-2">
+        <p className="mono-eyebrow">{project.name}</p>
+        <h1 className="text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
+          Glossary
+        </h1>
+        <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
           Terms the LLM must translate consistently (or leave untouched).
           Applied automatically during MT and surfaced in review.
         </p>

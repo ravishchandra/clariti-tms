@@ -74,15 +74,15 @@ function FlaggedList({ projectId }: { projectId: string }) {
   const items = flaggedQuery.data?.items ?? [];
 
   return (
-    <div className="p-6 max-w-5xl flex flex-col gap-5">
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-5xl flex flex-col gap-8">
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
           <p className="mono-eyebrow">Inbox</p>
-          <h1 className="mt-1 text-[28px] font-[450] leading-tight tracking-[-0.02em] text-foreground flex items-center gap-2">
-            <FlagIcon className="size-5 text-flame-soft" />
+          <h1 className="flex items-center gap-3 text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
+            <FlagIcon className="size-6 text-flame-soft" />
             Flagged
           </h1>
-          <p className="text-sm text-text-soft max-w-prose">
+          <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
             Translations a reviewer flagged as <code className="font-mono">needs_more_context</code>.
             Add the missing context (component description, screenshot,
             per-string note), then move the row back to needs_review.

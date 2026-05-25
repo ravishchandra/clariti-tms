@@ -37,7 +37,7 @@ function ProjectSettingsContent() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-3xl flex flex-col gap-4">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-4">
         <Skeleton className="h-32" />
         <Skeleton className="h-48" />
       </div>
@@ -53,7 +53,7 @@ function ProjectSettingsContent() {
   const { project, org } = current;
 
   return (
-    <div className="p-6 max-w-3xl flex flex-col gap-8">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-8">
       <ProjectMeta orgId={org.id} projectId={project.id} name={project.name} slug={project.slug} />
       <ProjectLocales orgId={org.id} projectId={project.id} locales={project.target_locales} onChanged={() => qc.invalidateQueries({ queryKey: ["all-projects"] })} />
       <ProjectStyleGuide orgId={org.id} projectId={project.id} initial={project.style_guide ?? ""} />
@@ -368,7 +368,7 @@ function ProjectStyleGuide({
 
 function EmptyShell({ title }: { title: string }) {
   return (
-    <div className="p-6 max-w-3xl text-sm text-text-soft">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
       {title}
     </div>
   );

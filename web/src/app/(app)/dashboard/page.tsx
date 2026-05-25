@@ -55,13 +55,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-5xl">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-10 max-w-5xl">
       <header className="flex flex-col gap-2">
         <p className="mono-eyebrow">Review queue</p>
-        <h1 className="text-[26px] font-[450] tracking-[-0.018em] leading-[1.15]">
-          Locales waiting on review
+        <h1 className="text-balance text-[34px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[40px]">
+          Locales waiting on review.
         </h1>
-        <p className="text-[14px] text-text-soft">
+        <p className="mt-2 max-w-prose text-[15px] leading-[1.6] text-text-soft">
           Start reviewing to clear a screen at a time. Approve a batch with{" "}
           <KeyboardInline>⇧A</KeyboardInline>, or step through with{" "}
           <KeyboardInline>j</KeyboardInline> / <KeyboardInline>k</KeyboardInline>.

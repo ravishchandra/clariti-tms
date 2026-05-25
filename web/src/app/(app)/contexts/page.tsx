@@ -144,19 +144,19 @@ function ContextsEditor({
   }, [contextsQuery.data]);
 
   return (
-    <div className="p-6 flex flex-col gap-5 max-w-5xl">
-      <header className="flex items-end justify-between gap-4 flex-wrap">
-        <div className="flex flex-col gap-1">
-          <div className="text-xs uppercase tracking-wider text-app-text-secondary">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-8 max-w-5xl">
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
+          <p className="mono-eyebrow">
             {projectName} ·{" "}
-            <span className="font-mono normal-case tracking-normal text-app-text-secondary">
+            <span className="normal-case tracking-normal">
               {repository.name}
             </span>
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight">
+          </p>
+          <h1 className="text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
             Component contexts
           </h1>
-          <p className="text-sm text-app-text-secondary max-w-2xl">
+          <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
             Screen-level context is the primary input to the LLM. Describe what
             the screen does, what state the user is in, and what stakes the
             copy carries — that&apos;s what produces translations the team

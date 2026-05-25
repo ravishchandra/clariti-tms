@@ -125,7 +125,7 @@ function KeyDetail({
   const screenshots = screenshotsQuery.data ?? [];
 
   return (
-    <div className="flex flex-col gap-8 p-6 max-w-5xl">
+    <div className="flex flex-col gap-8 px-6 py-10 sm:px-8 sm:py-12 max-w-5xl">
       <Breadcrumb component={key.component} screen={key.screen} />
       <KeyHeader k={key} />
       <TranslationsPanel
@@ -694,7 +694,7 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 
 function KeyDetailSkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl">
+    <div className="flex flex-col gap-6 px-6 py-10 sm:px-8 sm:py-12 max-w-5xl">
       <Skeleton className="h-5 w-64" />
       <Skeleton className="h-10 w-96" />
       <Skeleton className="h-24" />

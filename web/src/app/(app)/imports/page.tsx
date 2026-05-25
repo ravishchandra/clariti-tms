@@ -74,15 +74,16 @@ function ImportsContent() {
   };
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-3xl">
-      <header className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <UploadIcon className="size-4 text-app-text-secondary" />
-          <h1 className="text-xl font-semibold tracking-tight">Imports</h1>
-        </div>
-        <p className="text-sm text-app-text-secondary">
-          Upload an edited Excel workbook from an LSP or reviewer. We dry-run first,
-          show every change, and only commit on your confirmation.
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-8 max-w-3xl">
+      <header className="flex flex-col gap-2">
+        <p className="mono-eyebrow">Data round-trip</p>
+        <h1 className="flex items-center gap-3 text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
+          <UploadIcon className="size-6 text-flame-soft" />
+          Imports
+        </h1>
+        <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
+          Upload an edited Excel workbook from an LSP or reviewer. We dry-run
+          first, show every change, and only commit on your confirmation.
         </p>
       </header>
 

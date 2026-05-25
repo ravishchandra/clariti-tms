@@ -20,13 +20,13 @@ import { getApiKey } from "@/lib/api";
 export default function DataPage() {
   if (typeof window !== "undefined" && !getApiKey()) {
     return (
-      <div className="p-6 max-w-3xl text-sm text-text-soft">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
         Sign in to use import / export.
       </div>
     );
   }
   return (
-    <div className="p-6 max-w-4xl flex flex-col gap-6">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-4xl flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Data round-trip

@@ -116,12 +116,15 @@ function KeysTable({
   }, [keys, search, riskFilter]);
 
   return (
-    <div className="p-6 flex flex-col gap-4 max-w-6xl">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">Keys</h1>
-        <p className="text-sm text-app-text-secondary">
-          All active keys in <span className="font-mono">{projectName}</span>.
-          Click a row to inspect history, MT runs, and screenshots.
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-8 max-w-6xl">
+      <header className="flex flex-col gap-2">
+        <p className="mono-eyebrow">{projectName}</p>
+        <h1 className="text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
+          Keys
+        </h1>
+        <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
+          All active keys in this project. Click a row to inspect history,
+          MT runs, and screenshots.
         </p>
       </header>
 

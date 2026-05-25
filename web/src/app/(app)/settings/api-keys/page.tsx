@@ -49,7 +49,7 @@ export default function ApiKeysPage() {
   const apiKey = typeof window !== "undefined" ? getApiKey() : null;
   if (!apiKey) {
     return (
-      <div className="p-6 max-w-3xl text-sm text-text-soft">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
         Sign in to manage API keys.
       </div>
     );
@@ -82,7 +82,7 @@ function ApiKeysContent() {
   });
 
   return (
-    <div className="p-6 max-w-4xl flex flex-col gap-6">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-4xl flex flex-col gap-6">
       <header className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-semibold tracking-tight text-foreground">

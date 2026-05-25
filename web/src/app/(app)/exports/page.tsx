@@ -72,7 +72,7 @@ function ExportsBuilder() {
 
   if (projectQuery.isLoading) {
     return (
-      <div className="p-6 flex flex-col gap-4 max-w-3xl">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-6 max-w-3xl">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-48" />
       </div>
@@ -81,7 +81,7 @@ function ExportsBuilder() {
 
   if (projectQuery.isError) {
     return (
-      <div className="p-6 max-w-3xl">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl">
         <Header />
         <Card className="mt-6">
           <CardContent className="py-6 text-sm text-status-rejected">
@@ -96,7 +96,7 @@ function ExportsBuilder() {
 
   if (!project) {
     return (
-      <div className="p-6 max-w-3xl">
+      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl">
         <Header />
         <Card className="mt-6">
           <CardContent className="py-6 text-sm text-app-text-muted">
@@ -153,7 +153,7 @@ function ExportsForm({
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-3xl">
+    <div className="px-6 py-10 sm:px-8 sm:py-12 flex flex-col gap-8 max-w-3xl">
       <Header />
 
       <Card>
@@ -280,14 +280,15 @@ function ExportsForm({
 
 function Header() {
   return (
-    <header className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <FileSpreadsheet className="size-4 text-app-text-secondary" />
-        <h1 className="text-xl font-semibold tracking-tight">Exports</h1>
-      </div>
-      <p className="text-sm text-app-text-secondary">
-        Build a Phase 5 round-trip Excel workbook. Hand the file to an LSP or finance
-        reviewer; they edit and you import the result back.
+    <header className="flex flex-col gap-2">
+      <p className="mono-eyebrow">Data round-trip</p>
+      <h1 className="flex items-center gap-3 text-balance text-[30px] font-[450] leading-[1.08] tracking-[-0.018em] text-foreground sm:text-[34px]">
+        <FileSpreadsheet className="size-6 text-flame-soft" />
+        Exports
+      </h1>
+      <p className="mt-1 max-w-prose text-[14.5px] leading-[1.6] text-text-soft">
+        Build a round-trip Excel workbook. Hand the file to an LSP or finance
+        reviewer; they edit it and you import the result back.
       </p>
     </header>
   );

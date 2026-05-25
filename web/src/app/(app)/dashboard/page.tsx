@@ -56,10 +56,15 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-5xl">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">Review queue</h1>
-        <p className="text-sm text-app-text-secondary">
-          Locales with strings waiting on review. Start reviewing to clear a screen at a time.
+      <header className="flex flex-col gap-2">
+        <p className="mono-eyebrow">Review queue</p>
+        <h1 className="text-[26px] font-[450] tracking-[-0.018em] leading-[1.15]">
+          Locales waiting on review
+        </h1>
+        <p className="text-[14px] text-text-soft">
+          Start reviewing to clear a screen at a time. Approve a batch with{" "}
+          <KeyboardInline>⇧A</KeyboardInline>, or step through with{" "}
+          <KeyboardInline>j</KeyboardInline> / <KeyboardInline>k</KeyboardInline>.
         </p>
       </header>
 
@@ -67,6 +72,14 @@ export default function DashboardPage() {
         <OrgProjects key={org.id} orgId={org.id} orgName={org.name} />
       ))}
     </div>
+  );
+}
+
+function KeyboardInline({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex items-center px-1 py-px rounded bg-ink-2 text-[10.5px] font-mono text-text-soft border border-line">
+      {children}
+    </kbd>
   );
 }
 
@@ -85,7 +98,7 @@ function OrgProjects({ orgId, orgName }: { orgId: string; orgName: string }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="text-xs uppercase tracking-wider text-app-text-secondary">{orgName}</div>
+      <div className="mono-eyebrow">{orgName}</div>
       {projectsQuery.data.length === 0 ? (
         <Card>
           <CardContent className="text-sm text-app-text-muted py-6">

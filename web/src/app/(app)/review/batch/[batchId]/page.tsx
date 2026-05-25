@@ -269,18 +269,19 @@ function BatchReview({ batchId, projectId }: { batchId: string; projectId: strin
   return (
     <div className="flex flex-col h-full">
       <div className="p-6 pb-3 max-w-5xl w-full">
-        <div className="flex items-center gap-2 text-sm text-app-text-secondary mb-2">
-          <Link href="/dashboard" className="hover:text-app-text">Dashboard</Link>
-          <ChevronRight className="size-3.5" />
-          <Link href={queueLink} className="hover:text-app-text font-mono">
+        <div className="flex items-center gap-2 text-[12px] text-text-soft mb-3 font-mono">
+          <Link href="/dashboard" className="hover:text-foreground">dashboard</Link>
+          <ChevronRight className="size-3 text-text-muted" />
+          <Link href={queueLink} className="hover:text-foreground">
             {batch.locale}
           </Link>
-          <ChevronRight className="size-3.5" />
-          <span className="text-app-text">{batch.component ?? "shared"} · {batch.screen ?? "—"}</span>
+          <ChevronRight className="size-3 text-text-muted" />
+          <span className="text-foreground">{batch.component ?? "shared"} · {batch.screen ?? "—"}</span>
         </div>
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <h1 className="text-lg font-semibold tracking-tight">
-            {batch.component ?? "shared"} <span className="text-app-text-secondary">/</span>{" "}
+          <h1 className="text-[22px] font-[450] tracking-[-0.018em] leading-[1.15]">
+            {batch.component ?? "shared"}{" "}
+            <span className="text-text-muted">/</span>{" "}
             {batch.screen ?? "—"}
           </h1>
           <ShortcutLegend />
@@ -429,11 +430,13 @@ function ReviewRowItem({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <div className="text-[11px] uppercase tracking-wider text-app-text-muted">Source</div>
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-text-muted">
+            Source
+          </div>
           <div className="text-sm leading-relaxed">{key.source_text}</div>
         </div>
         <div className="flex flex-col gap-1">
-          <div className="text-[11px] uppercase tracking-wider text-app-text-muted">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-flame-soft">
             {t.locale}
           </div>
           {editing ? (
@@ -465,7 +468,11 @@ function ReviewRowItem({
             </>
           ) : (
             <>
-              <Button size="sm" onClick={onApprove} className="bg-status-approved/20 text-status-approved hover:bg-status-approved/30 border border-status-approved/40">
+              <Button
+                size="sm"
+                onClick={onApprove}
+                className="bg-status-approved/15 text-status-approved hover:bg-status-approved/25 border border-status-approved/35 shadow-none hover:-translate-y-0"
+              >
                 <Check className="size-3.5 mr-1" />
                 Approve <KeyboardChip>a</KeyboardChip>
               </Button>

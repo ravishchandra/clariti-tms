@@ -29,7 +29,7 @@ export function RiskClassChip({ risk }: { risk: string | null | undefined }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium font-mono",
+        "inline-flex items-center px-1.5 py-0.5 rounded-md font-mono text-[10.5px] uppercase tracking-[0.06em]",
         style,
       )}
     >

@@ -148,9 +148,7 @@ function HelpDialog({
 function ShortcutGroupRow({ group }: { group: ShortcutGroup }) {
   return (
     <section className="flex flex-col gap-1.5">
-      <div className="text-[11px] uppercase tracking-wider text-app-text-muted">
-        {group.title}
-      </div>
+      <div className="mono-eyebrow">{group.title}</div>
       <ul className="flex flex-col">
         {group.rows.map((row, idx) => (
           <li

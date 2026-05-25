@@ -38,17 +38,21 @@ export function StatusChip({
   count?: number;
   className?: string;
 }) {
+  // Mono-styled status chip — picks up the marketing site's editorial label
+  // language (font-mono, 10.5px, uppercase, tracking-wide). The 15% tinted
+  // background keeps the existing status colour coding so reviewers can
+  // still scan a row at a glance.
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] font-medium leading-none whitespace-nowrap",
+        "inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md font-mono text-[10.5px] uppercase tracking-[0.06em] leading-none whitespace-nowrap",
         STYLE_BY_STATUS[status],
         className,
       )}
     >
       <span>{LABEL[status]}</span>
       {count !== undefined ? (
-        <span className="font-mono text-app-text-secondary">{count}</span>
+        <span className="text-text-muted">{count}</span>
       ) : null}
     </span>
   );

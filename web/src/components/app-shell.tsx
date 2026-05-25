@@ -87,24 +87,31 @@ function AppShellInner({ children }: AppShellProps) {
  * ------------------------------------------------------------------------ */
 
 function Sidebar() {
+  // Sidebar — restyled to match marketing/'s low-chrome nav signature
+  // (Nav.tsx + Pillars.tsx mono labels). The "C" mark now uses the flame
+  // tint instead of the previous shadcn primary tone, and section labels
+  // use the editorial mono-eyebrow treatment (uppercase, tracking 0.18em,
+  // flame-soft colour) so the dashboard and marketing share the same
+  // information-hierarchy language.
   return (
-    <aside className="w-[220px] shrink-0 border-r border-app-border bg-app-surface flex flex-col">
-      <div className="px-4 py-4 flex items-center gap-2">
-        <div className="size-6 rounded-md bg-primary/20 grid place-items-center text-primary text-sm font-semibold">
+    <aside className="w-[220px] shrink-0 border-r border-line bg-app-surface flex flex-col">
+      <div className="px-4 h-12 flex items-center gap-2">
+        <div className="size-6 rounded-md bg-flame/12 grid place-items-center text-flame-soft text-sm font-semibold ring-1 ring-flame/25">
           C
         </div>
-        <div className="text-sm font-semibold tracking-tight">ClaritiTMS</div>
+        <div className="text-[13.5px] font-semibold tracking-tight text-foreground">
+          ClaritiTMS
+        </div>
       </div>
 
       <Separator />
 
-      <div className="px-3 pt-3 pb-2 text-xs font-medium uppercase tracking-wider text-app-text-secondary">
-        Locales
-      </div>
+      <div className="px-3 pt-4 pb-2 mono-eyebrow">Locales</div>
       <LocaleList />
 
-      <Separator className="my-2" />
+      <Separator className="my-3" />
 
+      <div className="px-3 pb-2 mono-eyebrow">Workspace</div>
       <nav className="px-2 pb-4 flex flex-col gap-0.5">
         {SECTION_LINKS.map((item) => (
           <SidebarLink key={item.href} {...item} />
@@ -177,13 +184,13 @@ function SidebarLocaleRow({ locale }: { locale: string }) {
       <Link
         href={href}
         className={cn(
-          "flex items-center justify-between gap-2 px-3 py-1.5 rounded-md text-sm transition-colors",
+          "flex items-center justify-between gap-2 px-3 py-1.5 rounded-md text-[13px] transition-colors",
           isActive
-            ? "bg-app-elevated text-app-text border-l-2 border-primary -ml-[2px] pl-[10px]"
-            : "text-app-text-secondary hover:bg-app-elevated/50 hover:text-app-text",
+            ? "bg-ink-2 text-foreground border-l-2 border-flame -ml-[2px] pl-[10px]"
+            : "text-text-soft hover:bg-ink-2/60 hover:text-foreground",
         )}
       >
-        <span className="font-mono text-xs">{locale}</span>
+        <span className="font-mono text-[11.5px]">{locale}</span>
       </Link>
     </li>
   );
@@ -204,13 +211,13 @@ function SidebarLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+        "flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-colors",
         isActive
-          ? "bg-app-elevated text-app-text"
-          : "text-app-text-secondary hover:bg-app-elevated/50 hover:text-app-text",
+          ? "bg-ink-2 text-foreground"
+          : "text-text-soft hover:bg-ink-2/60 hover:text-foreground",
       )}
     >
-      <Icon className="size-4" />
+      <Icon className="size-3.5" />
       {label}
     </Link>
   );
@@ -222,10 +229,16 @@ function SidebarLink({
  * ------------------------------------------------------------------------ */
 
 function TopBar() {
+  // Top bar — matches marketing/Nav.tsx silhouette: low-chrome, blurred,
+  // hairline border-b, mono accents on the metadata. Height bumped from
+  // h-11 to h-12 so it lines up with the sidebar logo row exactly.
   return (
-    <header className="h-11 shrink-0 border-b border-app-border bg-app-surface/60 backdrop-blur-sm flex items-center justify-between px-4">
-      <div className="text-xs text-app-text-secondary">
-        Press <KeyboardChip>?</KeyboardChip> for shortcuts
+    <header className="h-12 shrink-0 border-b border-line/70 bg-app-surface/70 backdrop-blur-md flex items-center justify-between px-5">
+      <div className="text-[12px] text-text-soft">
+        Press <KeyboardChip>?</KeyboardChip>
+        <span className="ml-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-text-muted">
+          shortcuts
+        </span>
       </div>
       <AuthChip />
     </header>
@@ -234,7 +247,7 @@ function TopBar() {
 
 export function KeyboardChip({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex items-center px-1.5 py-0.5 rounded bg-app-elevated text-[11px] font-mono text-app-text-secondary border border-app-border">
+    <kbd className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-ink-2 text-[10.5px] font-mono text-text-soft border border-line">
       {children}
     </kbd>
   );
@@ -252,14 +265,22 @@ function AuthChip() {
   }
   if (orgsQuery.isError) {
     return (
-      <Link href="/sign-in" className="text-xs text-primary hover:underline">
+      <Link
+        href="/sign-in"
+        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-flame-soft hover:text-flame"
+      >
         Sign in
+        <span aria-hidden>→</span>
       </Link>
     );
   }
   const orgName = orgsQuery.data?.[0]?.name ?? "Unknown org";
   return (
-    <Link href="/settings" className="text-xs text-app-text-secondary hover:text-app-text">
+    <Link
+      href="/settings"
+      className="inline-flex items-center gap-2 text-[12px] text-text-soft hover:text-foreground"
+    >
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-mint" aria-hidden />
       {orgName}
     </Link>
   );

@@ -68,6 +68,27 @@ async def lifespan(app: FastAPI):
         },
     )
 
+    # First-startup seed of the singleton ``app_settings`` row. Idempotent
+    # — skipped if the row already exists. Pulled out of the migration so the
+    # Fernet helper (which may use a transient key in DEBUG) and the runtime
+    # ``Settings`` instance share a single codepath. Failure here logs but
+    # doesn't block boot — if the table doesn't exist yet (migration not run),
+    # provider instantiation will fail loudly with a clearer error.
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.llm.app_config import seed_app_settings_if_missing
+
+        async with AsyncSessionLocal() as seed_session:
+            await seed_app_settings_if_missing(seed_session, settings=settings)
+    except Exception as exc:  # pragma: no cover — defensive boot guard
+        logger.warning(
+            "app_settings.seed_skipped",
+            extra={
+                "event": "app_settings.seed_skipped",
+                "error": str(exc),
+            },
+        )
+
     scheduler = build_scheduler(settings)
     if settings.SCHEDULER_ENABLED:
         scheduler.start()

@@ -590,3 +590,42 @@ class MtRun(Base):
 
     # Relationships
     batch: Mapped[TranslationBatch | None] = relationship("TranslationBatch", back_populates="mt_runs")
+
+
+class AppSettings(Base):
+    """Singleton row holding the LLM-related app config.
+
+    Mirrors the env-var fields that used to be read directly off ``settings``
+    (``settings.ANTHROPIC_API_KEY``, ``settings.OPENROUTER_MODEL``, ...). The
+    .env values are now starting defaults — the row is seeded once on first
+    boot and the DB is the source of truth from then on. The Settings →
+    Providers UI edits this row; provider instantiation reads from it.
+
+    Singleton enforced via a unique index on ``((true))`` (added in
+    migration 0011). API key columns are Fernet-encrypted at rest using the
+    same helper as ``repositories.webhook_secret_encrypted``.
+    """
+
+    __tablename__ = "app_settings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # Fernet-encrypted API keys (NULL = provider not configured / will not be registered).
+    anthropic_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    openai_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    openrouter_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deepl_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Plain config fields.
+    openrouter_model: Mapped[str] = mapped_column(Text, nullable=False)
+    primary_provider: Mapped[str] = mapped_column(Text, nullable=False)
+    # JSONB so the fallback chain can be reordered without a column change.
+    fallback_chain: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    translate_temperature: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False)
+    evaluate_temperature: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False)
+    ollama_host: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

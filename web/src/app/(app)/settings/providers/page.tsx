@@ -1,7 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CheckIcon,
+  GripVerticalIcon,
+  PlusIcon,
+  XIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -83,7 +90,10 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
   // (round-tripped verbatim) and key fields (write-only, with a "set" /
   // "not set" pill driven by the boolean from the GET response).
   const [primaryProvider, setPrimaryProvider] = useState(initial.primary_provider);
-  const [fallbackChain, setFallbackChain] = useState(initial.fallback_chain.join(", "));
+  // Fallback chain edited as an ordered array of provider slugs. Internal
+  // representation matches the wire format (server takes a JSON array);
+  // the UI just stops asking the user to parse commas.
+  const [fallbackChain, setFallbackChain] = useState<string[]>(initial.fallback_chain);
   const [openrouterModel, setOpenrouterModel] = useState(initial.openrouter_model);
   const [translateTemp, setTranslateTemp] = useState(String(initial.translate_temperature));
   const [evaluateTemp, setEvaluateTemp] = useState(String(initial.evaluate_temperature));
@@ -99,7 +109,7 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
 
   useEffect(() => {
     setPrimaryProvider(initial.primary_provider);
-    setFallbackChain(initial.fallback_chain.join(", "));
+    setFallbackChain(initial.fallback_chain);
     setOpenrouterModel(initial.openrouter_model);
     setTranslateTemp(String(initial.translate_temperature));
     setEvaluateTemp(String(initial.evaluate_temperature));
@@ -137,12 +147,8 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
 
     if (primaryProvider !== initial.primary_provider) body.primary_provider = primaryProvider;
 
-    const parsedChain = fallbackChain
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parsedChain.join(",") !== initial.fallback_chain.join(",")) {
-      body.fallback_chain = parsedChain;
+    if (fallbackChain.join(",") !== initial.fallback_chain.join(",")) {
+      body.fallback_chain = fallbackChain;
     }
     if (openrouterModel !== initial.openrouter_model) body.openrouter_model = openrouterModel;
 
@@ -169,7 +175,7 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
   return (
     <form
       onSubmit={handleSubmit}
-      className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-8"
+      className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-6"
     >
       <Section
         title="Primary provider"
@@ -194,14 +200,9 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
 
       <Section
         title="Fallback chain"
-        description="Comma-separated provider names, tried in order if the primary fails."
+        description="Tried in order when the primary fails. Drag to reorder, or use the arrows."
       >
-        <Input
-          value={fallbackChain}
-          onChange={(e) => setFallbackChain(e.target.value)}
-          placeholder="anthropic, openai, ollama"
-          className="font-mono text-[12.5px]"
-        />
+        <FallbackChainEditor value={fallbackChain} onChange={setFallbackChain} />
       </Section>
 
       <Section
@@ -357,17 +358,159 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
+    <section className="flex flex-col gap-2">
+      <div className="flex flex-col gap-0.5">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">{title}</h2>
         {description ? (
-          <p className="text-[13px] text-text-soft max-w-prose">{description}</p>
+          <p className="text-[12.5px] text-text-soft max-w-prose">{description}</p>
         ) : null}
       </div>
       <Card>
-        <CardContent className="p-5 flex flex-col gap-4">{children}</CardContent>
+        <CardContent className="p-4 flex flex-col gap-3">{children}</CardContent>
       </Card>
     </section>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * Fallback chain editor — sortable chip list.
+ *
+ * Comma-separated text input made the chain order brittle (typos + re-typing
+ * to reorder). Each provider is now a chip with native HTML5 drag-and-drop
+ * for mouse reorder + ↑/↓ buttons for keyboard accessibility + × to remove.
+ * "+ Add" opens a small Select of providers not yet in the chain.
+ *
+ * The list of available providers comes from the same PROVIDERS const used
+ * by the Primary provider Select, so the two stay in sync.
+ * ------------------------------------------------------------------------ */
+function FallbackChainEditor({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const available = PROVIDERS.filter((p) => !value.includes(p));
+
+  function move(from: number, to: number) {
+    if (to < 0 || to >= value.length || from === to) return;
+    const next = [...value];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  }
+
+  function remove(idx: number) {
+    onChange(value.filter((_, i) => i !== idx));
+  }
+
+  function add(p: string) {
+    if (value.includes(p)) return;
+    onChange([...value, p]);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {value.length === 0 ? (
+        <p className="text-[12.5px] text-text-muted italic">
+          No fallback providers. The primary will fail loudly on errors.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {value.map((p, idx) => (
+            <li
+              key={p}
+              draggable
+              onDragStart={() => setDragIdx(idx)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setOverIdx(idx);
+              }}
+              onDragEnd={() => {
+                setDragIdx(null);
+                setOverIdx(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIdx !== null && dragIdx !== idx) move(dragIdx, idx);
+                setDragIdx(null);
+                setOverIdx(null);
+              }}
+              className={`group flex items-center gap-2 rounded-md border bg-card pl-2 pr-1 py-1.5 transition-colors ${
+                overIdx === idx && dragIdx !== null && dragIdx !== idx
+                  ? "border-flame/45 bg-flame/5"
+                  : "border-line hover:border-line-strong"
+              } ${dragIdx === idx ? "opacity-40" : ""}`}
+            >
+              <span
+                aria-hidden
+                className="cursor-grab active:cursor-grabbing text-text-muted hover:text-text-soft"
+              >
+                <GripVerticalIcon className="size-3.5" />
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted w-5">
+                {idx + 1}
+              </span>
+              <span className="font-mono text-[12.5px] text-foreground flex-1">{p}</span>
+              <button
+                type="button"
+                onClick={() => move(idx, idx - 1)}
+                disabled={idx === 0}
+                className="size-6 inline-flex items-center justify-center rounded text-text-muted hover:text-foreground hover:bg-ink-2 disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label={`Move ${p} up`}
+              >
+                <ArrowUpIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => move(idx, idx + 1)}
+                disabled={idx === value.length - 1}
+                className="size-6 inline-flex items-center justify-center rounded text-text-muted hover:text-foreground hover:bg-ink-2 disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label={`Move ${p} down`}
+              >
+                <ArrowDownIcon className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(idx)}
+                className="size-6 inline-flex items-center justify-center rounded text-text-muted hover:text-status-rejected hover:bg-status-rejected/10"
+                aria-label={`Remove ${p}`}
+              >
+                <XIcon className="size-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {available.length > 0 ? (
+        <div className="flex items-center gap-2 pt-1">
+          <Select value="" onValueChange={(v) => v && add(typeof v === "string" ? v : "")}>
+            <SelectTrigger size="sm" className="w-48">
+              <SelectValue placeholder="Add a provider…" />
+            </SelectTrigger>
+            <SelectContent>
+              {available.map((p) => (
+                <SelectItem key={p} value={p}>
+                  <span className="font-mono text-[12.5px]">{p}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-[11.5px] text-text-muted inline-flex items-center gap-1">
+            <PlusIcon className="size-3" />
+            to extend the chain
+          </span>
+        </div>
+      ) : (
+        <p className="text-[11.5px] text-text-muted">
+          Every provider is in the chain. Remove one to add a different order.
+        </p>
+      )}
+    </div>
   );
 }
 

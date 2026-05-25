@@ -1,9 +1,24 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckIcon, DownloadIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  ClipboardIcon,
+  DownloadIcon,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +30,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ApiError,
   api,
@@ -26,22 +45,37 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Bootstrap walkthrough wizard (docs/15 F-3). 4 steps, resumable.
+ * Bootstrap walkthrough wizard (docs/15 F-3, redesign in
+ * docs/15-bootstrap-wizard-redesign.md). 4 steps, resumable across multi-day
+ * human gaps.
  *
  *   1. Export — pull 50 highest-risk drafts for this locale as an .xlsx.
- *   2. Send   — admin sends the file to a native speaker. Resumable state
- *               (`bootstrap_state.step=2`) persists on the locale_config
- *               so the admin can close this dialog and come back days later.
+ *   2. Send   — admin sends the file to a native speaker. THIS is where the
+ *               admin lives for the dominant share of the wizard's wall-clock
+ *               time, so it's the richest step (reviewer brief + copy-paste
+ *               sample). Resumable state (`bootstrap_state.step=2`) persists
+ *               on the locale_config so the admin can close this dialog and
+ *               come back days later.
  *   3. Import — admin uploads the reply. Dry-run preview includes a
  *               locale-match gate; commit is blocked unless the preview's
  *               locales match this wizard's locale.
  *   4. Confirm — PATCH `is_bootstrapped=true` + clear `bootstrap_state`.
  *
- * Every server-side step PATCHes the locale_config so the row in
- * /settings/locales shows the correct resume state even if the user closes
- * the tab mid-flow.
+ * Accessibility:
+ *   - `aria-label="Step N of 4"` on DialogContent.
+ *   - `aria-current="step"` on the active rail pip.
+ *   - Esc opens an AlertDialog confirming the close (progress is already
+ *     persisted server-side, but the prompt teaches the admin that their
+ *     work survived — relevant for a multi-day flow).
  */
-const STEPS = ["EXPORT", "SEND", "IMPORT", "CONFIRM"] as const;
+const STEPS = [
+  { n: 1, label: "EXPORT" },
+  { n: 2, label: "SEND" },
+  { n: 3, label: "IMPORT" },
+  { n: 4, label: "CONFIRM" },
+] as const;
+
+type StepNum = 1 | 2 | 3 | 4;
 
 export function BootstrapDialog({
   projectId,
@@ -54,74 +88,231 @@ export function BootstrapDialog({
   open: boolean;
   onOpenChange: (next: boolean) => void;
 }) {
-  const initialStep = (config.bootstrap_state?.step ?? 1) as 1 | 2 | 3 | 4;
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(initialStep);
+  const initialStep = (config.bootstrap_state?.step ?? 1) as StepNum;
+  const [step, setStep] = useState<StepNum>(initialStep);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
   // If the locale_config is refetched while the dialog is open (e.g. another
   // tab advanced it), pull the new step in. But ignore upstream changes
   // while the dialog is closed so reopening reads the latest server state.
   useEffect(() => {
-    if (open) setStep((config.bootstrap_state?.step ?? 1) as 1 | 2 | 3 | 4);
+    if (open) setStep((config.bootstrap_state?.step ?? 1) as StepNum);
   }, [open, config.bootstrap_state?.step]);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between gap-3">
-            <span>Bootstrap {config.locale}</span>
-            <StepIndicator step={step} />
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Four-step wizard to bootstrap the {config.locale} locale: export a
-            sample, send to a native speaker, import their reply, confirm.
-          </DialogDescription>
-        </DialogHeader>
+  // Esc interception: don't dismiss silently. Open a confirm sheet that
+  // teaches the admin their progress is saved. We capture at the window
+  // level so we beat the dialog's default Esc handler. The dialog itself
+  // routes its own onOpenChange(false) (X button, click-outside) through
+  // the same prompt below.
+  useEffect(() => {
+    if (!open) return;
+    if (confirmCloseOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setConfirmCloseOpen(true);
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKey, { capture: true });
+  }, [open, confirmCloseOpen]);
 
-        {step === 1 ? (
-          <StepExport
-            projectId={projectId}
-            config={config}
-            onAdvance={() => setStep(2)}
-          />
-        ) : step === 2 ? (
-          <StepSend
-            projectId={projectId}
-            config={config}
-            onClose={() => onOpenChange(false)}
-            onAdvance={() => setStep(3)}
-          />
-        ) : step === 3 ? (
-          <StepImport
-            projectId={projectId}
-            config={config}
-            onAdvance={() => setStep(4)}
-          />
-        ) : (
-          <StepConfirm
-            projectId={projectId}
-            config={config}
-            onClose={() => onOpenChange(false)}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+  const handleClose = useCallback(() => {
+    setConfirmCloseOpen(false);
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  return (
+    <>
+      <Dialog
+        open={open}
+        // When the user clicks the X button or the backdrop, route through
+        // the confirm sheet instead of silently closing.
+        onOpenChange={(next) => {
+          if (next) {
+            onOpenChange(true);
+            return;
+          }
+          setConfirmCloseOpen(true);
+        }}
+      >
+        <DialogContent
+          className="max-w-xl sm:max-w-xl gap-5"
+          aria-label={`Step ${step} of 4`}
+        >
+          <DialogHeader className="gap-4">
+            <DialogTitle className="text-[15px] font-[450] tracking-tight text-foreground">
+              Bootstrap{" "}
+              <span className="font-mono text-flame-soft">
+                {config.locale}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Four-step wizard to bootstrap the {config.locale} locale: export
+              a sample, send to a native speaker, import their reply, confirm.
+            </DialogDescription>
+            <StepRail step={step} />
+          </DialogHeader>
+
+          {step === 1 ? (
+            <StepExport
+              projectId={projectId}
+              config={config}
+              onAdvance={() => setStep(2)}
+            />
+          ) : step === 2 ? (
+            <StepSend
+              projectId={projectId}
+              config={config}
+              onBack={() => setStep(1)}
+              onClose={() => setConfirmCloseOpen(true)}
+              onAdvance={() => setStep(3)}
+            />
+          ) : step === 3 ? (
+            <StepImport
+              projectId={projectId}
+              config={config}
+              onBack={() => setStep(2)}
+              onAdvance={() => setStep(4)}
+            />
+          ) : (
+            <StepConfirm
+              projectId={projectId}
+              config={config}
+              onBack={() => setStep(3)}
+              onClose={() => onOpenChange(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close wizard?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your progress is saved. You can resume at step {step} from the
+              locale row anytime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep going</AlertDialogCancel>
+            <AlertDialogAction variant="outline" onClick={handleClose}>
+              Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
-function StepIndicator({ step }: { step: 1 | 2 | 3 | 4 }) {
+/* ---------------------------------------------------------------------------
+ * Shared step chrome
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Horizontal step rail. Four pips with semantic names; the active one
+ * gets the flame accent and `aria-current="step"`. Replaces the previous
+ * inline "1 / 4 · STEP" right-chip — a multi-day flow earns a fuller
+ * stepper, not a counter.
+ */
+function StepRail({ step }: { step: StepNum }) {
   return (
-    <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-text-muted">
-      {step} / 4 · {STEPS[step - 1]}
-    </span>
+    <ol
+      className="flex items-center gap-1.5"
+      aria-label={`Bootstrap wizard, step ${step} of 4`}
+    >
+      {STEPS.map((s) => {
+        const active = s.n === step;
+        const done = s.n < step;
+        return (
+          <li
+            key={s.n}
+            aria-current={active ? "step" : undefined}
+            className={cn(
+              "flex-1 flex items-center gap-2 rounded-md border px-2.5 py-1.5 transition-colors",
+              active
+                ? "border-flame/55 bg-flame/5"
+                : done
+                  ? "border-line bg-ink-2"
+                  : "border-line bg-transparent",
+            )}
+          >
+            <span
+              className={cn(
+                "font-mono text-[10px] tabular-nums leading-none",
+                active
+                  ? "text-flame-soft"
+                  : done
+                    ? "text-text-soft"
+                    : "text-text-muted",
+              )}
+              aria-hidden
+            >
+              {String(s.n).padStart(2, "0")}
+            </span>
+            <span
+              className={cn(
+                "font-mono text-[10.5px] uppercase tracking-[0.14em] leading-none truncate",
+                active
+                  ? "text-flame-soft"
+                  : done
+                    ? "text-text-soft"
+                    : "text-text-muted",
+              )}
+            >
+              {s.label}
+            </span>
+            {done ? (
+              <CheckIcon
+                className="ml-auto size-3 text-text-soft shrink-0"
+                aria-hidden
+              />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
-function StepEyebrow({ n, label }: { n: number; label: string }) {
+function StepHeading({
+  eyebrow,
+  title,
+  body,
+}: {
+  eyebrow: string;
+  title: React.ReactNode;
+  body?: React.ReactNode;
+}) {
   return (
-    <p className="mono-eyebrow">
-      {String(n).padStart(2, "0")} — {label}
-    </p>
+    <div className="flex flex-col gap-2">
+      <p className="mono-eyebrow">{eyebrow}</p>
+      <h3 className="text-balance text-[20px] font-[450] leading-[1.2] tracking-[-0.012em] text-foreground">
+        {title}
+      </h3>
+      {body ? (
+        <p className="text-[13.5px] leading-[1.6] text-text-soft text-pretty">
+          {body}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className="mr-auto text-text-muted"
+    >
+      <ArrowLeftIcon className="size-3.5" />
+      Back
+    </Button>
   );
 }
 
@@ -178,16 +369,29 @@ function StepExport({
 
   return (
     <div className="flex flex-col gap-4">
-      <StepEyebrow n={1} label="EXPORT" />
-      <h3 className="text-balance text-[20px] font-[450] leading-[1.2] tracking-[-0.012em] text-foreground">
-        Pull 50 sample strings for your reviewer.
-      </h3>
-      <p className="text-[13.5px] leading-[1.6] text-text-soft">
-        We&apos;ll generate an Excel file with your highest-risk strings first,
-        capped at 50. Send it to a native {config.locale} speaker — they fill
-        the <code className="font-mono text-text">value</code> column for every
-        row.
-      </p>
+      <StepHeading
+        eyebrow="01 — EXPORT"
+        title="Pull 50 sample strings for your reviewer."
+        body={
+          <>
+            We&apos;ll generate an Excel file with{" "}
+            <Tooltip>
+              <TooltipTrigger className="underline decoration-dotted decoration-text-muted/60 underline-offset-2 cursor-help text-text-soft">
+                50 sample strings
+              </TooltipTrigger>
+              <TooltipContent>
+                Selected by risk class — placeholder-heavy, longest, and
+                lowest-confidence drafts first.
+              </TooltipContent>
+            </Tooltip>{" "}
+            for{" "}
+            <span className="font-mono text-text">{config.locale}</span>. Send
+            it to a native speaker — they fill the{" "}
+            <code className="font-mono text-text">value</code> column for
+            every row.
+          </>
+        }
+      />
 
       {error ? (
         <p className="text-[12px] text-status-rejected">{error}</p>
@@ -207,24 +411,42 @@ function StepExport({
 }
 
 /* ---------------------------------------------------------------------------
- * Step 2 — Send the sample. Pure instructional + resumable.
+ * Step 2 — Send the sample. The longest step in wall-clock time gets the
+ * richest treatment: a copy-paste reviewer brief, a status line about what
+ * happens when they reply, and a quiet re-download.
  * ------------------------------------------------------------------------ */
+
+function buildBrief(locale: string) {
+  // One-line briefing the admin can drop into an email or Slack. Kept
+  // intentionally short — admins who write their own message can ignore
+  // it; admins who don't get a defensible default.
+  return (
+    `Hi! I'm bootstrapping our ${locale} localization. Could you open ` +
+    `the attached Excel file and fill the "value" column for each row ` +
+    `(50 strings total) with the natural ${locale} translation? Send the ` +
+    `same workbook back when you're done — thanks!`
+  );
+}
 
 function StepSend({
   projectId,
   config,
+  onBack,
   onClose,
   onAdvance,
 }: {
   projectId: string;
   config: LocaleConfig;
+  onBack: () => void;
   onClose: () => void;
   onAdvance: () => void;
 }) {
   const qc = useQueryClient();
   const [exporting, setExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const exportedAt = config.bootstrap_state?.exported_at;
+  const briefText = buildBrief(config.locale);
 
   const reexport = useMutation({
     mutationFn: async () => {
@@ -245,27 +467,92 @@ function StepSend({
       URL.revokeObjectURL(url);
     },
     onSettled: () => setExporting(false),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] }),
   });
+
+  const copyBrief = async () => {
+    try {
+      await navigator.clipboard.writeText(briefText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard can fail under insecure context / permission denial.
+      // Quietly no-op; admin can still select-and-copy from the rendered
+      // text below.
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
-      <StepEyebrow n={2} label="SEND" />
-      <h3 className="text-balance text-[20px] font-[450] leading-[1.2] tracking-[-0.012em] text-foreground">
-        Send the file to a native {config.locale} speaker.
-      </h3>
-      <p className="text-[13.5px] leading-[1.6] text-text-soft">
-        Ask them to fill the <code className="font-mono text-text">value</code>{" "}
-        column for every row, then send the file back. You can close this and
-        come back when they reply.
-      </p>
-      {exportedAt ? (
-        <p className="text-[11.5px] font-mono text-text-muted">
-          Last exported: {new Date(exportedAt).toLocaleString()}
-        </p>
-      ) : null}
+      <StepHeading
+        eyebrow="02 — SEND"
+        title={
+          <>
+            Send the file to a native{" "}
+            <span className="font-mono text-flame-soft">{config.locale}</span>{" "}
+            speaker.
+          </>
+        }
+        body="Their edits will become the seed for MT. You can close this and come back when they reply — your progress is saved."
+      />
+
+      {/* Reviewer brief card — the asymmetric centerpiece of the wizard.
+       *  Surfaces the contract literally: locale, column, row count,
+       *  copy-paste sample text. */}
+      <div className="rounded-md border border-line bg-ink-2 p-3.5 flex flex-col gap-3">
+        <div className="grid grid-cols-3 gap-3 text-[11.5px]">
+          <BriefField
+            label="Locale"
+            value={
+              <span className="font-mono text-flame-soft">
+                {config.locale}
+              </span>
+            }
+          />
+          <BriefField
+            label="Fill column"
+            value={<span className="font-mono">value</span>}
+          />
+          <BriefField
+            label="Rows"
+            value={<span className="font-mono">50</span>}
+          />
+        </div>
+
+        <div className="rounded-md border border-line bg-card p-2.5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted mb-1.5">
+            Suggested briefing
+          </p>
+          <p className="text-[12.5px] leading-[1.55] text-text-soft text-pretty">
+            {briefText}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={copyBrief}>
+            {copied ? (
+              <>
+                <CheckIcon className="size-3.5" />
+                Copied
+              </>
+            ) : (
+              <>
+                <ClipboardIcon className="size-3.5" />
+                Copy briefing
+              </>
+            )}
+          </Button>
+          {exportedAt ? (
+            <span className="font-mono text-[10.5px] text-text-muted">
+              Exported {new Date(exportedAt).toLocaleString()}
+            </span>
+          ) : null}
+        </div>
+      </div>
 
       <DialogFooter className="flex-wrap gap-2">
+        <BackButton onClick={onBack} />
         <Button
           variant="outline"
           onClick={() => reexport.mutate()}
@@ -283,6 +570,23 @@ function StepSend({
   );
 }
 
+function BriefField({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
+        {label}
+      </span>
+      <span className="text-[13px] text-foreground">{value}</span>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------------------
  * Step 3 — Import the reply. Dry-run preview + locale-match gate + commit.
  * ------------------------------------------------------------------------ */
@@ -290,10 +594,12 @@ function StepSend({
 function StepImport({
   projectId,
   config,
+  onBack,
   onAdvance,
 }: {
   projectId: string;
   config: LocaleConfig;
+  onBack: () => void;
   onAdvance: () => void;
 }) {
   const qc = useQueryClient();
@@ -314,7 +620,9 @@ function StepImport({
       setError(null);
     },
     onError: (err) =>
-      setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
+      setError(
+        err instanceof ApiError ? `${err.status}: ${err.message}` : String(err),
+      ),
   });
 
   const commitMutation = useMutation({
@@ -327,7 +635,9 @@ function StepImport({
       onAdvance();
     },
     onError: (err) =>
-      setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
+      setError(
+        err instanceof ApiError ? `${err.status}: ${err.message}` : String(err),
+      ),
   });
 
   // Locale-match gate (docs/15 must-fix #4 / eng review §4). The reply must
@@ -338,21 +648,24 @@ function StepImport({
     preview !== null &&
     (previewLocales.length !== 1 || previewLocales[0] !== config.locale);
   const noRows =
-    preview !== null &&
-    (preview.summary?.total_rows ?? 0) === 0;
+    preview !== null && (preview.summary?.total_rows ?? 0) === 0;
 
   const canCommit = preview !== null && !localeMismatch && !noRows;
 
   return (
     <div className="flex flex-col gap-4">
-      <StepEyebrow n={3} label="IMPORT" />
-      <h3 className="text-balance text-[20px] font-[450] leading-[1.2] tracking-[-0.012em] text-foreground">
-        Upload their reply.
-      </h3>
-      <p className="text-[13.5px] leading-[1.6] text-text-soft">
-        We&apos;ll dry-run the import and show you the diff before committing.
-        Only the {config.locale} drafts in this file will be touched.
-      </p>
+      <StepHeading
+        eyebrow="03 — IMPORT"
+        title="Upload their reply."
+        body={
+          <>
+            We&apos;ll dry-run the import and show you the diff before
+            committing. Only the{" "}
+            <span className="font-mono text-text">{config.locale}</span>{" "}
+            drafts in this file will be touched.
+          </>
+        }
+      />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="reply-file">Edited Excel workbook</Label>
@@ -369,7 +682,7 @@ function StepImport({
       </div>
 
       {preview ? (
-        <div className="rounded-md border border-line bg-ink-1 p-3 flex flex-col gap-2 text-[12.5px]">
+        <div className="rounded-md border border-line bg-ink-2 p-3 flex flex-col gap-2 text-[12.5px]">
           <div className="flex items-center justify-between">
             <span className="text-text-soft">
               Locales in file:{" "}
@@ -394,8 +707,8 @@ function StepImport({
           ) : null}
           {(preview.summary?.errors?.length ?? 0) > 0 ? (
             <p className="text-status-rejected">
-              {preview.summary?.errors?.length} validation error(s) in the file.
-              Open Imports to inspect.
+              {preview.summary?.errors?.length} validation error(s) in the
+              file. Open Imports to inspect.
             </p>
           ) : null}
         </div>
@@ -406,6 +719,7 @@ function StepImport({
       ) : null}
 
       <DialogFooter className="flex-wrap gap-2">
+        <BackButton onClick={onBack} />
         {preview === null ? (
           <Button
             onClick={() => previewMutation.mutate()}
@@ -444,10 +758,12 @@ function StepImport({
 function StepConfirm({
   projectId,
   config,
+  onBack,
   onClose,
 }: {
   projectId: string;
   config: LocaleConfig;
+  onBack: () => void;
   onClose: () => void;
 }) {
   const qc = useQueryClient();
@@ -469,21 +785,32 @@ function StepConfirm({
 
   return (
     <div className="flex flex-col gap-4">
-      <StepEyebrow n={4} label="CONFIRM" />
-      <h3 className="text-balance text-[20px] font-[450] leading-[1.2] tracking-[-0.012em] text-foreground">
-        {config.locale} is ready to translate.
-      </h3>
-      <p className="text-[13.5px] leading-[1.6] text-text-soft">
-        Your reviewer&apos;s edits become the seed for MT. The locale is now
-        bootstrapped — finish to mark it live and move on to{" "}
-        <span className="font-mono">/review/{config.locale}</span>.
-      </p>
+      <StepHeading
+        eyebrow="04 — CONFIRM"
+        title={
+          <>
+            <span className="font-mono text-flame-soft">{config.locale}</span>{" "}
+            is ready to translate.
+          </>
+        }
+        body={
+          <>
+            Your reviewer&apos;s edits become the seed for MT. The locale is
+            now bootstrapped — finish to mark it live and move on to{" "}
+            <span className="font-mono text-text">
+              /review/{config.locale}
+            </span>
+            .
+          </>
+        }
+      />
 
       {error ? (
         <p className="text-[12px] text-status-rejected">{error}</p>
       ) : null}
 
       <DialogFooter>
+        <BackButton onClick={onBack} />
         <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
           <CheckIcon className="size-3.5" />
           {mutation.isPending ? "Finishing…" : "Finish"}
@@ -492,7 +819,3 @@ function StepConfirm({
     </div>
   );
 }
-
-/* `cn` is exported by `@/lib/utils` and used elsewhere; we don't strip it
- * out of imports here because the file may grow visual polish later. */
-void cn;

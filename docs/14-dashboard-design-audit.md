@@ -175,7 +175,7 @@ The user mentioned conversing about this; here's my independent take. Build in t
 | 3 | **API keys** | mint, list, revoke; show last_used_at; show scope (org/project) | Unblocks the sign-in dead-end. Backend at `app/api/v1/endpoints/api_keys.py` is ready. | S |
 | 4 | **Locales** | per-locale formality, register, notes, `is_bootstrapped` + the bootstrap wizard | Move existing `/locales` page here. Add the wizard. | M (move) + M (wizard) |
 | 5 | **Data** | Export builder, Import wizard, TMX export/import, recent jobs with rollback | Move existing `/exports` + `/imports` here. Add recent-jobs list. | M |
-| 6 | **Providers** | Read-only first: which LLM provider, which fallback, deepl locales, recent fallback rate. Editable later. | Operator visibility for F7 fallback alerts. | M |
+| 6 | **Providers** ✓ shipped | Editable: API keys (Anthropic, OpenAI, OpenRouter, DeepL), OpenRouter model, primary provider + fallback chain, temperature defaults, Ollama host. DB-backed singleton (`app_settings`), seeded from `.env` on first boot. | Self-hosting admins drive LLM config without editing `.env`. | M |
 | 7 | **Users** | list, invite, role, `assigned_locales` | Required once more than one human uses the system. | L (needs invite plumbing) |
 | 8 | **Analytics** | MT cost, edit rate over time, back-translation similarity distribution, per-locale coverage | `docs/06:60`. Last because it's nice-to-have not blocking. | M |
 

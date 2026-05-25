@@ -62,3 +62,7 @@ Thumbs.db
 # Generated SDKs (regenerate with make sdks)
 sdks/typescript/
 sdks/python/
+
+# gstack / design-review tooling output (local audit artifacts, screenshots)
+.gstack/
+.gstack-audit/

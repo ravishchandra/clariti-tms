@@ -9,7 +9,8 @@ from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedBatch, ScopedProject, assert_project_in_org
 from app.api.v1.schemas.batches import BatchRead, BatchTrigger, MtRunRead
-from app.models import BatchStatus, MtRun, Translation, TranslationBatch, TranslationStatus
+from app.ingestion.service import assemble_batches
+from app.models import BatchStatus, MtRun, Repository, Translation, TranslationBatch, TranslationStatus
 from app.mt.service import enqueue_batch_for_mt
 from app.mt.transitions import IllegalTransitionError, apply_transition
 
@@ -216,6 +217,16 @@ async def trigger_project_mt(
                 "'mt_complete', 'needs_review', or 'approved'."
             ),
         ) from exc
+
+    # Defensive: assemble batches if any drafts for the target locale aren't
+    # batched yet. `fan_out_locale` (the activate path) seeds drafts but
+    # doesn't assemble — so a freshly-activated locale has hundreds of
+    # unbatched drafts and zero batches, and the query below would find
+    # nothing. assemble_batches is idempotent (drafts already in a batch
+    # are skipped), safe to call here.
+    repo_ids = (await db.execute(select(Repository.id).where(Repository.project_id == project.id))).scalars().all()
+    for repo_id in repo_ids:
+        await assemble_batches(db, str(repo_id), str(project.id))
 
     q = select(TranslationBatch).where(
         TranslationBatch.project_id == project.id,

@@ -15,3 +15,7 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("DEBUG", "true")
+# Keep the in-process MT worker off during tests — otherwise every TestClient
+# that triggers the lifespan would spawn a polling loop that hits the real DB
+# and clobbers test fixtures.
+os.environ.setdefault("MT_WORKER_ENABLED", "false")

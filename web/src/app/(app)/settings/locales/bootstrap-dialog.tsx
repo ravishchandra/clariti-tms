@@ -331,16 +331,77 @@ function StepExport({
 }) {
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  // Three-phase progress: idle → triggering → polling → exporting → done.
+  // The user sees one button label that updates: Generate sample → Translating
+  // {done} of {total}… → Generating Excel… → (advances).
+  const [phase, setPhase] = useState<
+    | { kind: "idle" }
+    | { kind: "triggering" }
+    | { kind: "polling"; done: number; total: number }
+    | { kind: "exporting" }
+  >({ kind: "idle" });
 
-  const mutation = useMutation({
-    mutationFn: async () => {
+  // Post-MT batch statuses — when a sample batch reaches one of these, MT
+  // is finished for it. Matches the BatchStatus enum on the server (see
+  // app/models.py BatchStatus). `mt_running` and `pending` are the
+  // in-flight states we wait OUT of.
+  const TERMINAL_STATUSES = new Set([
+    "mt_complete",
+    "needs_review",
+    "approved",
+    "published",
+  ]);
+
+  async function generateSample() {
+    setError(null);
+    try {
+      // Step 1 — kick MT on every pending batch for this locale. The
+      // backend's F3 endpoint (POST /projects/{id}/trigger-mt) is
+      // idempotent: re-running on an already-MT'd locale enqueues zero
+      // batches and we go straight to export.
+      setPhase({ kind: "triggering" });
+      await api.batches.triggerProjectMt(projectId, { locale: config.locale });
+
+      // Step 2 — poll until every batch for this locale is past MT.
+      const startedAt = Date.now();
+      const POLL_INTERVAL_MS = 2000;
+      const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const batches = await api.batches.listByProject(projectId, {
+          locale: config.locale,
+        });
+        if (batches.length === 0) {
+          // No batches for this locale at all → likely no source strings
+          // ingested. Surface the same gate the F3 endpoint enforces.
+          throw new Error(
+            "No batches for this locale. Ingest a source file before bootstrapping.",
+          );
+        }
+        const done = batches.filter((b) => TERMINAL_STATUSES.has(b.status)).length;
+        const total = batches.length;
+        setPhase({ kind: "polling", done, total });
+
+        if (done === total) break;
+        if (Date.now() - startedAt > TIMEOUT_MS) {
+          throw new Error(
+            "Translation is still running. Close the wizard and come back — your progress is saved.",
+          );
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+
+      // Step 3 — export the sample. status_filter is now null (not "draft")
+      // because every row in the sample has moved through MT and carries
+      // an mt_value the reviewer can edit, instead of being blank drafts.
+      setPhase({ kind: "exporting" });
       const { blob, filename } = await api.exports.create({
         project_id: projectId,
         locales: [config.locale],
-        status_filter: "draft",
+        status_filter: null,
         sample_size: 50,
       });
-      // Trigger the browser download. Same pattern as /exports page.
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -349,32 +410,40 @@ function StepExport({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      // Persist step=2 so closing the dialog leaves the locale row in
-      // "Resume at step 2" state.
+
+      // Persist step=2 so closing the dialog leaves the locale row at
+      // the "Resume at step 2" state.
       await api.localeConfigs.update(projectId, config.id, {
         bootstrap_state: {
           step: 2,
           exported_at: new Date().toISOString(),
         } satisfies BootstrapState,
       });
-    },
-    onSuccess: () => {
+
       qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] });
-      setError(null);
+      setPhase({ kind: "idle" });
       onAdvance();
-    },
-    onError: (err) =>
-      setError(err instanceof Error ? err.message : "Export failed"),
-  });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sample generation failed");
+      setPhase({ kind: "idle" });
+    }
+  }
+
+  const isWorking = phase.kind !== "idle";
+  let buttonLabel = "Generate sample";
+  if (phase.kind === "triggering") buttonLabel = "Kicking off MT…";
+  else if (phase.kind === "polling")
+    buttonLabel = `Translating ${phase.done} of ${phase.total}…`;
+  else if (phase.kind === "exporting") buttonLabel = "Generating Excel…";
 
   return (
     <div className="flex flex-col gap-4">
       <StepHeading
         eyebrow="01 — EXPORT"
-        title="Pull 50 sample strings for your reviewer."
+        title="Translate 50 sample strings for your reviewer."
         body={
           <>
-            We&apos;ll generate an Excel file with{" "}
+            We&apos;ll run the LLM on{" "}
             <Tooltip>
               <TooltipTrigger className="underline decoration-dotted decoration-text-muted/60 underline-offset-2 cursor-help text-text-soft">
                 50 sample strings
@@ -384,26 +453,43 @@ function StepExport({
                 lowest-confidence drafts first.
               </TooltipContent>
             </Tooltip>{" "}
-            for{" "}
-            <span className="font-mono text-text">{config.locale}</span>. Send
-            it to a native speaker — they fill the{" "}
-            <code className="font-mono text-text">value</code> column for
-            every row.
+            for <span className="font-mono text-text">{config.locale}</span>,
+            then export an Excel for your native-speaker reviewer to edit
+            and approve. Reviewing the LLM&apos;s proposals is faster than
+            writing every translation from scratch.
           </>
         }
       />
+
+      {phase.kind === "polling" && phase.total > 0 ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-line bg-ink-1 px-3 py-2 flex flex-col gap-1.5"
+        >
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-text-soft">Translating batches</span>
+            <span className="font-mono text-text-muted">
+              {phase.done} / {phase.total}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-ink-2 overflow-hidden">
+            <div
+              className="h-full bg-flame transition-all"
+              style={{ width: `${(phase.done / phase.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="text-[12px] text-status-rejected">{error}</p>
       ) : null}
 
       <DialogFooter>
-        <Button
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending}
-        >
+        <Button onClick={generateSample} disabled={isWorking}>
           <DownloadIcon className="size-3.5" />
-          {mutation.isPending ? "Generating…" : "Generate sample"}
+          {buttonLabel}
         </Button>
       </DialogFooter>
     </div>
@@ -451,10 +537,13 @@ function StepSend({
   const reexport = useMutation({
     mutationFn: async () => {
       setExporting(true);
+      // No status_filter — Step 1 already MT'd the sample batches, so
+      // every row carries an mt_value. Filtering to "draft" would now
+      // produce an empty workbook.
       const { blob, filename } = await api.exports.create({
         project_id: projectId,
         locales: [config.locale],
-        status_filter: "draft",
+        status_filter: null,
         sample_size: 50,
       });
       const url = URL.createObjectURL(blob);

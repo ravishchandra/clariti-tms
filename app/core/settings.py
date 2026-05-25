@@ -105,6 +105,13 @@ class Settings(BaseSettings):
     # 2 AM UTC is the default — quiet hours for most US/EU traffic.
     RECONCILIATION_HOUR_UTC: int = 2
 
+    # MT worker — run the translation worker as a background task inside the
+    # API process. On in dev so the dashboard's F3/bootstrap buttons can
+    # actually translate without a separate `loc translate` process. Off in
+    # tests so unit tests don't spin up a polling loop.
+    MT_WORKER_ENABLED: bool = True
+    MT_WORKER_POLL_INTERVAL_S: float = 2.0
+
     @model_validator(mode="after")
     def _validate_secret_key(self) -> Self:
         """Enforce SECRET_KEY policy based on DEBUG mode.

@@ -1,5 +1,6 @@
 """ClaritiTMS — FastAPI application entry point."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -103,12 +104,89 @@ async def lifespan(app: FastAPI):
     # Expose for /health/scheduler diagnostics.
     app.state.scheduler = scheduler
 
+    # MT worker — background task that drains the pending-batch queue. Without
+    # this, dashboard buttons that enqueue batches (F3 "Translate N pending",
+    # bootstrap-sample MT) leave them in `pending` forever unless the operator
+    # runs `loc translate` separately.
+    mt_worker_task: asyncio.Task | None = None
+    if settings.MT_WORKER_ENABLED:
+        mt_worker_task = asyncio.create_task(_run_mt_worker_loop(settings))
+        app.state.mt_worker_task = mt_worker_task
+        logger.info("mt_worker.started", extra={"event": "mt_worker.started"})
+    else:
+        app.state.mt_worker_task = None
+
     try:
         yield
     finally:
+        if mt_worker_task is not None and not mt_worker_task.done():
+            mt_worker_task.cancel()
+            try:
+                await mt_worker_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            logger.info("mt_worker.stopped", extra={"event": "mt_worker.stopped"})
         if scheduler.running:
             scheduler.shutdown(wait=True)
             logger.info("scheduler.stopped", extra={"event": "scheduler.stopped"})
+
+
+async def _run_mt_worker_loop(settings) -> None:
+    """Background MT worker. Loads providers from app_settings, then polls.
+
+    Reloads providers on each pass through the outer loop so a key added via
+    Settings → Providers takes effect without restarting the server. The inner
+    `run_worker` call processes up to 25 batches before returning, which both
+    bounds memory and forces a provider refresh.
+    """
+    from app.core.crypto import decrypt
+    from app.core.database import AsyncSessionLocal
+    from app.llm.app_config import load_app_settings
+    from app.llm.providers.anthropic import AnthropicProvider
+    from app.llm.providers.openai import OpenAIProvider
+    from app.llm.providers.openrouter import OpenRouterProvider
+    from app.mt.worker import run_worker
+
+    while True:
+        try:
+            providers: dict = {}
+            async with AsyncSessionLocal() as cfg_db:
+                app_settings = await load_app_settings(cfg_db)
+            if app_settings.anthropic_api_key_encrypted:
+                providers["anthropic"] = AnthropicProvider(
+                    api_key=decrypt(app_settings.anthropic_api_key_encrypted) or ""
+                )
+            if app_settings.openai_api_key_encrypted:
+                providers["openai"] = OpenAIProvider(
+                    api_key=decrypt(app_settings.openai_api_key_encrypted) or ""
+                )
+            if app_settings.openrouter_api_key_encrypted:
+                providers["openrouter"] = OpenRouterProvider(
+                    api_key=decrypt(app_settings.openrouter_api_key_encrypted) or "",
+                    model=app_settings.openrouter_model,
+                )
+
+            if not providers:
+                # Nothing to translate with — sleep and re-check. Keys may
+                # appear via Settings → Providers without a restart.
+                await asyncio.sleep(settings.MT_WORKER_POLL_INTERVAL_S * 5)
+                continue
+
+            primary = app_settings.primary_provider if app_settings.primary_provider in providers else next(iter(providers))
+            embed = "openai" if "openai" in providers else primary
+
+            await run_worker(
+                providers=providers,
+                poll_interval=settings.MT_WORKER_POLL_INTERVAL_S,
+                max_batches=25,
+                config_provider=primary,
+                embed_provider=embed,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.exception("mt_worker.crash", extra={"event": "mt_worker.crash", "error": str(exc)})
+            await asyncio.sleep(5.0)
 
 
 app = FastAPI(

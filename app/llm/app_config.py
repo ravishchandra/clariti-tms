@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 # Defaults baked into the migration / first-startup seed. Operators can
 # override post-seed via PATCH /app-settings.
-_DEFAULT_OPENROUTER_MODEL = "google/gemini-2.0-flash-exp:free"
-_DEFAULT_PRIMARY_PROVIDER = "anthropic"
+_DEFAULT_OPENROUTER_MODEL = "google/gemini-2.5-flash"
+_DEFAULT_PRIMARY_PROVIDER = "openrouter"
 _DEFAULT_FALLBACK_CHAIN: list[str] = ["anthropic", "openai", "ollama"]
 
 

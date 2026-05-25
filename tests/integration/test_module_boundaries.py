@@ -291,6 +291,61 @@ class TestH6PublishRepositoryRespectsBoundary:
         assert approved.published_at is not None
 
     @pytest.mark.asyncio
+    async def test_publish_repository_locale_filter_restricts_pr(self, db_session, seeded_repo, monkeypatch):
+        """F4 — passing locale='fr-FR' must only publish that locale's
+        approved translations, never the others. Reverse case ('de-DE')
+        must return None because seeded_repo has no approved de-DE row.
+        """
+        from app.publication import service as publication_service
+
+        captured: dict = {}
+
+        class FakeAdapter:
+            def __init__(self, token: str) -> None:
+                captured.setdefault("ctor_calls", 0)
+                captured["ctor_calls"] += 1
+
+            async def publish_translations(
+                self,
+                repository,
+                translations_by_locale,
+                branch_name,
+                key_metadata=None,
+            ) -> str:
+                captured["translations_by_locale"] = translations_by_locale
+                return "https://github.com/acme/repo/pull/77"
+
+        monkeypatch.setattr(
+            "app.integrations.github.adapter.GitHubAdapter",
+            FakeAdapter,
+        )
+
+        repo = seeded_repo["repo"]
+
+        # The fr-FR path matches the only approved translation; PR opens.
+        pr_url = await publication_service.publish_repository(
+            db_session, repo, github_token="dummy", locale="fr-FR"
+        )
+        assert pr_url == "https://github.com/acme/repo/pull/77"
+        assert captured["translations_by_locale"] == {"fr-FR": {"hello": "Bonjour"}}
+        assert "de-DE" not in captured["translations_by_locale"]
+
+        # Reset for the second call.
+        captured.clear()
+
+        # The de-DE path finds zero approved rows (seeded_repo only has a
+        # draft de-DE row). Service must short-circuit before constructing
+        # the adapter.
+        result = await publication_service.publish_repository(
+            db_session, repo, github_token="dummy", locale="de-DE"
+        )
+        assert result is None
+        assert "ctor_calls" not in captured, (
+            "publish_repository should short-circuit before constructing GitHubAdapter "
+            "when the locale filter excludes every row"
+        )
+
+    @pytest.mark.asyncio
     async def test_publish_repository_no_op_when_nothing_approved(self, db_session, monkeypatch):
         from app.publication import service as publication_service
 

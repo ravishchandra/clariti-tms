@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import DB, ScopedRepository
 from app.integrations.github.auth import get_installation_token
@@ -74,7 +74,18 @@ def _permanent_detail_for_publish(installation_id: int, exc: GitHubPermanentErro
 
 
 @router.post("/repositories/{repo_id}/publish")
-async def trigger_publication(db: DB, repository: ScopedRepository) -> dict:
+async def trigger_publication(
+    db: DB,
+    repository: ScopedRepository,
+    locale: str | None = Query(
+        None,
+        description=(
+            "Restrict the PR to approved translations for this BCP-47 locale. "
+            "Omitting publishes every locale's approved set, which matches the "
+            "pre-docs/15 behavior (CLI / scheduler callers)."
+        ),
+    ),
+) -> dict:
     if not repository.github_repo:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -151,7 +162,7 @@ async def trigger_publication(db: DB, repository: ScopedRepository) -> dict:
 
     # ----- Stage 2: actually publish ----------------------------------------
     try:
-        pr_url = await publish_repository(db, repository, github_token)
+        pr_url = await publish_repository(db, repository, github_token, locale=locale)
     except GitHubRetryableError as exc:
         logger.warning(
             "github returned %s while publishing for installation %s; retry in %ds",
@@ -190,7 +201,8 @@ async def trigger_publication(db: DB, repository: ScopedRepository) -> dict:
         return {
             "status": "no_op",
             "pr_url": None,
+            "locale": locale,
             "detail": "No approved translations to publish",
         }
 
-    return {"status": "ok", "pr_url": pr_url}
+    return {"status": "ok", "pr_url": pr_url, "locale": locale}

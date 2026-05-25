@@ -851,6 +851,34 @@ export const api = {
       );
     },
   },
+  publications: {
+    /**
+     * Open a PR against the repo's `github_repo` with approved
+     * translations. Optionally restrict to one locale (docs/15 F4).
+     *
+     * Return shape mirrors the server's `app/api/v1/endpoints/publication.py`:
+     *   ok:    `{status: "ok",     pr_url: "https://…", locale}`
+     *   no-op: `{status: "no_op",  pr_url: null,        locale, detail}`
+     *
+     * Callers parse `pr_url` for the inline result strip. PR number is
+     * available by splitting on `/pull/`; we don't track it separately to
+     * avoid coupling on GitHub URL shape.
+     *
+     * The fetch supports `AbortSignal` so the UI can enforce a 30s ceiling
+     * — the server is durable so a dropped client connection doesn't lose
+     * data; the message just tells the user to check GitHub.
+     */
+    publishRepo: async (
+      repoId: string,
+      opts?: { locale?: string; signal?: AbortSignal },
+    ): Promise<{ status: string; pr_url: string | null; locale: string | null; detail?: string }> => {
+      const qs = opts?.locale ? `?locale=${encodeURIComponent(opts.locale)}` : "";
+      return await apiFetch(`/publications/repositories/${repoId}/publish${qs}`, {
+        method: "POST",
+        signal: opts?.signal,
+      });
+    },
+  },
   componentContexts: {
     list: async (repoId: string) => {
       const data = await apiFetch<{ items: unknown[] }>(

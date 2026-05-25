@@ -81,7 +81,7 @@ const organizationJsonLd = {
   url: site.url,
   description: site.description,
   sameAs: [site.github, site.twitter],
-  logo: `${site.url}/logo.svg`,
+  logo: `${site.url}/logo-512.png`,
 };
 
 const softwareJsonLd = {

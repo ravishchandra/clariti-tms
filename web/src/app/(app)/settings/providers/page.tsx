@@ -153,7 +153,10 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-8 max-w-2xl">
       <Section title="Primary provider" description="The default provider for translate + evaluate calls.">
-        <Select value={primaryProvider} onValueChange={setPrimaryProvider}>
+        <Select
+          value={primaryProvider}
+          onValueChange={(v) => setPrimaryProvider(typeof v === "string" ? v : "anthropic")}
+        >
           <SelectTrigger className="w-64">
             <SelectValue />
           </SelectTrigger>

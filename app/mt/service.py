@@ -613,14 +613,10 @@ async def translate_batch(
 
     app_settings = await load_app_settings(db)
     translate_temp = (
-        translate_temperature
-        if translate_temperature is not None
-        else float(app_settings.translate_temperature)
+        translate_temperature if translate_temperature is not None else float(app_settings.translate_temperature)
     )
     evaluate_temp = (
-        evaluate_temperature
-        if evaluate_temperature is not None
-        else float(app_settings.evaluate_temperature)
+        evaluate_temperature if evaluate_temperature is not None else float(app_settings.evaluate_temperature)
     )
 
     deepl_locales = deepl_locales or []

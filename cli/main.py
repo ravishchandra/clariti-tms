@@ -344,9 +344,7 @@ async def _translate(project_slug: str, locale: str | None, provider_name: str, 
         from app.core.crypto import decrypt
 
         if app_settings.anthropic_api_key_encrypted:
-            providers["anthropic"] = AnthropicProvider(
-                api_key=decrypt(app_settings.anthropic_api_key_encrypted) or ""
-            )
+            providers["anthropic"] = AnthropicProvider(api_key=decrypt(app_settings.anthropic_api_key_encrypted) or "")
         if app_settings.openai_api_key_encrypted:
             providers["openai"] = OpenAIProvider(api_key=decrypt(app_settings.openai_api_key_encrypted) or "")
         if app_settings.openrouter_api_key_encrypted:
@@ -1135,9 +1133,7 @@ async def _eval(reference: str, prompt_version: str, provider_name: str, output:
         await seed_app_settings_if_missing(cfg_db)
         app_settings = await load_app_settings(cfg_db)
         if app_settings.anthropic_api_key_encrypted:
-            providers["anthropic"] = AnthropicProvider(
-                api_key=decrypt(app_settings.anthropic_api_key_encrypted) or ""
-            )
+            providers["anthropic"] = AnthropicProvider(api_key=decrypt(app_settings.anthropic_api_key_encrypted) or "")
         if app_settings.openai_api_key_encrypted:
             providers["openai"] = OpenAIProvider(api_key=decrypt(app_settings.openai_api_key_encrypted) or "")
         if app_settings.openrouter_api_key_encrypted:

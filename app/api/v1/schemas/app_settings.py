@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 _ALLOWED_PROVIDERS = ("anthropic", "openai", "openrouter", "ollama", "deepl")
 
 

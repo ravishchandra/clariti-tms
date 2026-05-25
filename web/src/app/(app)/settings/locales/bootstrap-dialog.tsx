@@ -37,8 +37,9 @@ import { cn } from "@/lib/utils";
  *               locales match this wizard's locale.
  *   4. Confirm — PATCH `is_bootstrapped=true` + clear `bootstrap_state`.
  *
- * Every server-side step PATCHes the locale_config so the row in /locales
- * shows the correct resume state even if the user closes the tab mid-flow.
+ * Every server-side step PATCHes the locale_config so the row in
+ * /settings/locales shows the correct resume state even if the user closes
+ * the tab mid-flow.
  */
 const STEPS = ["EXPORT", "SEND", "IMPORT", "CONFIRM"] as const;
 

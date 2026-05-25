@@ -179,9 +179,10 @@ function ProjectLocales({
       await api.projects.update(orgId, projectId, {
         target_locales: [...locales, candidate],
       });
-      // Register-only: no fan_out here. The locale row appears in /locales
-      // in state 1 ("registered") with an [Activate →] button — the admin
-      // chooses when to kick off the pipeline (docs/15 plan v2).
+      // Register-only: no fan_out here. The locale row appears in
+      // /settings/locales in state 1 ("registered") with an [Activate →]
+      // button — the admin chooses when to kick off the pipeline (docs/15
+      // plan v2).
       await api.localeConfigs.create(projectId, {
         locale: candidate,
         formality: "formal",
@@ -287,7 +288,7 @@ function FanoutNotice() {
         </span>{" "}
         Adding a locale here only registers it — the pipeline doesn&apos;t kick off
         automatically. Open{" "}
-        <Link href="/locales" className="text-flame-soft hover:underline">
+        <Link href="/settings/locales" className="text-flame-soft hover:underline">
           Settings → Locales
         </Link>{" "}
         and press <span className="font-mono text-foreground">Activate</span> on

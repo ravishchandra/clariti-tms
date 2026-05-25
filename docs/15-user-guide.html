@@ -324,7 +324,7 @@
     </p>
     <dl class="hero-stats">
       <div class="hero-stat">
-        <div class="stat-num">6</div>
+        <div class="stat-num">7</div>
         <div class="stat-label">clicks end-to-end</div>
       </div>
       <div class="hero-stat">
@@ -423,10 +423,17 @@
 
     <div class="section-head">
       <span class="eyebrow">The journey</span>
-      <h2>Six steps, six clicks.</h2>
+      <h2>Seven steps, seven clicks.</h2>
       <p class="lead">
         From here, every action lives inside the dashboard. After each action the UI tells you what to do next — no jumping into the CLI or GitHub to figure it out yourself.
       </p>
+    </div>
+
+    <div class="callout" style="margin-bottom: 28px;">
+      <div style="font-family: 'Geist Mono'; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--flame-soft); margin-bottom: 6px;">What ships today</div>
+      <div>
+        As of <code>640d7a3</code>, steps 01–03 plus the review surface in step 05 are live in the dashboard. Step 04 (bulk Translate) and step 06 (Publish UI) are spec'd in <code>docs/15</code> but still build for the F3 + F4 rows of the plan — they currently work via CLI (<code>loc translate</code>, <code>loc publish</code>).
+      </div>
     </div>
 
     <!-- STEP 1 -->
@@ -435,7 +442,7 @@
       <div class="step-body">
         <h3>Add the target locale.</h3>
         <p class="lead">
-          Settings → Project → <strong>Target locales</strong>. Type a BCP-47 code (<code>de-DE</code>, <code>pt-BR</code>, <code>ja-JP</code>) and hit <strong>Add</strong>. The locale is appended to the project, a default locale-config row is created, and every existing key in the project gets a draft translation row for the new locale — all in one transaction.
+          Settings → Project → <strong>Target locales</strong>. Type a BCP-47 code (<code>de-DE</code>, <code>pt-BR</code>, <code>ja-JP</code>) and hit <strong>Add</strong>. Registers the locale in the project's <code>target_locales</code> and creates a default locale config. The pipeline doesn't kick off yet — that's a separate, intentional second click.
         </p>
 
         <div class="mock">
@@ -455,20 +462,66 @@
         </div>
 
         <div class="success-card">
-          <span class="ok">de-DE added · 247 drafts seeded</span>
-          <a class="next" href="#step-02">Bootstrap de-DE →</a>
+          <span class="ok">de-DE added · click Activate on the locale row to seed drafts.</span>
+          <a class="next" href="#step-02">Activate de-DE →</a>
         </div>
 
         <div class="step-meta">
-          <span><b>Endpoint:</b> <code>POST /projects/{pid}/locale-configs?fan_out=true</code></span>
-          <span><b>Returns:</b> <code>200 {created: 247, already_existed: false}</code></span>
+          <span><b>Endpoint:</b> <code>POST /projects/{pid}/locale-configs</code></span>
+          <span><b>Returns:</b> <code>200 {locale_config, drafts_created: 0, already_existed: false}</code></span>
         </div>
       </div>
     </div>
 
-    <!-- STEP 2 -->
+    <!-- STEP 2 — Activate -->
     <div class="step" id="step-02">
       <div class="step-num">STEP 02</div>
+      <div class="step-body">
+        <h3>Activate the locale.</h3>
+        <p class="lead">
+          Open Settings → Locales. Each locale row carries an <strong>[Activate]</strong> button while it sits in state <em>"registered"</em>. Click it to seed a draft translation for every active key in the project. Idempotent — re-running on an already-activated locale adds zero rows.
+        </p>
+
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>settings/locales</span></div>
+          <div class="mock-body" style="padding: 14px;">
+            <div class="mock-row">
+              <div>
+                <div style="font-weight: 600; font-size: 13.5px; font-family: 'Geist Mono';">de-DE</div>
+                <div style="font-family: 'Geist Mono'; font-size: 11px; color: var(--text-muted); margin-top: 3px;">registered · awaiting activation</div>
+              </div>
+              <button class="mock-btn">Activate</button>
+            </div>
+            <div class="mock-row">
+              <div>
+                <div style="font-weight: 600; font-size: 13.5px; font-family: 'Geist Mono';">fr-CA</div>
+                <div style="font-family: 'Geist Mono'; font-size: 11px; color: var(--text-muted); margin-top: 3px;">bootstrapped · 1,284 strings · publishing enabled</div>
+              </div>
+              <span class="chip" style="font-family: 'Geist Mono'; font-size: 11px; color: var(--mint); background: rgba(22,163,74,0.08); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(22,163,74,0.25);">Live</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-card">
+          <span class="ok">de-DE activated · seeded 247 drafts</span>
+          <a class="next" href="#step-03">Bootstrap de-DE →</a>
+        </div>
+
+        <div class="callout">
+          <strong>Activation requires source strings to exist.</strong> If the project has no ingested keys yet, you'll see an inline error: <em>"Project has no source strings yet. Ingest a source file before activating this locale."</em>
+        </div>
+
+        <div class="step-meta">
+          <span><b>Endpoint:</b> <code>POST /projects/{pid}/locale-configs?fan_out=true</code></span>
+          <span><b>Returns:</b> <code>200 {drafts_created: 247, already_existed: false}</code> on first run, <code>(true)</code> on re-run</span>
+          <span><b>Idempotent:</b> re-running on an active locale is safe</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Bootstrap wizard -->
+    <div class="step" id="step-03">
+      <div class="step-num">STEP 03</div>
       <div class="step-body">
         <h3>Bootstrap the locale.</h3>
         <p class="lead">
@@ -501,9 +554,9 @@
       </div>
     </div>
 
-    <!-- STEP 3 -->
+    <!-- STEP 4 — Translate the queue -->
     <div class="step">
-      <div class="step-num">STEP 03</div>
+      <div class="step-num">STEP 04</div>
       <div class="step-body">
         <h3>Translate the queue.</h3>
         <p class="lead">
@@ -557,9 +610,9 @@
       </div>
     </div>
 
-    <!-- STEP 4 -->
+    <!-- STEP 5 — Review screen by screen -->
     <div class="step">
-      <div class="step-num">STEP 04</div>
+      <div class="step-num">STEP 05</div>
       <div class="step-body">
         <h3>Review screen by screen.</h3>
         <p class="lead">
@@ -608,9 +661,9 @@
       </div>
     </div>
 
-    <!-- STEP 5 -->
+    <!-- STEP 6 — Publish -->
     <div class="step">
-      <div class="step-num">STEP 05</div>
+      <div class="step-num">STEP 06</div>
       <div class="step-body">
         <h3>Publish the approved batch to your repo.</h3>
         <p class="lead">
@@ -643,9 +696,9 @@
       </div>
     </div>
 
-    <!-- STEP 6 -->
+    <!-- STEP 7 — Merge -->
     <div class="step">
-      <div class="step-num">STEP 06</div>
+      <div class="step-num">STEP 07</div>
       <div class="step-body">
         <h3>Merge the PR.</h3>
         <p class="lead">
@@ -724,7 +777,7 @@
       <div class="step-body">
         <h3>What if I don't have a GitHub App connected?</h3>
         <p class="lead">
-          Steps 1–4 work without it. Step 5 (publish) will fail until a GitHub App is installed and its installation id is pasted into the repository settings. The dashboard surfaces the <em>"install the App"</em> link inline; once installed and the id is set, the Publish button activates.
+          Steps 1–5 work without it. Step 6 (publish) will fail until a GitHub App is installed and its installation id is pasted into the repository settings. The dashboard surfaces the <em>"install the App"</em> link inline; once installed and the id is set, the Publish button activates.
         </p>
       </div>
     </div>

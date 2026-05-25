@@ -432,7 +432,7 @@
     <div class="callout" style="margin-bottom: 28px;">
       <div style="font-family: 'Geist Mono'; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--flame-soft); margin-bottom: 6px;">What ships today</div>
       <div>
-        As of <code>640d7a3</code>, steps 01–03 plus the review surface in step 05 are live in the dashboard. Step 04 (bulk Translate) and step 06 (Publish UI) are spec'd in <code>docs/15</code> but still build for the F3 + F4 rows of the plan — they currently work via CLI (<code>loc translate</code>, <code>loc publish</code>).
+        All seven steps are live in the dashboard. F3 (bulk Translate) and F4 (Publish UI) landed on top of the F1+F2 foundation, so steps 04 and 06 are real buttons on the review queue — no CLI needed end-to-end. F6 added the inline GitHub App install helper under Settings → Repositories so step PREP C closes without a side-quest. CLI (<code>loc translate</code>, <code>loc publish</code>) and the MCP server remain first-class alternatives for developers and agents.
       </div>
     </div>
 
@@ -777,7 +777,7 @@
       <div class="step-body">
         <h3>What if I don't have a GitHub App connected?</h3>
         <p class="lead">
-          Steps 1–5 work without it. Step 6 (publish) will fail until a GitHub App is installed and its installation id is pasted into the repository settings. The dashboard surfaces the <em>"install the App"</em> link inline; once installed and the id is set, the Publish button activates.
+          Steps 01–05 work without it. The Publish button on step 06 stays disabled until a GitHub App is installed and the installation id is set on the repository. Settings → Repositories now carries an inline <em>"github.com/apps/clariti-tms/installations/new ↗"</em> link plus a one-liner on where to copy the id from the post-install URL — no separate doc page hop.
         </p>
       </div>
     </div>

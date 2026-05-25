@@ -45,6 +45,15 @@ import { useCurrentProject } from "@/lib/current-project";
  * deferred (audit calls it L effort) — for now admins paste the install id
  * after installing the App on the target repo manually.
  */
+// GitHub App install URL — used in the inline helper under the
+// `github_installation_id` field (docs/15 F6). The slug `clariti-tms` is
+// the public App name; if a self-hosted operator uses their own App they
+// override via `NEXT_PUBLIC_GITHUB_APP_URL`.
+const GITHUB_APP_INSTALL_URL =
+  process.env.NEXT_PUBLIC_GITHUB_APP_URL ??
+  "https://github.com/apps/clariti-tms/installations/new";
+const GITHUB_APP_INSTALL_HOST = GITHUB_APP_INSTALL_URL.replace(/^https?:\/\//, "");
+
 const PLATFORMS = ["ios", "android", "web", "backend", "flutter", "other"] as const;
 const FILE_FORMATS = [
   "ios-strings",
@@ -384,7 +393,7 @@ function RepoEditForm({
             onChange={(e) => setForm((f) => ({ ...f, github_path: e.target.value }))}
           />
         </Field>
-        <Field label="App installation id" hint="From the GitHub App's installation URL">
+        <Field label="App installation id">
           <Input
             value={form.github_installation_id}
             placeholder="12345678"
@@ -394,6 +403,18 @@ function RepoEditForm({
               setForm((f) => ({ ...f, github_installation_id: e.target.value }))
             }
           />
+          <p className="text-[11px] text-text-muted">
+            Need the install id? Install the App on the target repo (
+            <a
+              href={GITHUB_APP_INSTALL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-flame-soft hover:underline"
+            >
+              {GITHUB_APP_INSTALL_HOST} ↗
+            </a>
+            ), then copy the numeric id from the URL after install.
+          </p>
         </Field>
       </div>
 

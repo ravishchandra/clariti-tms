@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
   api,
-  getApiKey,
+  getApiKey, useApiKey,
   type ComponentContext as ComponentCtx,
   type Repository,
 } from "@/lib/api";
@@ -45,7 +45,7 @@ import { useCurrentProject } from "@/lib/current-project";
  * that auto-saves on blur.
  */
 export default function ContextsPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return (
       <EmptyState

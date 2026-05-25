@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, getApiKey, type GlossaryTerm, type Project } from "@/lib/api";
+import { api, getApiKey, useApiKey, type GlossaryTerm, type Project } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 import { useKeyBindings } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ import { cn } from "@/lib/utils";
  * next iteration when multi-project users show up.
  */
 export default function GlossaryPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
 
   if (!apiKey) {
     return (

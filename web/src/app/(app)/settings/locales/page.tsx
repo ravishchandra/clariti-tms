@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, api, getApiKey, type LocaleConfig, type Project } from "@/lib/api";
+import { ApiError, api, getApiKey, useApiKey, type LocaleConfig, type Project } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -37,7 +37,7 @@ import { useCurrentProject } from "@/lib/current-project";
  * round-trip is invisible, and we want the server to win conflicts.
  */
 export default function LocalesPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return <EmptyShell title="Sign in to manage locales." />;
   }

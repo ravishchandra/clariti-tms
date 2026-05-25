@@ -13,6 +13,7 @@
  * sign-in screen). NextAuth / SSO is a follow-up — see docs/09:159.
  */
 
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
@@ -31,6 +32,28 @@ export class ApiError extends Error {
 export function getApiKey(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(API_KEY_STORAGE_KEY);
+}
+
+/**
+ * Hydration-safe wrapper around `getApiKey()`. Returns `null` on SSR and
+ * during the first client render, then the real value after `useEffect`
+ * fires. Pages that gate on auth (sign-in vs. content) should use this
+ * instead of calling `getApiKey()` directly during render — otherwise the
+ * server renders the no-key branch while the client renders the key-present
+ * branch and React throws a hydration mismatch.
+ *
+ * Re-syncs on the `storage` event so the dashboard reacts when another tab
+ * signs out or signs in with a different key.
+ */
+export function useApiKey(): string | null {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  useEffect(() => {
+    setApiKey(getApiKey());
+    const sync = () => setApiKey(getApiKey());
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+  return apiKey;
 }
 
 export function setApiKey(key: string): void {

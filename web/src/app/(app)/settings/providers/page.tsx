@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiError, api, getApiKey, type AppSettings, type AppSettingsUpdate } from "@/lib/api";
+import { ApiError, api, getApiKey, useApiKey, type AppSettings, type AppSettingsUpdate } from "@/lib/api";
 
 /**
  * Settings → Providers — single form, single Save.
@@ -40,7 +40,7 @@ import { ApiError, api, getApiKey, type AppSettings, type AppSettingsUpdate } fr
 const PROVIDERS = ["anthropic", "openai", "openrouter", "ollama", "deepl"] as const;
 
 export default function ProvidersPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return (
       <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">

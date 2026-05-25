@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RiskClassChip } from "@/components/risk-class-chip";
-import { api, getApiKey, type Key } from "@/lib/api";
+import { api, getApiKey, useApiKey, type Key } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,8 @@ import { cn } from "@/lib/utils";
  * follow-up once the sidebar gains one (see docs/09:158 dashboard work).
  */
 export default function KeysIndexPage() {
-  if (typeof window !== "undefined" && !getApiKey()) {
+  const apiKey = useApiKey();
+  if (!apiKey) {
     return (
       <div className="p-12 text-sm text-app-text-secondary">
         Please{" "}

@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   api,
   ApiError,
-  getApiKey,
+  getApiKey, useApiKey,
   type ImportCommitResponse,
   type ImportDryRunSummary,
   type ImportPreviewResponse,
@@ -51,7 +51,8 @@ import { cn } from "@/lib/utils";
  * (CLAUDE.md "Don't catch and swallow errors silently").
  */
 export default function ImportsPage() {
-  if (typeof window !== "undefined" && !getApiKey()) {
+  const apiKey = useApiKey();
+  if (!apiKey) {
     return (
       <div className="p-12 text-sm text-app-text-secondary">
         Please{" "}

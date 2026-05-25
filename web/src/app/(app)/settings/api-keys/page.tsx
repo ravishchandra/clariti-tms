@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api, ApiError, getApiKey, type ApiKey as ApiKeyRow } from "@/lib/api";
+import { api, ApiError, getApiKey, useApiKey, type ApiKey as ApiKeyRow } from "@/lib/api";
 
 /**
  * Settings → API keys (docs/14 §9 tab 3). Closes the sign-in dead-end —
@@ -46,7 +46,7 @@ import { api, ApiError, getApiKey, type ApiKey as ApiKeyRow } from "@/lib/api";
  * (non-admin) key. Revocation is soft (sets is_active = false).
  */
 export default function ApiKeysPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return (
       <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">

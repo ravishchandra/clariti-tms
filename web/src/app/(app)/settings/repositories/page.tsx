@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, ApiError, getApiKey, type Repository } from "@/lib/api";
+import { api, ApiError, getApiKey, useApiKey, type Repository } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -69,7 +69,7 @@ type Platform = (typeof PLATFORMS)[number];
 type FileFormat = (typeof FILE_FORMATS)[number];
 
 export default function RepositoriesPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return <Empty title="Sign in to manage repositories." />;
   }

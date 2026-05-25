@@ -22,7 +22,7 @@ import { StatusChip } from "@/components/status-chip";
 import {
   api,
   ApiError,
-  getApiKey,
+  getApiKey, useApiKey,
   type Key,
   type MtRun,
   type Screenshot,
@@ -53,7 +53,8 @@ export default function KeyDetailPage() {
   const searchParams = useSearchParams();
   const projectIdFromUrl = searchParams.get("project");
 
-  if (typeof window !== "undefined" && !getApiKey()) {
+  const apiKey = useApiKey();
+  if (!apiKey) {
     return (
       <div className="p-12 text-sm text-app-text-secondary">
         Please{" "}

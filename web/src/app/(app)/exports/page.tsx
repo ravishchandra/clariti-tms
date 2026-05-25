@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api, ApiError, getApiKey } from "@/lib/api";
+import { api, ApiError, getApiKey, useApiKey } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -46,7 +46,8 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export default function ExportsPage() {
-  if (typeof window !== "undefined" && !getApiKey()) {
+  const apiKey = useApiKey();
+  if (!apiKey) {
     return (
       <div className="p-12 text-sm text-app-text-secondary">
         Please{" "}

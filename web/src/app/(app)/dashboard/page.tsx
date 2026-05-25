@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusChip } from "@/components/status-chip";
-import { api, getApiKey } from "@/lib/api";
+import { api, getApiKey, useApiKey } from "@/lib/api";
 
 /**
  * Dashboard — the queue surface (docs/06-human-review-workflow.md "Dashboard
@@ -16,7 +16,7 @@ import { api, getApiKey } from "@/lib/api";
  * and provide a one-click "Start reviewing" CTA per locale.
  */
 export default function DashboardPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   const orgsQuery = useQuery({
     queryKey: ["dashboard", "orgs"],
     queryFn: api.organizations.list,

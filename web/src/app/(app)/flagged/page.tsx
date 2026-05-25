@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api, getApiKey } from "@/lib/api";
+import { api, getApiKey, useApiKey } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -28,7 +28,7 @@ import { useCurrentProject } from "@/lib/current-project";
  * status moves back to needs_review or approved.
  */
 export default function FlaggedPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return (
       <div className="p-6 max-w-3xl text-sm text-text-soft">

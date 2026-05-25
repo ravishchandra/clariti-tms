@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, ApiError, getApiKey } from "@/lib/api";
+import { api, ApiError, getApiKey, useApiKey } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -23,7 +23,7 @@ import { useCurrentProject } from "@/lib/current-project";
  * documented follow-up (see notice below).
  */
 export default function ProjectSettingsPage() {
-  const apiKey = typeof window !== "undefined" ? getApiKey() : null;
+  const apiKey = useApiKey();
   if (!apiKey) {
     return (
       <EmptyShell title="Sign in to manage project settings." />

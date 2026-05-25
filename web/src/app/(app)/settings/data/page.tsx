@@ -4,7 +4,7 @@ import { ArrowDownToLine, ArrowUpFromLine, FileSpreadsheet, FileText } from "luc
 import Link from "next/link";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { getApiKey } from "@/lib/api";
+import { useApiKey } from "@/lib/api";
 
 /**
  * Settings → Data (docs/14 §9 tab 5). Hub for Excel + TMX import/export.
@@ -18,7 +18,8 @@ import { getApiKey } from "@/lib/api";
  * that lists import_jobs by org with timestamps + status.
  */
 export default function DataPage() {
-  if (typeof window !== "undefined" && !getApiKey()) {
+  const apiKey = useApiKey();
+  if (!apiKey) {
     return (
       <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
         Sign in to use import / export.

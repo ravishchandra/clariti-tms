@@ -9,10 +9,18 @@ class OpenRouterProvider(OpenAIProvider):
     """Single-key access to any model via OpenRouter's OpenAI-compatible API.
 
     Model strings use OpenRouter's namespace:
-        anthropic/claude-sonnet-4-6
-        openai/gpt-4o
-        google/gemini-2.0-flash
-        meta-llama/llama-3.3-70b-instruct
+        google/gemini-2.0-flash-exp:free   (free tier — default)
+        google/gemini-flash-1.5:free
+        anthropic/claude-sonnet-4-6        (paid)
+        openai/gpt-4o                      (paid)
+        meta-llama/llama-3.3-70b-instruct  (mixed; depends on host)
+
+    Free-tier models carry the ``:free`` suffix and are rate-limited per
+    OpenRouter's account-level caps (50 req/day at $0 balance; 1000/day
+    once any credit has been purchased). See
+    https://openrouter.ai/models?q=:free for the current free roster —
+    OpenRouter rotates free models on the order of weeks, so the default
+    here can go stale; override via the ``OPENROUTER_MODEL`` env var.
 
     Embeddings default to openai/text-embedding-3-small which OpenRouter
     proxies to the real OpenAI endpoint.
@@ -25,7 +33,7 @@ class OpenRouterProvider(OpenAIProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "anthropic/claude-sonnet-4-6",
+        model: str = "google/gemini-2.0-flash-exp:free",
         embedding_model: str = "openai/text-embedding-3-small",
     ) -> None:
         super().__init__(

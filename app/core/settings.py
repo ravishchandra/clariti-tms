@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     DEEPL_API_KEY: str = ""
 
+    # OpenRouter model selection. OpenRouter uses a single API key for many
+    # providers; the model is chosen per-call. The default is a free-tier
+    # Gemini variant so a fresh install can run translations without spending.
+    # Free models can change on OpenRouter's side — see
+    # https://openrouter.ai/models?q=:free for the current list.
+    # Override via `OPENROUTER_MODEL` env var (e.g.
+    # `OPENROUTER_MODEL=anthropic/claude-sonnet-4-6` for paid Sonnet).
+    OPENROUTER_MODEL: str = "google/gemini-2.0-flash-exp:free"
+
     # GitHub App
     # Two ways to supply the App's private key, in order of precedence:
     #   1. GITHUB_APP_PRIVATE_KEY — the PEM content itself (multi-line). Use

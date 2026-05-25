@@ -342,7 +342,10 @@ async def _translate(project_slug: str, locale: str | None, provider_name: str, 
     if settings.OPENAI_API_KEY:
         providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
     if settings.OPENROUTER_API_KEY:
-        providers["openrouter"] = OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY)
+        providers["openrouter"] = OpenRouterProvider(
+            api_key=settings.OPENROUTER_API_KEY,
+            model=settings.OPENROUTER_MODEL,
+        )
 
     if not providers:
         err.print("[red]No API keys configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.[/red]")
@@ -1124,7 +1127,10 @@ async def _eval(reference: str, prompt_version: str, provider_name: str, output:
     if settings.OPENAI_API_KEY:
         providers["openai"] = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
     if settings.OPENROUTER_API_KEY:
-        providers["openrouter"] = OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY)
+        providers["openrouter"] = OpenRouterProvider(
+            api_key=settings.OPENROUTER_API_KEY,
+            model=settings.OPENROUTER_MODEL,
+        )
 
     if provider_name not in providers:
         err.print(f"[red]Provider '{provider_name}' not available.[/red]")

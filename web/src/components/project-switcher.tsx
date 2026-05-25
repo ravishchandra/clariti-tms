@@ -1,7 +1,5 @@
 "use client";
 
-import { ChevronsUpDownIcon } from "lucide-react";
-
 import {
   Select,
   SelectContent,
@@ -55,7 +53,6 @@ export function ProjectSwitcher() {
               ) : null}
             </div>
           </SelectValue>
-          <ChevronsUpDownIcon className="size-3.5 opacity-60 shrink-0" />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>

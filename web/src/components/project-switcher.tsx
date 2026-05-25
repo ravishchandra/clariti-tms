@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import {
   Select,
   SelectContent,
@@ -18,21 +16,14 @@ import { useCurrentProject } from "@/lib/current-project";
  * via `useCurrentProject`. Shows org name as secondary text so multi-org users
  * see scope at a glance.
  *
- * Renders the Skeleton until the client has mounted (`mounted=true`). Why:
- * SSR sees no localStorage and no API key, so the project query is disabled
- * and `isLoading` is false → server renders the "No projects yet" branch.
- * The browser sees the key, kicks the query off, and renders the loading
- * Skeleton — different markup between server and client = hydration error.
- * The `mounted` gate keeps both renders identical until React owns the
- * subtree.
+ * Hydration safety lives in `useCurrentProject` itself — `isLoading` stays
+ * true until the client has mounted, so server and client render the same
+ * Skeleton on first paint.
  */
 export function ProjectSwitcher() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const { projects, current, setCurrent, isLoading } = useCurrentProject();
 
-  if (!mounted || isLoading) {
+  if (isLoading) {
     return <Skeleton className="h-8 mx-3" />;
   }
 

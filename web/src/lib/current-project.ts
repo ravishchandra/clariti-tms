@@ -53,6 +53,18 @@ export type ProjectWithOrg = { project: Project; org: Organization };
  * the first visible project. Returns null while still loading.
  */
 export function useCurrentProject() {
+  // SSR has no `localStorage` and no API key, so the project query is
+  // disabled and `isLoading` is false on the server. The client has both,
+  // so the query starts and `isLoading` flips to true. That mismatch makes
+  // every consumer (`ProjectSwitcher`, `LocaleList`, every page that gates
+  // on `current`) render different markup on each side → hydration errors.
+  //
+  // Treat "not mounted" as a loading state. First paint matches SSR (the
+  // loading branch); after `useEffect` fires, the real query state takes
+  // over. One fix in the hook, every consumer benefits.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const projectsQuery = useAllProjects();
   const [storedId, setStoredId] = useState<string | null>(readStored);
 
@@ -77,10 +89,10 @@ export function useCurrentProject() {
     all.find((p) => p.project.id === storedId) ?? (all.length > 0 ? all[0] : null);
 
   return {
-    isLoading: projectsQuery.isLoading,
+    isLoading: !mounted || projectsQuery.isLoading,
     isError: projectsQuery.isError,
-    projects: all,
-    current: resolved,
+    projects: mounted ? all : [],
+    current: mounted ? resolved : null,
     setCurrent,
   };
 }

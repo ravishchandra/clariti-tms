@@ -26,12 +26,11 @@ export const metadata: Metadata = {
   description: "Self-hosted translation management system.",
 };
 
-// Inline pre-paint theme script — same key + shape as marketing so the
-// dashboard and marketing share theme state across same-origin tabs.
-// Default is light to match the marketing site; honors a saved 'dark'
-// preference if one exists. Runs before paint, so no FOUC.
-const themeScript = `(function(){try{var s=localStorage.getItem('clariti-theme');var d=document.documentElement;if(s==='dark'){d.classList.add('dark');}else{d.classList.remove('dark');}}catch(e){}})();`;
-
+// Dashboard defaults to light mode. There's no UI to toggle to dark yet, and
+// the marketing site's `clariti-theme` localStorage value isn't checked here
+// — adding that script back is a small follow-up once a dark-mode toggle
+// ships. Until then, omitting the script avoids the Next.js 16 warning about
+// `<script>` tags inside React components and keeps the layout SSR-stable.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -43,9 +42,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="min-h-full bg-background text-foreground flex flex-col font-sans">
         <Providers>{children}</Providers>
       </body>

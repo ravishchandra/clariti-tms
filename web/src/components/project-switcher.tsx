@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import {
   Select,
   SelectContent,
@@ -15,11 +17,22 @@ import { useCurrentProject } from "@/lib/current-project";
  * Sidebar project switcher. Reads/writes the localStorage `current_project_id`
  * via `useCurrentProject`. Shows org name as secondary text so multi-org users
  * see scope at a glance.
+ *
+ * Renders the Skeleton until the client has mounted (`mounted=true`). Why:
+ * SSR sees no localStorage and no API key, so the project query is disabled
+ * and `isLoading` is false → server renders the "No projects yet" branch.
+ * The browser sees the key, kicks the query off, and renders the loading
+ * Skeleton — different markup between server and client = hydration error.
+ * The `mounted` gate keeps both renders identical until React owns the
+ * subtree.
  */
 export function ProjectSwitcher() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const { projects, current, setCurrent, isLoading } = useCurrentProject();
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return <Skeleton className="h-8 mx-3" />;
   }
 

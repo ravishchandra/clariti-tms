@@ -77,6 +77,32 @@ _JINJA_ENV = Environment(loader=FileSystemLoader(str(_PROMPT_DIR)), autoescape=F
 
 PROMPT_VERSION = "translate_v1"
 
+
+async def enqueue_batch_for_mt(db: AsyncSession, batch: TranslationBatch) -> bool:
+    """Enqueue a single batch for MT processing.
+
+    Returns ``True`` if the batch transitioned from a queueable state to
+    :class:`BatchStatus.pending` (and so the MT worker will pick it up on its
+    next sweep), ``False`` if the batch was already in flight or in a state
+    that doesn't accept re-triggering (``mt_running``).
+
+    Used by both ``POST /batches/{batch_id}/trigger-mt`` (per-batch path)
+    and ``POST /projects/{project_id}/trigger-mt`` (bulk path per docs/15
+    F3). The bulk endpoint counts ``True`` returns as ``queued`` and ``False``
+    as ``skipped``.
+
+    The actual translation work happens out of band in :mod:`app.mt.worker`;
+    this helper only flips the status flag. Idempotent at the worker layer
+    (the worker dedupes by batch id).
+
+    The caller is responsible for committing the session — the per-batch
+    route does so itself; the bulk route commits once after iterating.
+    """
+    if batch.status == BatchStatus.mt_running:
+        return False
+    batch.status = BatchStatus.pending
+    return True
+
 # Per-1K-token pricing now lives on the LLMProvider Protocol (M5); real
 # token counts come back with every `translate()` / `evaluate()` call as a
 # `TokenUsage` dict (D2). See `app/llm/protocol.py` and each provider in

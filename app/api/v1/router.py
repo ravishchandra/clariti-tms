@@ -38,9 +38,18 @@ except ImportError:
     pass
 
 try:
-    from app.api.v1.endpoints.batches import router as batches_router  # type: ignore[import]
+    from app.api.v1.endpoints.batches import (
+        project_router as batches_project_router,  # type: ignore[import]
+    )
+    from app.api.v1.endpoints.batches import (
+        router as batches_router,  # type: ignore[import]
+    )
 
     router.include_router(batches_router, prefix="/batches", tags=["Batches"])
+    # Bulk MT trigger lives at /projects/{pid}/trigger-mt — alongside the
+    # other project-scoped endpoints (locale-configs, glossary) — so the URL
+    # reads as "project + bulk action" rather than "batches + project filter".
+    router.include_router(batches_project_router, prefix="/projects", tags=["Batches"])
 except ImportError:
     pass
 

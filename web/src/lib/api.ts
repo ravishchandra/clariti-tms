@@ -607,6 +607,23 @@ export const api = {
         throw err;
       }
     },
+    /**
+     * Bulk-trigger MT for every batch in a project + locale matching
+     * `status` (default 'pending'). docs/15 F3: avoids the client-side
+     * fan-out the v1 plan considered. Returns counts; the MT worker
+     * dedupes idempotently so re-running this within the same second
+     * doesn't double-translate.
+     */
+    triggerProjectMt: async (
+      projectId: string,
+      opts: { locale: string; status?: string },
+    ): Promise<{ queued: number; skipped: number }> => {
+      const params = new URLSearchParams({ locale: opts.locale });
+      if (opts.status) params.set("status", opts.status);
+      return await apiFetch(`/projects/${projectId}/trigger-mt?${params}`, {
+        method: "POST",
+      });
+    },
   },
   keys: {
     listByIds: async (ids: string[]) => {

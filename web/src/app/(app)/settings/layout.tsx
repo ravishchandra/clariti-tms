@@ -10,6 +10,7 @@ const TABS = [
   { href: "/settings/repositories", label: "Repositories" },
   { href: "/settings/locales", label: "Locales" },
   { href: "/settings/data", label: "Data" },
+  { href: "/settings/providers", label: "Providers" },
   { href: "/settings/api-keys", label: "API keys" },
 ] as const;
 

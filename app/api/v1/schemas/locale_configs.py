@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,6 +41,16 @@ class LocaleConfigUpdate(BaseModel):
     )
     notes: str | None = None
     is_bootstrapped: bool | None = None
+    # is_activated is normally toggled by the locale-configs POST endpoint
+    # with ?fan_out=true. We expose it on PATCH too so an admin can roll
+    # a locale back into "registered" state without dropping its drafts.
+    is_activated: bool | None = None
+    # PATCH-able for the bootstrap wizard's resumability (each step in
+    # `web/src/app/(app)/locales/bootstrap-dialog.tsx` writes the new
+    # `{step, exported_job_id, exported_at}` after committing its server work).
+    # Setting this to null clears the wizard state (used when the wizard
+    # finishes or the admin abandons it).
+    bootstrap_state: dict[str, Any] | None = None
 
 
 class LocaleConfigRead(BaseModel):
@@ -56,4 +67,18 @@ class LocaleConfigRead(BaseModel):
     )
     notes: str | None
     is_bootstrapped: bool
+    is_activated: bool
+    bootstrap_state: dict[str, Any] | None = None
     created_at: datetime
+
+
+class LocaleConfigActivationResult(BaseModel):
+    """Response shape for `POST /locale-configs?fan_out=true`.
+
+    Returned alongside the created/found `locale_config` row so the UI can
+    render an immediate success state ("Seeded 247 drafts · Bootstrap →").
+    """
+
+    locale_config: LocaleConfigRead
+    drafts_created: int
+    already_existed: bool

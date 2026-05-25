@@ -11,11 +11,11 @@ import hashlib
 import logging
 from collections import defaultdict
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ingestion.parsers.types import ParseResult
-from app.models import Key, Translation, TranslationBatch, TranslationStatus
+from app.models import Key, Repository, Translation, TranslationBatch, TranslationStatus
 from app.mt.transitions import IllegalTransitionError, apply_transition
 
 logger = logging.getLogger(__name__)
@@ -199,3 +199,73 @@ async def assemble_batches(
 
     await db.commit()
     return batch_count
+
+
+# ---------------------------------------------------------------------------
+# Locale activation: fan-out drafts for an existing locale.
+#
+# Called by the locale-configs POST endpoint when ?fan_out=true. Per docs/15
+# plan v2, fan-out lives in the ingestion module (the same module that owns
+# the new-key fan-out at upsert_keys() above) so cross-module DB writes go
+# through this exported function instead of direct SQL from the API layer.
+# Satisfies tests/integration/test_module_boundaries.py.
+# ---------------------------------------------------------------------------
+
+
+class FanOutValidationError(ValueError):
+    """Raised when fan-out preconditions aren't met. The API layer maps
+    these to HTTP 422 with a stable `code` so the UI can render the right
+    copy without parsing free-text messages."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+async def fan_out_locale(
+    db: AsyncSession,
+    project_id: str,
+    locale: str,
+) -> int:
+    """Create a draft Translation row for every active key in the project
+    that doesn't yet have one for `locale`. Returns the number of drafts
+    inserted.
+
+    Idempotent — re-running for a locale that already has full coverage
+    inserts zero rows (the NOT EXISTS subquery filters them out).
+
+    Raises FanOutValidationError if the project has zero active keys
+    (the admin needs to ingest a source file first).
+    """
+    # Precondition: project has at least one active key (otherwise fan-out
+    # is a no-op and the admin probably hasn't ingested yet).
+    key_count = await db.scalar(
+        select(func.count())
+        .select_from(Key)
+        .join(Repository, Repository.id == Key.repository_id)
+        .where(Repository.project_id == project_id, Key.is_active.is_(True))
+    )
+    if not key_count:
+        raise FanOutValidationError(
+            code="no_source_keys",
+            message=("Project has no source strings yet. Ingest a source file before activating this locale."),
+        )
+
+    # One INSERT ... SELECT, idempotent via NOT EXISTS. Bind params keep
+    # SQLAlchemy's escaping; no string interpolation of user input.
+    stmt = text(
+        """
+        INSERT INTO translations (key_id, locale, status)
+        SELECT k.id, :locale, 'draft'
+          FROM keys k
+          JOIN repositories r ON r.id = k.repository_id
+         WHERE r.project_id = :project_id
+           AND k.is_active = true
+           AND NOT EXISTS (
+             SELECT 1 FROM translations t
+              WHERE t.key_id = k.id AND t.locale = :locale
+           )
+        """
+    )
+    result = await db.execute(stmt, {"project_id": project_id, "locale": locale})
+    return result.rowcount or 0

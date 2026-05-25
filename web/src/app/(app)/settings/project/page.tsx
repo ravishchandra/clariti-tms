@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon, TerminalIcon, XIcon } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -178,17 +179,16 @@ function ProjectLocales({
       await api.projects.update(orgId, projectId, {
         target_locales: [...locales, candidate],
       });
-      try {
-        await api.localeConfigs.create(projectId, {
-          locale: candidate,
-          formality: "formal",
-          is_bootstrapped: false,
-        });
-      } catch (cfgErr) {
-        // Locale-config conflict (409) is fine — the row may already exist.
-        if (!(cfgErr instanceof ApiError && cfgErr.status === 409)) throw cfgErr;
-      }
+      // Register-only: no fan_out here. The locale row appears in /locales
+      // in state 1 ("registered") with an [Activate →] button — the admin
+      // chooses when to kick off the pipeline (docs/15 plan v2).
+      await api.localeConfigs.create(projectId, {
+        locale: candidate,
+        formality: "formal",
+        is_bootstrapped: false,
+      });
       qc.invalidateQueries({ queryKey: ["all-projects"] });
+      qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] });
       onChanged();
       setNewLocale("");
       setError(null);
@@ -283,15 +283,16 @@ function FanoutNotice() {
       <TerminalIcon className="size-3.5 mt-0.5 text-flame-soft shrink-0" />
       <div className="text-[12px] leading-relaxed text-text-soft">
         <span className="font-medium text-foreground">
-          Seed translations for a newly added locale
+          Two steps: register, then activate.
         </span>{" "}
-        — fan-out of draft rows for every existing key isn't automatic yet.
-        After adding the locale, run:
-        <pre className="mt-1.5 font-mono text-[11px] bg-ink-0 px-2 py-1 rounded border border-line/70 text-text-soft inline-block">
-          loc translate --project {"<slug>"} --locale {"<new-locale>"}
-        </pre>
-        {" "}or use SQL fan-out + <code className="font-mono">loc translate</code> per the
-        recipe in <code className="font-mono">docs/14</code>. A one-click backend endpoint is on the roadmap.
+        Adding a locale here only registers it — the pipeline doesn&apos;t kick off
+        automatically. Open{" "}
+        <Link href="/locales" className="text-flame-soft hover:underline">
+          Settings → Locales
+        </Link>{" "}
+        and press <span className="font-mono text-foreground">Activate</span> on
+        the new locale row to seed draft translations and start the bootstrap
+        walkthrough.
       </div>
     </div>
   );

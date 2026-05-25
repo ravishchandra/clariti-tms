@@ -281,6 +281,15 @@ class LocaleConfig(Base):
     register: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_bootstrapped: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # is_activated flips to true the first time draft Translation rows are
+    # fanned out for this locale. Distinguishes "row registered, no work
+    # started" from "ready to bootstrap / translate". See docs/15 + migration
+    # 0009 for the state machine.
+    is_activated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # Resumable bootstrap-wizard state. Shape:
+    #   {step: 1|2|3|4, exported_job_id: uuid, exported_at: iso8601}
+    # NULL means "wizard not started or already finished".
+    bootstrap_state: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # Relationships

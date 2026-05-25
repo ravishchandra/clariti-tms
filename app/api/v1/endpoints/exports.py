@@ -52,6 +52,17 @@ class ExportCreate(BaseModel):
         None,
         description="Optional translation status filter (e.g. 'needs_review'). Omit for all rows.",
     )
+    sample_size: int | None = Field(
+        None,
+        ge=1,
+        le=500,
+        description=(
+            "Bootstrap-sampling knob. When set, rows are re-ordered by descending "
+            "risk class (human_only > high_risk > standard > auto_publish) and "
+            "limited to this count *per locale*. Used by the bootstrap wizard "
+            "to export 50 highest-risk strings for native-speaker review."
+        ),
+    )
     format: Literal["xlsx", "xliff"] = Field(
         "xlsx",
         description=(
@@ -119,6 +130,7 @@ async def create_export(
         project_id=body.project_id,
         locales=body.locales,
         status_filter=body.status_filter,
+        sample_size=body.sample_size,
     )
 
     export_timestamp = datetime.now(tz=UTC)

@@ -33,7 +33,7 @@ from openpyxl.styles import Alignment, Font, PatternFill, Protection
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.worksheet import Worksheet
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.export_import.schema import (
@@ -135,6 +135,7 @@ async def fetch_export_rows(
     project_id: uuid.UUID,
     locales: list[str],
     status_filter: str | None,
+    sample_size: int | None = None,
 ) -> dict[str, list[ExportRow]]:
     """Fetch translation rows for the given project + locales + optional status.
 
@@ -144,26 +145,79 @@ async def fetch_export_rows(
     reviewers see related strings grouped together — the same order the
     review UI uses.
 
+    ``sample_size`` is the bootstrap-export knob (docs/15 F-3): when set, the
+    rows are re-ordered by descending risk class first (so reviewers see the
+    most consequential strings) and then limited to that count *per locale*.
+    Typical use is ``sample_size=50`` with ``locales=[one_locale]``.
+
     Read-only. No writes, no commits. The DB session may be in any state.
     """
     out: dict[str, list[ExportRow]] = {locale: [] for locale in locales}
     if not locales:
         return out
 
-    stmt = (
-        select(Translation, Key)
-        .join(Key, Translation.key_id == Key.id)
-        .where(
-            Key.project_id == project_id,
-            Key.is_active.is_(True),
-            Translation.locale.in_(locales),
-        )
-        .order_by(Translation.locale, Key.component, Key.screen, Key.key)
+    # Risk-class priority for bootstrap sampling. Higher number = sampled first.
+    # Matches docs/05 risk-class enum (auto_publish < standard < high_risk <
+    # human_only) so the bootstrap reviewer sees the highest-stakes strings.
+    risk_priority = case(
+        (Key.risk_class == "human_only", 4),
+        (Key.risk_class == "high_risk", 3),
+        (Key.risk_class == "standard", 2),
+        (Key.risk_class == "auto_publish", 1),
+        else_=0,
     )
-    if status_filter is not None:
-        stmt = stmt.where(Translation.status == status_filter)
 
-    result = await db.execute(stmt)
+    if sample_size is None:
+        # Default ordering: grouped by component/screen/key — matches the
+        # review UI's natural grouping and is what the existing full-export
+        # flow has always emitted.
+        stmt = (
+            select(Translation, Key)
+            .join(Key, Translation.key_id == Key.id)
+            .where(
+                Key.project_id == project_id,
+                Key.is_active.is_(True),
+                Translation.locale.in_(locales),
+            )
+            .order_by(Translation.locale, Key.component, Key.screen, Key.key)
+        )
+        if status_filter is not None:
+            stmt = stmt.where(Translation.status == status_filter)
+        result = await db.execute(stmt)
+    else:
+        # Bootstrap-sample path: one query per locale so the LIMIT applies
+        # per-locale (otherwise a global LIMIT would overweight whichever
+        # locale comes first alphabetically). N small queries, N ≤ 5 typical.
+        async def _sample(locale: str) -> list:
+            stmt = (
+                select(Translation, Key)
+                .join(Key, Translation.key_id == Key.id)
+                .where(
+                    Key.project_id == project_id,
+                    Key.is_active.is_(True),
+                    Translation.locale == locale,
+                )
+                .order_by(risk_priority.desc(), Key.created_at, Key.key)
+                .limit(sample_size)
+            )
+            if status_filter is not None:
+                stmt = stmt.where(Translation.status == status_filter)
+            res = await db.execute(stmt)
+            return res.all()
+
+        # Awaiting sequentially keeps the same AsyncSession safe.
+        all_rows: list = []
+        for locale in locales:
+            all_rows.extend(await _sample(locale))
+
+        class _PlainResult:
+            def __init__(self, rows: list) -> None:
+                self._rows = rows
+
+            def all(self) -> list:
+                return self._rows
+
+        result = _PlainResult(all_rows)  # type: ignore[assignment]
     for translation, key in result.all():
         placeholders_raw = key.placeholders or []
         if isinstance(placeholders_raw, list):

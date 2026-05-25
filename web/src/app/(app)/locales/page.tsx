@@ -1,10 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus } from "lucide-react";
+import { ArrowRight, Check, PlayIcon, Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { BootstrapDialog } from "@/app/(app)/locales/bootstrap-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,12 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { api, getApiKey, type LocaleConfig, type Project } from "@/lib/api";
+import { ApiError, api, getApiKey, type LocaleConfig, type Project } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 import { cn } from "@/lib/utils";
 
@@ -109,12 +105,12 @@ function LocalesEditor({ project }: { project: Project }) {
         <>
           <Card>
             <CardContent className="p-0">
-              <div className="grid grid-cols-[120px_140px_140px_1fr_120px] gap-3 px-4 py-2 border-b border-app-border text-xs uppercase tracking-wider text-app-text-secondary">
+              <div className="grid grid-cols-[120px_140px_140px_1fr_200px] gap-3 px-4 py-2 border-b border-app-border text-xs uppercase tracking-wider text-app-text-secondary">
                 <div>Locale</div>
                 <div>Formality</div>
                 <div>Register</div>
                 <div>Notes</div>
-                <div className="text-right">Bootstrap</div>
+                <div className="text-right">Status</div>
               </div>
               <div className="divide-y divide-app-border">
                 {configs.length === 0 ? (
@@ -205,7 +201,7 @@ function LocaleRow({ projectId, config }: { projectId: string; config: LocaleCon
   }
 
   return (
-    <div className="grid grid-cols-[120px_140px_140px_1fr_120px] gap-3 px-4 py-3 items-start">
+    <div className="grid grid-cols-[120px_140px_140px_1fr_200px] gap-3 px-4 py-3 items-start">
       <div className="font-mono text-sm pt-1.5">{config.locale}</div>
 
       <Select
@@ -258,60 +254,136 @@ function LocaleRow({ projectId, config }: { projectId: string; config: LocaleCon
       </div>
 
       <div className="flex justify-end pt-1">
-        <BootstrapToggle
-          isBootstrapped={config.is_bootstrapped}
-          onToggle={() =>
-            mutation.mutate({ is_bootstrapped: !config.is_bootstrapped })
-          }
-          pending={mutation.isPending}
-        />
+        <LocaleStateAction projectId={projectId} config={config} />
       </div>
     </div>
   );
 }
 
-function BootstrapToggle({
-  isBootstrapped,
-  onToggle,
-  pending,
+/**
+ * State-aware action cell for the locale row. Renders the right CTA per the
+ * docs/15 four-state machine:
+ *
+ *   state 1 (registered):    is_activated=false                      → [Activate →]
+ *   state 2 (activated):     is_activated=true, !bootstrap_state,
+ *                            !is_bootstrapped                        → [Bootstrap →]
+ *   state 3 (bootstrapping): bootstrap_state non-null                → step N · Resume
+ *   state 4 (live):          is_bootstrapped=true                    → Live pill
+ *
+ * The Activate button calls POST /locale-configs?fan_out=true via the same
+ * endpoint Add uses; the difference is only the query param.
+ */
+function LocaleStateAction({
+  projectId,
+  config,
 }: {
-  isBootstrapped: boolean;
-  onToggle: () => void;
-  pending: boolean;
+  projectId: string;
+  config: LocaleConfig;
 }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <button
-            type="button"
-            onClick={onToggle}
-            disabled={pending}
-            aria-pressed={isBootstrapped}
-            className={cn(
-              "inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium border transition-colors",
-              isBootstrapped
-                ? "bg-status-approved/15 text-status-approved border-status-approved/30"
-                : "bg-status-bootstrapping/15 text-status-bootstrapping border-status-bootstrapping/30",
-              "disabled:opacity-50",
-            )}
-          />
-        }
-      >
-        <span
-          className={cn(
-            "size-1.5 rounded-full",
-            isBootstrapped ? "bg-status-approved" : "bg-status-bootstrapping",
-          )}
+  const qc = useQueryClient();
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [justActivated, setJustActivated] = useState<number | null>(null);
+
+  const activateMutation = useMutation({
+    mutationFn: () =>
+      api.localeConfigs.create(
+        projectId,
+        { locale: config.locale, formality: config.formality },
+        { fan_out: true },
+      ),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] });
+      setJustActivated(result.drafts_created);
+      setError(null);
+    },
+    onError: (err) => {
+      // Validation errors carry a `code` from the backend's
+      // FanOutValidationError; surface the human-readable message.
+      let message = "Activate failed";
+      if (err instanceof ApiError) {
+        const detail = err.detail as { code?: string; message?: string } | string;
+        if (typeof detail === "object" && detail.message) message = detail.message;
+        else message = `${err.status}: ${err.message}`;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setError(message);
+    },
+  });
+
+  // State 4 — Live
+  if (config.is_bootstrapped) {
+    return (
+      <span className="inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium bg-status-approved/15 text-status-approved border border-status-approved/30">
+        <span className="size-1.5 rounded-full bg-status-approved" />
+        Live
+      </span>
+    );
+  }
+
+  // State 3 — Bootstrapping (wizard in flight)
+  if (config.bootstrap_state) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setWizardOpen(true)}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-status-bootstrapping/15 text-status-bootstrapping border border-status-bootstrapping/30 hover:bg-status-bootstrapping/25 transition-colors"
+        >
+          <span className="size-1.5 rounded-full bg-status-bootstrapping animate-pulse" />
+          Step {config.bootstrap_state.step} / 4
+          <ArrowRight className="size-3" />
+        </button>
+        <BootstrapDialog
+          projectId={projectId}
+          config={config}
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
         />
-        {isBootstrapped ? "Live" : "Bootstrap"}
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs text-xs leading-relaxed">
-        Locales require a 50-string native-speaker review before they can go
-        live (docs/06-human-review-workflow.md). Until then, MT outputs are
-        held in the bootstrap queue and don&apos;t auto-publish.
-      </TooltipContent>
-    </Tooltip>
+      </>
+    );
+  }
+
+  // State 2 — Activated, ready to bootstrap
+  if (config.is_activated) {
+    return (
+      <>
+        <Button size="sm" onClick={() => setWizardOpen(true)}>
+          Bootstrap →
+        </Button>
+        <BootstrapDialog
+          projectId={projectId}
+          config={config}
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+        />
+      </>
+    );
+  }
+
+  // State 1 — Registered, not yet activated
+  return (
+    <div className="flex flex-col items-end gap-1 min-w-[160px]">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => activateMutation.mutate()}
+        disabled={activateMutation.isPending}
+      >
+        <PlayIcon className="size-3.5" />
+        {activateMutation.isPending ? "Activating…" : "Activate"}
+      </Button>
+      {error ? (
+        <span className="text-[11px] text-status-rejected text-right leading-snug">
+          {error}
+        </span>
+      ) : justActivated !== null ? (
+        <span className="text-[11px] text-status-approved text-right leading-snug">
+          Seeded {justActivated} draft{justActivated === 1 ? "" : "s"}.
+        </span>
+      ) : null}
+    </div>
   );
 }
 

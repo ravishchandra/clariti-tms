@@ -279,6 +279,13 @@ export const GlossaryTerm = z.object({
 });
 export type GlossaryTerm = z.infer<typeof GlossaryTerm>;
 
+export const BootstrapState = z.object({
+  step: z.number().int().min(1).max(4),
+  exported_job_id: z.string().uuid().nullable().optional(),
+  exported_at: z.string().nullable().optional(),
+});
+export type BootstrapState = z.infer<typeof BootstrapState>;
+
 export const LocaleConfig = z.object({
   id: z.string().uuid(),
   project_id: z.string().uuid(),
@@ -289,9 +296,23 @@ export const LocaleConfig = z.object({
   register: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   is_bootstrapped: z.boolean(),
+  // Added in migration 0009 (docs/15 plan v2). The locale state machine is:
+  //   state 1 (registered):    is_activated=false, bootstrap_state=null
+  //   state 2 (activated):     is_activated=true,  bootstrap_state=null, !is_bootstrapped
+  //   state 3 (bootstrapping): bootstrap_state non-null
+  //   state 4 (live):          is_bootstrapped=true
+  is_activated: z.boolean(),
+  bootstrap_state: BootstrapState.nullable().optional(),
   created_at: z.string(),
 });
 export type LocaleConfig = z.infer<typeof LocaleConfig>;
+
+export const LocaleConfigActivationResult = z.object({
+  locale_config: LocaleConfig,
+  drafts_created: z.number().int().nonnegative(),
+  already_existed: z.boolean(),
+});
+export type LocaleConfigActivationResult = z.infer<typeof LocaleConfigActivationResult>;
 
 export const ComponentContext = z.object({
   id: z.string().uuid(),
@@ -645,6 +666,8 @@ export const api = {
       project_id: string;
       locales: string[];
       status_filter?: string | null;
+      // Bootstrap-sampling knob — see docs/15 F-3 + B3.
+      sample_size?: number | null;
     }): Promise<{ blob: Blob; filename: string }> => {
       const key = getApiKey();
       const headers: Record<string, string> = {
@@ -766,6 +789,12 @@ export const api = {
       const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/locale-configs`);
       return z.object({ items: z.array(LocaleConfig) }).parse(data).items;
     },
+    /**
+     * Upsert a locale config. With `fan_out=true`, also seeds draft
+     * Translation rows for every active key in the project (idempotent) and
+     * flips `is_activated` on the config. Always returns 200 — see docs/15
+     * plan v2 for the state machine and why duplicate-Add is quiet, not 409.
+     */
     create: async (
       projectId: string,
       body: {
@@ -775,9 +804,14 @@ export const api = {
         notes?: string | null;
         is_bootstrapped?: boolean;
       },
+      opts?: { fan_out?: boolean },
     ) => {
-      return LocaleConfig.parse(
-        await apiFetch(`/projects/${projectId}/locale-configs`, { method: "POST", body }),
+      const qs = opts?.fan_out ? "?fan_out=true" : "";
+      return LocaleConfigActivationResult.parse(
+        await apiFetch(`/projects/${projectId}/locale-configs${qs}`, {
+          method: "POST",
+          body,
+        }),
       );
     },
     update: async (
@@ -788,6 +822,8 @@ export const api = {
         register?: string | null;
         notes?: string | null;
         is_bootstrapped?: boolean;
+        is_activated?: boolean;
+        bootstrap_state?: BootstrapState | null;
       },
     ) => {
       return LocaleConfig.parse(

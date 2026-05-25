@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClaritiTMS — Add a locale → publish in your repo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* Light-mode palette — direct port of marketing/src/app/globals.css */
+      --ink-0: #ffffff;
+      --ink-1: #ffffff;
+      --ink-2: #f6f7f8;
+      --ink-3: #eef0f2;
+      --ink-4: #c8ccd1;
+      --line: #e6e8eb;
+      --line-strong: #d2d6db;
+      --text: #121317;
+      --text-soft: #45474D;
+      --text-muted: #5F6368;
+      --text-dim: rgba(18, 19, 23, 0.06);
+      --flame: #4f46e5;
+      --flame-soft: #4338ca;
+      --flame-deep: #312e81;
+      --mint: #16a34a;
+      --iris: #5c5fcc;
+      --rose: #e11d48;
+      --grid-line: rgba(18, 19, 23, 0.045);
+      --shadow-flame:
+        0 0 0 1px rgba(79, 70, 229, 0.28),
+        0 14px 36px -14px rgba(67, 56, 202, 0.32);
+      --gradient-text-start: #6366f1;
+      --gradient-text-mid: #4f46e5;
+      --gradient-text-end: #312e81;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { padding: 0; margin: 0; }
+
+    body {
+      font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      font-feature-settings: "ss01", "cv11";
+      font-size: 16px;
+      line-height: 1.6;
+      letter-spacing: -0.003em;
+      color: var(--text);
+      background: var(--ink-0);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    code, pre, .mono { font-family: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+    h1, h2, h3 { font-weight: 450; letter-spacing: -0.018em; margin: 0; }
+
+    a { color: var(--flame-soft); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.7);
+      border-bottom: 1px solid rgba(230, 232, 235, 0.6);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; }
+    .brand-mark {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--flame); color: white;
+      display: grid; place-items: center; font-weight: 700; font-size: 12px;
+    }
+    .nav-meta { font-family: "Geist Mono"; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+
+    /* Hero */
+    .hero { position: relative; padding: 80px 0 56px; overflow: hidden; }
+    .grid-bg {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 75%);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; max-width: 800px; }
+    .eyebrow {
+      font-family: "Geist Mono"; font-size: 10.5px;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--flame-soft);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .pulse {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--flame);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% {opacity: 0.4;} 50% {opacity: 1;} }
+    h1.hero-title {
+      margin-top: 24px;
+      font-size: 56px; line-height: 1.05; letter-spacing: -0.022em;
+      font-weight: 450;
+      max-width: 800px;
+    }
+    h1.hero-title .grad {
+      background: linear-gradient(180deg, var(--gradient-text-start) 0%, var(--gradient-text-mid) 60%, var(--gradient-text-end) 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero-sub {
+      margin-top: 20px; max-width: 640px;
+      font-size: 17.5px; line-height: 1.55; color: var(--text-soft);
+    }
+    .hero-stats {
+      margin-top: 40px;
+      display: flex; gap: 28px; flex-wrap: wrap;
+      border-top: 1px solid rgba(230, 232, 235, 0.7); padding-top: 22px;
+    }
+    .hero-stat .stat-num { font-family: "Geist Mono"; font-size: 20px; font-weight: 500; color: var(--flame-soft); letter-spacing: -0.01em; }
+    .hero-stat .stat-label { margin-top: 4px; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+
+    /* Section heads */
+    section.block { padding: 64px 0; }
+    section.block-tight { padding: 40px 0; }
+    .section-head { margin-bottom: 36px; max-width: 760px; }
+    .section-head h2 {
+      margin-top: 12px;
+      font-size: 36px; line-height: 1.1; letter-spacing: -0.02em;
+    }
+    .section-head .lead {
+      margin-top: 12px;
+      font-size: 16px; line-height: 1.6; color: var(--text-soft);
+    }
+
+    /* Step cards */
+    .step {
+      background: var(--ink-1);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 720px) {
+      .step { grid-template-columns: 1fr; padding: 24px; }
+    }
+    .step-num {
+      font-family: "Geist Mono"; font-size: 13px; font-weight: 500;
+      color: var(--flame-soft);
+      letter-spacing: 0.05em;
+      padding-top: 4px;
+    }
+    .step-body h3 {
+      font-size: 22px; line-height: 1.2; letter-spacing: -0.012em;
+    }
+    .step-body .lead {
+      margin-top: 8px; font-size: 15px; color: var(--text-soft); line-height: 1.6;
+    }
+
+    /* Mock UI panels — inside step cards */
+    .mock {
+      margin-top: 18px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--ink-0);
+    }
+    .mock-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--ink-2);
+      font-family: "Geist Mono"; font-size: 10.5px; color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-4); }
+    .mock-body { padding: 16px 18px; }
+
+    /* Mock components */
+    .mock-input {
+      display: flex; align-items: center; gap: 10px;
+      border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 12px; background: var(--ink-1);
+      font-family: "Geist Mono"; font-size: 12.5px; color: var(--text);
+    }
+    .mock-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      background: var(--flame); color: white;
+      font-size: 13px; font-weight: 600;
+      box-shadow: var(--shadow-flame);
+      border: none;
+    }
+    .mock-btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line-strong); box-shadow: none; font-weight: 500; }
+    .mock-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--ink-1);
+      border: 1px solid var(--line);
+      margin-bottom: 8px;
+    }
+    .mock-row:last-child { margin-bottom: 0; }
+    .mock-row .chip { font-family: "Geist Mono"; font-size: 11px; color: var(--flame-soft); background: rgba(79,70,229,0.08); padding: 2px 8px; border-radius: 999px; }
+    .mock-tag { font-family: "Geist Mono"; font-size: 10.5px; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; }
+    .mock-key { font-family: "Geist Mono"; font-size: 12px; color: var(--text); }
+    .mock-cell { padding: 6px 0; font-size: 13px; }
+    .mock-cell.label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .success-card {
+      margin-top: 16px;
+      border: 1px solid rgba(22, 163, 74, 0.25);
+      background: rgba(22, 163, 74, 0.06);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-size: 13.5px;
+    }
+    .success-card .ok {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--mint); font-weight: 500;
+    }
+    .success-card .ok::before {
+      content: ""; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--mint);
+      mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 12 10 18 20 6'/></svg>");
+      mask-size: 60%; mask-position: center; mask-repeat: no-repeat;
+    }
+    .success-card a.next {
+      color: var(--flame-soft); font-weight: 500;
+    }
+
+    .terminal {
+      margin-top: 14px;
+      background: #0b0c10;
+      color: #ecedf0;
+      border: 1px solid #23262f;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .terminal .mock-bar { background: #111319; border-color: #23262f; color: #b5b8c1; }
+    .terminal .mock-bar .dot { background: #21252f; }
+    .terminal .term-body { padding: 12px 16px; font-family: "Geist Mono"; font-size: 12px; line-height: 1.75; }
+    .terminal .prompt { color: #a5b4fc; }
+    .terminal .ok { color: #6ee7b7; }
+
+    .callout {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--flame);
+      background: var(--ink-2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13.5px; line-height: 1.55; color: var(--text-soft);
+    }
+    .callout strong { color: var(--text); font-weight: 600; }
+
+    .step-meta {
+      margin-top: 18px;
+      display: flex; gap: 16px; flex-wrap: wrap;
+      font-family: "Geist Mono"; font-size: 11px; color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .step-meta b { color: var(--text-soft); font-weight: 500; }
+
+    /* Errors table */
+    .errors-grid {
+      display: grid; grid-template-columns: 1fr; gap: 12px;
+    }
+    .err-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px 20px;
+      background: var(--ink-1);
+    }
+    .err-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 6px;
+    }
+    .err-tag {
+      font-family: "Geist Mono"; font-size: 10.5px; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(225, 29, 72, 0.08); color: var(--rose);
+    }
+    .err-head h4 { font-size: 14.5px; font-weight: 600; margin: 0; }
+    .err-card p { margin: 6px 0 0; font-size: 13px; color: var(--text-soft); line-height: 1.55; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 32px 0 56px;
+      font-size: 12.5px; color: var(--text-muted);
+    }
+    footer .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .hairline { height: 1px; background: linear-gradient(90deg, transparent, var(--line-strong) 20%, var(--line-strong) 80%, transparent); border: 0; margin: 64px 0; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      ClaritiTMS
+    </div>
+    <div class="nav-meta">User guide · v0.1</div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="grid-bg" aria-hidden></div>
+  <div class="container hero-inner">
+    <span class="eyebrow"><span class="pulse"></span>Add a locale → publish</span>
+    <h1 class="hero-title">From <span class="grad">"add German"</span> to a pull request,<br/>without leaving the dashboard.</h1>
+    <p class="hero-sub">
+      This guide walks a project admin through the six clicks that take a fresh target locale all the way through machine translation, native-speaker review, and publication into your source repo. No CLI, no SQL, no GitHub App settings page.
+    </p>
+    <dl class="hero-stats">
+      <div class="hero-stat">
+        <div class="stat-num">6</div>
+        <div class="stat-label">clicks end-to-end</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-num">~12 min</div>
+        <div class="stat-label">first run (without bootstrap)</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">shell commands</div>
+      </div>
+      <div class="hero-stat">
+        <div class="stat-num">1</div>
+        <div class="stat-label">pull request opened</div>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<section class="block">
+  <div class="container">
+
+    <div class="section-head">
+      <span class="eyebrow">Before you start</span>
+      <h2>What you need.</h2>
+      <p class="lead">
+        A signed-in dashboard session, a project with a connected repository, and a few minutes when your reviewer is around. If any piece is missing, the guide tells you where to go and ships you back here.
+      </p>
+    </div>
+
+    <div class="step">
+      <div class="step-num">PREP A</div>
+      <div class="step-body">
+        <h3>You're signed in to the dashboard.</h3>
+        <p class="lead">
+          Open <code>http://localhost:3000</code> (or your hosted instance). If the sign-in card is showing, paste an API key from Settings → API keys. Tenant keys are fine — admin powers aren't required for this flow.
+        </p>
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>~/clariti — sign-in</span></div>
+          <div class="mock-body">
+            <div class="mock-cell label">API key</div>
+            <div class="mock-input mono">····················································</div>
+            <div style="margin-top: 14px; display: flex; gap: 8px;">
+              <button class="mock-btn">Sign in →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">PREP B</div>
+      <div class="step-body">
+        <h3>Your project exists.</h3>
+        <p class="lead">
+          Pick it from the sidebar switcher. If the switcher says <em>"No projects yet"</em>, the dashboard renders a first-run card with one button — <strong>+ Create project</strong> — and you'll land back here when it's done.
+        </p>
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>Sidebar</span></div>
+          <div class="mock-body" style="padding: 14px;">
+            <div class="mock-row">
+              <div>
+                <div style="font-weight: 500; font-size: 13px;">clariti-app</div>
+                <div class="mono" style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">clariti · 3 locales</div>
+              </div>
+              <div class="mock-tag">▾</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">PREP C</div>
+      <div class="step-body">
+        <h3>The repository is connected.</h3>
+        <p class="lead">
+          Settings → Repositories shows the repo with <strong>file_format</strong> and <strong>source_file</strong> set, plus a paste-able GitHub App installation id if you want PRs auto-opened on publish. For a Flutter project:
+        </p>
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>settings/repositories</span></div>
+          <div class="mock-body">
+            <div class="mock-row">
+              <div>
+                <div style="font-weight: 600; font-size: 13.5px;">clariti-app</div>
+                <div style="font-family: 'Geist Mono'; font-size: 11px; color: var(--text-muted); margin-top: 3px;">flutter · flutter-arb · lib/l10n/app_en.arb</div>
+                <div style="font-family: 'Geist Mono'; font-size: 11px; color: var(--text-soft); margin-top: 3px;">@clariti/clariti-app · install #67890</div>
+              </div>
+              <div class="mock-tag">↗</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="hairline" />
+
+    <div class="section-head">
+      <span class="eyebrow">The journey</span>
+      <h2>Six steps, six clicks.</h2>
+      <p class="lead">
+        From here, every action lives inside the dashboard. After each action the UI tells you what to do next — no jumping into the CLI or GitHub to figure it out yourself.
+      </p>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step">
+      <div class="step-num">STEP 01</div>
+      <div class="step-body">
+        <h3>Add the target locale.</h3>
+        <p class="lead">
+          Settings → Project → <strong>Target locales</strong>. Type a BCP-47 code (<code>de-DE</code>, <code>pt-BR</code>, <code>ja-JP</code>) and hit <strong>Add</strong>. The locale is appended to the project, a default locale-config row is created, and every existing key in the project gets a draft translation row for the new locale — all in one transaction.
+        </p>
+
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>settings/project · target locales</span></div>
+          <div class="mock-body">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+              <span class="chip" style="font-family: 'Geist Mono'; font-size: 11.5px; background: var(--ink-2); color: var(--text-soft); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line);">en-US</span>
+              <span class="chip" style="font-family: 'Geist Mono'; font-size: 11.5px; background: var(--ink-2); color: var(--text-soft); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line);">fr-FR</span>
+              <span class="chip" style="font-family: 'Geist Mono'; font-size: 11.5px; background: var(--ink-2); color: var(--text-soft); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line);">es-ES</span>
+            </div>
+            <div class="mock-cell label">Add locale (BCP-47)</div>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <div class="mock-input mono" style="flex: 1;">de-DE</div>
+              <button class="mock-btn">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-card">
+          <span class="ok">de-DE added · 247 drafts seeded</span>
+          <a class="next" href="#step-02">Bootstrap de-DE →</a>
+        </div>
+
+        <div class="step-meta">
+          <span><b>Endpoint:</b> <code>POST /projects/{pid}/locale-configs?fan_out=true</code></span>
+          <span><b>Returns:</b> <code>200 {created: 247, already_existed: false}</code></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step" id="step-02">
+      <div class="step-num">STEP 02</div>
+      <div class="step-body">
+        <h3>Bootstrap the locale.</h3>
+        <p class="lead">
+          New locales need a native-speaker review of 50 sample strings before they can publish (this protects every batch that follows). Click <strong>Bootstrap walkthrough</strong> on the locale row in Settings → Locales; a four-step wizard takes care of the rest.
+        </p>
+
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>settings/locales/de-DE — bootstrap wizard</span></div>
+          <div class="mock-body">
+            <div style="font-family: 'Geist Mono'; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--flame-soft);">01 — EXPORT</div>
+            <div style="font-size: 18px; font-weight: 500; letter-spacing: -0.01em; margin-top: 4px;">Pull 50 sample strings for your reviewer.</div>
+            <p style="font-size: 13px; color: var(--text-soft); margin-top: 6px; line-height: 1.6;">
+              We'll generate an Excel file with your highest-risk strings first, capped at 50.
+            </p>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+              <button class="mock-btn">Generate sample</button>
+              <button class="mock-btn ghost">I'll come back later</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Resumable.</strong> Close the wizard while you wait for your reviewer; the locale row shows <em>"de-DE · Bootstrapping · step 2 of 4 · Resume →"</em> until the bootstrap completes. State persists on the locale config — multi-day reviewer turnarounds are fine.
+        </div>
+
+        <div class="step-meta">
+          <span><b>Wrap:</b> existing <code>/exports</code> + <code>/imports/preview</code> + <code>/imports/commit</code></span>
+          <span><b>Final action:</b> flip <code>is_bootstrapped = true</code></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-num">STEP 03</div>
+      <div class="step-body">
+        <h3>Translate the queue.</h3>
+        <p class="lead">
+          Once the locale is bootstrapped, open the review queue for it (sidebar → <code>de-DE</code>). The header carries one big button: <strong>Translate 47 batches</strong>. One click queues every pending batch through the LLM pipeline with backpressure inside the MT worker.
+        </p>
+
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>review/de-DE</span></div>
+          <div class="mock-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+              <div>
+                <div style="font-family: 'Geist Mono'; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);">Review queue</div>
+                <div style="font-size: 19px; font-weight: 500; margin-top: 4px;">de-DE · 47 batches pending</div>
+              </div>
+              <button class="mock-btn">Translate 47 batches</button>
+            </div>
+            <div style="margin-top: 14px;">
+              <div class="mock-row">
+                <div>
+                  <span class="mock-tag" style="margin-right: 8px;">checkout</span>
+                  <span class="mock-key">paymentReview.title</span>
+                </div>
+                <span class="chip">pending</span>
+              </div>
+              <div class="mock-row">
+                <div>
+                  <span class="mock-tag" style="margin-right: 8px;">checkout</span>
+                  <span class="mock-key">paymentReview.confirmCta</span>
+                </div>
+                <span class="chip">pending</span>
+              </div>
+              <div class="mock-row">
+                <div>
+                  <span class="mock-tag" style="margin-right: 8px;">profile</span>
+                  <span class="mock-key">editProfile.heading</span>
+                </div>
+                <span class="chip">pending</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Partial failures are visible.</strong> If 4 of 47 batches reject (rate limit, LLM downtime), the button is replaced by an inline strip: <em>"43 batches queued · 4 failed [Retry failed (4)] [See details]"</em>. The retry only re-issues the failures.
+        </div>
+
+        <div class="step-meta">
+          <span><b>Endpoint:</b> <code>POST /projects/{pid}/trigger-mt?locale=de-DE&status=pending</code></span>
+          <span><b>Live label:</b> <code>"Translating 12 of 47…"</code> with <code>aria-live</code></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-num">STEP 04</div>
+      <div class="step-body">
+        <h3>Review screen by screen.</h3>
+        <p class="lead">
+          Once MT lands, batches move from <code>pending</code> to <code>needs_review</code>. Click into a batch and you're in the keyboard-driven review surface: <kbd>j</kbd> / <kbd>k</kbd> step through strings, <kbd>a</kbd> approve, <kbd>e</kbd> edit, <kbd>r</kbd> reject, <kbd>f</kbd> flag with a note, <kbd>⇧A</kbd> approve the whole batch.
+        </p>
+
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>review/batch/8772cb13… — checkout / paymentReview</span></div>
+          <div class="mock-body" style="padding: 0;">
+            <div style="padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-family: 'Geist Mono'; font-size: 11px; color: var(--text-muted);">checkout / paymentReview · 16 strings</div>
+                <div style="font-size: 17px; font-weight: 500; margin-top: 4px;">Payment review and confirmation.</div>
+              </div>
+              <span style="font-family: 'Geist Mono'; font-size: 10.5px; color: var(--text-muted); letter-spacing: 0.05em;">⇧A approves all</span>
+            </div>
+            <div style="padding: 0;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 14px 18px; border-bottom: 1px solid var(--line);">
+                <div>
+                  <div class="mock-cell label">en-US</div>
+                  <div class="mock-key" style="font-size: 13.5px; color: var(--text);">Confirm payment</div>
+                </div>
+                <div>
+                  <div class="mock-cell label">de-DE · MT</div>
+                  <div class="mock-key" style="font-size: 13.5px; color: var(--text);">Zahlung bestätigen</div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 14px 18px;">
+                <div>
+                  <div class="mock-cell label">en-US</div>
+                  <div class="mock-key" style="font-size: 13.5px; color: var(--text);">Cancel</div>
+                </div>
+                <div>
+                  <div class="mock-cell label">de-DE · MT</div>
+                  <div class="mock-key" style="font-size: 13.5px; color: var(--text);">Abbrechen</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-meta">
+          <span><b>Flagged items</b> land on <code>/flagged</code> — the PM resolves them by adding screen context.</span>
+          <span><b>QA scores</b> appear in a side panel on each row.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step">
+      <div class="step-num">STEP 05</div>
+      <div class="step-body">
+        <h3>Publish the approved batch to your repo.</h3>
+        <p class="lead">
+          Once a locale has approved batches, the <strong>Publish approved de-DE</strong> button appears on the review queue header. One click opens a pull request against your GitHub repo — translated values committed into <code>lib/l10n/app_de_DE.arb</code>, schema preserved, <code>@key</code> metadata round-tripped verbatim.
+        </p>
+
+        <div class="mock">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>review/de-DE</span></div>
+          <div class="mock-body">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="mock-btn">Publish approved de-DE</button>
+              <span style="font-family: 'Geist Mono'; font-size: 11px; color: var(--text-muted);">→ owner/clariti-app</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-card">
+          <span class="ok">PR #42 opened against owner/clariti-app</span>
+          <a class="next" href="#">Open PR ↗</a>
+        </div>
+
+        <div class="callout">
+          <strong>The result strip persists.</strong> Unlike a toast, the PR link stays visible until the next batch transitions or you navigate away. Hit it days later, you'll still find it.
+        </div>
+
+        <div class="step-meta">
+          <span><b>Endpoint:</b> <code>POST /publications/repositories/{rid}/publish?locale=de-DE</code></span>
+          <span><b>Timeout:</b> 30s client-side; "Still running" fallback. Server is durable.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step">
+      <div class="step-num">STEP 06</div>
+      <div class="step-body">
+        <h3>Merge the PR.</h3>
+        <p class="lead">
+          On GitHub, your team reviews and merges the PR like any other code change. ClaritiTMS marks the published translations as <code>published</code> on the next webhook ping. That's the round-trip — your source repo is now multi-lingual.
+        </p>
+        <div class="terminal">
+          <div class="mock-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>github.com/owner/clariti-app/pull/42</span></div>
+          <div class="term-body">
+            <div><span class="prompt">PR #42</span> — Add de-DE translations (47 batches · 247 strings)</div>
+            <div style="margin-top: 6px; color: #b5b8c1;">+ lib/l10n/app_de_DE.arb (new file, 247 strings)</div>
+            <div style="color: #b5b8c1;">  lib/l10n/app_en.arb (unchanged)</div>
+            <div style="margin-top: 10px;"><span class="ok">✓</span> 2 reviewers approved · ready to merge</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="hairline" />
+
+    <!-- Error states -->
+    <div class="section-head">
+      <span class="eyebrow">When things go sideways</span>
+      <h2>What you'll see when something fails.</h2>
+      <p class="lead">
+        Every step has a named error path with copy that tells you exactly what to do next. No raw stack traces, no <em>"contact support"</em> dead-ends.
+      </p>
+    </div>
+
+    <div class="errors-grid">
+      <div class="err-card">
+        <div class="err-head"><span class="err-tag">Add locale</span><h4>Locale already on this project.</h4></div>
+        <p>Returns <code>200 + already_existed: true</code> — no scary 409. The dialog closes quietly and the locale row jumps into focus with a fresh highlight, so you can edit it directly in Locales.</p>
+      </div>
+      <div class="err-card">
+        <div class="err-head"><span class="err-tag">Ingest</span><h4>Wrong file format.</h4></div>
+        <p>Client-side guard before the upload leaves the browser. <em>"This repo expects .arb files. Upload app_en.arb, or change file_format in repo settings."</em> Inline link to the settings tab.</p>
+      </div>
+      <div class="err-card">
+        <div class="err-head"><span class="err-tag">Bulk MT</span><h4>Some batches failed.</h4></div>
+        <p>Inline strip shows <em>"43 queued · 4 failed."</em> The retry button only re-issues failures. Rate-limit failures wait the LLM provider's <code>Retry-After</code> automatically.</p>
+      </div>
+      <div class="err-card">
+        <div class="err-head"><span class="err-tag">Publish</span><h4>GitHub App access expired.</h4></div>
+        <p>Inline card: <em>"GitHub access expired. Reconnect in Settings → Repositories."</em> The Repositories row flips into a sticky red badge until the next successful publish.</p>
+      </div>
+      <div class="err-card">
+        <div class="err-head"><span class="err-tag">Publish</span><h4>A PR for this locale is already open.</h4></div>
+        <p>No duplicate PR. The result strip shows <em>"A PR for de-DE is already open: PR #41 [Open]"</em> — merge or close that one first, then publish again.</p>
+      </div>
+      <div class="err-card">
+        <div class="err-head"><span class="err-tag">Bootstrap</span><h4>The uploaded reply doesn't match the locale.</h4></div>
+        <p>The dry-run preview validates that the file's locale matches the wizard's target. If you uploaded the French file into the German wizard, commit is blocked: <em>"This file isn't for de-DE."</em></p>
+      </div>
+    </div>
+
+    <hr class="hairline" />
+
+    <!-- FAQ -->
+    <div class="section-head">
+      <span class="eyebrow">Frequently asked</span>
+      <h2>Three things people ask first.</h2>
+    </div>
+
+    <div class="step">
+      <div class="step-num">FAQ 01</div>
+      <div class="step-body">
+        <h3>Can I do this from the CLI instead?</h3>
+        <p class="lead">
+          Yes — every step in this guide has a 1:1 CLI command. <code>loc init</code>, <code>loc ingest-file</code>, <code>loc translate</code>, <code>loc publish</code>. Use whichever surface fits your workflow. Agents (Claude Code, Cursor, Cline) can drive the same flow through the MCP server.
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">FAQ 02</div>
+      <div class="step-body">
+        <h3>What if I don't have a GitHub App connected?</h3>
+        <p class="lead">
+          Steps 1–4 work without it. Step 5 (publish) will fail until a GitHub App is installed and its installation id is pasted into the repository settings. The dashboard surfaces the <em>"install the App"</em> link inline; once installed and the id is set, the Publish button activates.
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">FAQ 03</div>
+      <div class="step-body">
+        <h3>Why do I have to bootstrap?</h3>
+        <p class="lead">
+          Because nobody on your team speaks every language. Bootstrap is a one-time native-speaker pass on 50 high-risk strings — they become the prompt-tuning seed for the rest of the locale. Skipping bootstrap is a footgun; <em>docs/06</em> explains the policy in detail.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="container row">
+    <div>ClaritiTMS · self-hosted translation management.</div>
+    <div>Plan v2 reference — implementation rows F1 through F6. See <code>docs/15-add-locale-publish-plan.md</code>.</div>
+  </div>
+</footer>
+
+</body>
+</html>

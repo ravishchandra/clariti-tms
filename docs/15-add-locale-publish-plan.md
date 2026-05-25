@@ -266,6 +266,50 @@ Defer to F7+:
 - Real-time webhook → DB transitions feedback (we rely on the user refreshing).
 - Mobile / OTA delivery toggle (`docs/12-ota.md`).
 - Test plan — covered separately once F1-F5 land.
+- **Locale deletion / cascade.** See below.
+
+### Known gap — locale "delete" is currently a hide
+
+Today's UI exposes one delete-ish path: the **X** on a locale chip in
+Settings → Project. Clicking it PATCHes the project's `target_locales`
+array to drop the entry. **Nothing else happens**:
+
+| Row | After "delete" |
+|---|---|
+| `projects.target_locales` | Locale removed |
+| `locale_configs` row | Stays |
+| `translations` rows for that locale | Stay (orphaned) |
+| `translation_batches` for that locale | Stay (orphaned) |
+
+Side effects worth knowing:
+
+- The locale disappears from the sidebar locale list (which is driven by
+  `target_locales`).
+- Settings → Locales **still renders the row** because
+  `LocalesPicker` fetches `locale_configs.list(projectId)` (all rows, not
+  filtered by `target_locales`). State machine still works there.
+- Re-adding the locale resurrects everything — the existing
+  `locale_config`, drafts, MT outputs, approved batches all come back into
+  view. Good for accidental removal, bad if the admin intended to wipe.
+
+Backend has a real DELETE that the UI doesn't consume:
+`DELETE /projects/{pid}/locale-configs/{config_id}` (`app/api/v1/endpoints/locale_configs.py:92`) — drops only the `locale_configs` row; no cascade
+to `translations` or `translation_batches`.
+
+#### What a complete delete needs (F8, deferred)
+
+1. **Soft-delete** = today's "remove from `target_locales`" (hide). Cheap.
+2. **Hard-delete** = drop `locale_config` row + cascade to `translations` +
+   `translation_batches` where `locale = X` and (via join) `project_id`
+   matches. Needs an explicit endpoint or a `cascade=true` query param.
+3. **UX gate:** AlertDialog with the actual counts: "Delete the 247 draft
+   translations and 4 approved batches for de-DE? This cannot be undone."
+4. Probably a two-step affordance — hide is one click on the locale chip
+   (today's path); permanent delete sits behind a danger-zone subsection
+   on the locale row.
+
+Filed as **F8** (post-publish polish). Defer until a real admin asks
+for it; admins rarely delete locales in production.
 
 ## Companion docs
 

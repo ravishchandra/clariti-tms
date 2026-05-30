@@ -2,6 +2,10 @@
 
 Guidance for Claude Code working on this repo.
 
+## Hard rules (non-negotiable — apply regardless of model, effort level, or mode)
+
+- **Never push code or update anything on a remote without explicit permission.** Commit locally as much as you want, but always ask first before: `git push`, `git push --force`, opening/updating a PR, `vercel deploy`/`vercel --prod`, publishing to npm/PyPI, force-pushing, deleting remote branches/tags, or any other action that mutates a remote (GitHub, Vercel, package registries, etc.). Approval for one push does not carry to the next — ask each time.
+
 ## What this is
 
 A from-scratch in-house translation management system. The full requirements, architecture, schema, and phased plan are in `docs/01` through `docs/10`. **Read `README.md` first**, then the docs in numeric order.

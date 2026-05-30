@@ -24,7 +24,7 @@ def _first_text(content: list[object]) -> str:
 
 
 class AnthropicProvider(LLMProviderBase):
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6") -> None:
+    def __init__(self, api_key: str, model: str = "claude-opus-4-8") -> None:
         self._model = model
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
 
@@ -86,15 +86,15 @@ class AnthropicProvider(LLMProviderBase):
     def provider_name(self) -> str:
         return "anthropic"
 
-    # Anthropic Claude Sonnet 4.x pricing (USD per 1K tokens).
+    # Anthropic Claude Opus 4.x pricing (USD per 1K tokens).
     # Source: anthropic.com/pricing — adjust when the configured model changes.
     @property
     def price_per_1k_input(self) -> float:
-        return 0.003
+        return 0.005
 
     @property
     def price_per_1k_output(self) -> float:
-        return 0.015
+        return 0.025
 
 
 def _extract_usage(response: object) -> TokenUsage:

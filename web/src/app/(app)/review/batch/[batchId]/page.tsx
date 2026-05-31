@@ -37,6 +37,50 @@ import { useHelpDialog } from "@/app/(app)/_help/help-dialog";
  * Updates are optimistic — TanStack Query patches the cache before the
  * server responds so the keyboard flow stays at typing speed.
  */
+const STATUS_ORDER = [
+  "needs_review",
+  "mt_proposed",
+  "needs_more_context",
+  "approved",
+  "rejected",
+  "draft",
+  "published",
+];
+const STATUS_LABEL: Record<string, string> = {
+  needs_review: "Needs review",
+  mt_proposed: "MT proposed",
+  needs_more_context: "Needs context",
+  approved: "Approved",
+  rejected: "Rejected",
+  draft: "Draft",
+  published: "Published",
+};
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "px-2.5 py-1 rounded-md border transition-colors " +
+        (active
+          ? "bg-primary/10 border-primary/40 text-primary"
+          : "bg-app-surface border-app-border text-app-text-secondary hover:text-app-text hover:border-app-border-focus")
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function BatchReviewPage() {
   const params = useParams<{ batchId: string }>();
   const searchParams = useSearchParams();
@@ -76,7 +120,7 @@ function BatchReview({ batchId, projectId }: { batchId: string; projectId: strin
     enabled: keyIds.length > 0 && !!batchProjectId,
   });
 
-  const rows = useMemo<ReviewRow[]>(() => {
+  const allRows = useMemo<ReviewRow[]>(() => {
     if (!translationsQuery.data || !keysQuery.data) return [];
     const keyMap = new Map(keysQuery.data.map((k) => [k.id, k]));
     return translationsQuery.data
@@ -88,6 +132,22 @@ function BatchReview({ batchId, projectId }: { batchId: string; projectId: strin
       .filter((r): r is ReviewRow => r !== null)
       .sort((a, b) => a.key.key.localeCompare(b.key.key));
   }, [translationsQuery.data, keysQuery.data]);
+
+  // Within-batch status filter. `allRows` is the full batch (drives the chip
+  // counts); `rows` is what the list + keyboard nav actually operate on.
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const counts = useMemo<Record<string, number>>(() => {
+    const c: Record<string, number> = {};
+    for (const r of allRows) c[r.translation.status] = (c[r.translation.status] ?? 0) + 1;
+    return c;
+  }, [allRows]);
+  const rows = useMemo(
+    () =>
+      statusFilter
+        ? allRows.filter((r) => r.translation.status === statusFilter)
+        : allRows,
+    [allRows, statusFilter],
+  );
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -292,12 +352,38 @@ function BatchReview({ batchId, projectId }: { batchId: string; projectId: strin
         </div>
       </div>
 
+      {allRows.length > 0 ? (
+        <div className="px-6 pt-3 pb-1 max-w-5xl flex flex-wrap items-center gap-2 text-xs">
+          <FilterChip
+            label={`All (${allRows.length})`}
+            active={statusFilter === undefined}
+            onClick={() => {
+              setStatusFilter(undefined);
+              setActiveIdx(0);
+            }}
+          />
+          {STATUS_ORDER.filter((s) => counts[s]).map((s) => (
+            <FilterChip
+              key={s}
+              label={`${STATUS_LABEL[s] ?? s} (${counts[s]})`}
+              active={statusFilter === s}
+              onClick={() => {
+                setStatusFilter(s);
+                setActiveIdx(0);
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
+
       <div className="flex-1 min-h-0 px-6 pb-6 overflow-auto">
         <Card className="max-w-5xl">
           <CardContent className="p-0 divide-y divide-app-border">
             {rows.length === 0 ? (
               <div className="p-8 text-center text-sm text-app-text-muted">
-                No translations in this batch.
+                {allRows.length === 0
+                  ? "No translations in this batch."
+                  : "No rows match this filter."}
               </div>
             ) : (
               rows.map((row, idx) => (

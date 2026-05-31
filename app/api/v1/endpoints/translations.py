@@ -32,6 +32,7 @@ async def list_translations(
     locale: str | None = Query(None),
     status: TranslationStatus | None = Query(None),
     key_id: uuid.UUID | None = Query(None),
+    batch_id: uuid.UUID | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> dict[str, Any]:
@@ -47,6 +48,8 @@ async def list_translations(
         q = q.where(Translation.status == status)
     if key_id is not None:
         q = q.where(Translation.key_id == key_id)
+    if batch_id is not None:
+        q = q.where(Translation.batch_id == batch_id)
 
     total_result = await db.execute(select(func.count()).select_from(q.subquery()))
     total: int = total_result.scalar_one()

@@ -360,6 +360,9 @@ function PreviewStep({
 function PreviewSummary({ summary }: { summary: ImportDryRunSummary }) {
   const exportedAt = summary.export_timestamp ?? null;
   const relative = exportedAt ? formatRelativeTime(exportedAt) : null;
+  const conflictsTotal =
+    (summary.conflicts?.source_changed ?? 0) +
+    (summary.conflicts?.translation_modified_externally ?? 0);
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-app-border bg-app-surface p-4">
@@ -386,8 +389,8 @@ function PreviewSummary({ summary }: { summary: ImportDryRunSummary }) {
         />
         <PreviewRow
           label="Conflicts"
-          ok={(summary.conflicts ?? 0) === 0}
-          value={`${summary.conflicts ?? 0} keys changed since export`}
+          ok={conflictsTotal === 0}
+          value={`${conflictsTotal} keys changed since export`}
         />
       </dl>
 
@@ -398,8 +401,8 @@ function PreviewSummary({ summary }: { summary: ImportDryRunSummary }) {
       <ValidationBreakdown summary={summary} />
 
       {/* Errors expandable */}
-      {summary.errors && summary.errors.length > 0 ? (
-        <ValidationErrors errors={summary.errors} />
+      {summary.validation_errors && summary.validation_errors.length > 0 ? (
+        <ValidationErrors errors={summary.validation_errors} />
       ) : null}
     </div>
   );
@@ -428,14 +431,15 @@ function PreviewRow({
 }
 
 function ActionBreakdown({ summary }: { summary: ImportDryRunSummary }) {
-  const a = summary.actions ?? {};
+  const a = summary.counts ?? {};
   const totalRows = summary.total_rows;
   const rows: { label: string; count: number; tone?: "good" | "warn" | "neutral" }[] = [
     { label: "Approve (yes)", count: a.approve ?? 0, tone: "good" },
     { label: "Apply edits", count: a.edit ?? 0, tone: "good" },
     { label: "Reject (no)", count: a.reject ?? 0, tone: "warn" },
-    { label: "Flag needs_more_context", count: a.flag ?? 0, tone: "warn" },
+    { label: "Needs more context", count: a.needs_more_context ?? 0, tone: "warn" },
     { label: "Skip (blank action)", count: a.skip ?? 0, tone: "neutral" },
+    { label: "Unknown action", count: a.unknown ?? 0, tone: "warn" },
   ];
   return (
     <section className="flex flex-col gap-1.5">
@@ -476,14 +480,12 @@ function ActionBreakdown({ summary }: { summary: ImportDryRunSummary }) {
 }
 
 function ValidationBreakdown({ summary }: { summary: ImportDryRunSummary }) {
-  const v = summary.validation ?? {};
   const rows: { label: string; count: number; bad?: boolean }[] = [
-    { label: "Placeholders match", count: v.placeholders_match ?? 0 },
-    { label: "Placeholders mismatch", count: v.placeholders_mismatch ?? 0, bad: true },
-    { label: "Length OK", count: v.length_ok ?? 0 },
-    { label: "Length exceeded", count: v.length_exceeded ?? 0, bad: true },
-    { label: "Glossary compliance", count: v.glossary_ok ?? 0 },
-    { label: "ICU plural malformed", count: v.icu_malformed ?? 0, bad: true },
+    {
+      label: "Rows with validation errors",
+      count: summary.validation_error_count ?? 0,
+      bad: true,
+    },
   ];
   return (
     <section className="flex flex-col gap-1.5">
@@ -544,24 +546,30 @@ function ValidationErrors({ errors }: { errors: ImportValidationError[] }) {
       </button>
       {open ? (
         <ul className="flex flex-col gap-1 text-xs">
-          {errors.map((err, idx) => (
+          {errors.map((row, idx) => (
             <li
               key={idx}
               className="flex flex-col gap-0.5 rounded-md border border-app-border bg-app-elevated px-3 py-2"
             >
               <div className="flex items-center gap-2 text-app-text">
-                <span className="font-mono">{err.kind}</span>
-                {err.locale ? (
+                {row.locale ? (
                   <span className="font-mono text-app-text-muted">
-                    [{err.locale}]
+                    [{row.locale}]
                   </span>
                 ) : null}
-                {err.key ? (
-                  <span className="font-mono text-app-text-secondary">{err.key}</span>
+                {row.key ? (
+                  <span className="font-mono text-app-text-secondary">{row.key}</span>
+                ) : null}
+                {typeof row.row_index === "number" ? (
+                  <span className="font-mono text-app-text-muted">row {row.row_index}</span>
                 ) : null}
               </div>
-              {err.detail ? (
-                <div className="text-app-text-secondary">{err.detail}</div>
+              {row.errors && row.errors.length > 0 ? (
+                <ul className="flex flex-col gap-0.5 text-app-text-secondary">
+                  {row.errors.map((e, i) => (
+                    <li key={i}>• {e}</li>
+                  ))}
+                </ul>
               ) : null}
             </li>
           ))}

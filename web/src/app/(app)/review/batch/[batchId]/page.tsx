@@ -61,15 +61,19 @@ function BatchReview({ batchId, projectId }: { batchId: string; projectId: strin
     queryKey: ["review", "batch", batchId],
     queryFn: () => api.batches.get(batchId),
   });
+  // The translations list endpoint requires project_id; source it from the
+  // batch itself so this works even when the URL carries no ?project= param.
+  const batchProjectId = batchQuery.data?.project_id ?? projectId ?? undefined;
   const translationsQuery = useQuery({
-    queryKey: ["review", "batch-translations", batchId],
-    queryFn: () => api.translations.listByBatch(batchId),
+    queryKey: ["review", "batch-translations", batchId, batchProjectId],
+    queryFn: () => api.translations.listByBatch(batchProjectId!, batchId),
+    enabled: !!batchProjectId,
   });
   const keyIds = translationsQuery.data?.map((t) => t.key_id) ?? [];
   const keysQuery = useQuery({
     queryKey: ["review", "batch-keys", batchId, keyIds],
-    queryFn: () => api.keys.listByIds(keyIds),
-    enabled: keyIds.length > 0,
+    queryFn: () => api.keys.listByIds(batchProjectId!, keyIds),
+    enabled: keyIds.length > 0 && !!batchProjectId,
   });
 
   const rows = useMemo<ReviewRow[]>(() => {

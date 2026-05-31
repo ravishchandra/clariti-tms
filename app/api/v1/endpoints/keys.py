@@ -30,6 +30,7 @@ async def list_keys(
     locale: str | None = Query(None),
     status: TranslationStatus | None = Query(None),
     component: str | None = Query(None),
+    id: list[uuid.UUID] | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ) -> dict[str, Any]:
@@ -40,6 +41,9 @@ async def list_keys(
         await assert_repository_in_org(repository_id, db, current_key)
 
     q = select(Key).where(Key.project_id == project_id, Key.is_active.is_(True))
+
+    if id is not None:
+        q = q.where(Key.id.in_(id))
 
     if repository_id is not None:
         q = q.where(Key.repository_id == repository_id)

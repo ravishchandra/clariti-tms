@@ -797,9 +797,9 @@ function StepImport({
               No rows found in this workbook. Is it the right file?
             </p>
           ) : null}
-          {(preview.summary?.errors?.length ?? 0) > 0 ? (
+          {(preview.summary?.validation_errors?.length ?? 0) > 0 ? (
             <p className="text-status-rejected">
-              {preview.summary?.errors?.length} validation error(s) in the
+              {preview.summary?.validation_errors?.length} validation error(s) in the
               file. Open Imports to inspect.
             </p>
           ) : null}

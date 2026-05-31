@@ -390,18 +390,23 @@ export type ComponentContext = z.infer<typeof ComponentContext>;
 /* ---------------------------------------------------------------------------
  * Import / Export schemas (Phase 5 round-trip; UI in Phase 6).
  *
- * The dry-run summary shape is dictated by docs/07-excel-roundtrip.md lines
- * 96-127. The server stores the parsed summary on `import_jobs.dry_run_summary`
- * and returns it verbatim from `POST /imports/preview`. We model only the
- * fields the UI renders today; unknown fields are tolerated via `looseObject`.
+ * The dry-run summary shape is produced by
+ * `app/export_import/commit.py::_summary_to_dict` (plus the `format` stamp added
+ * in `preview_import`). The server stores it on `import_jobs.dry_run_summary` and
+ * returns it verbatim from `POST /imports/preview`. The field names below MUST
+ * track that serializer — there is no Pydantic response model / OpenAPI codegen
+ * for it yet, so this schema is hand-maintained (see CLARITI_TMS_INTEGRATION.md
+ * §19). Unknown fields are tolerated via `looseObject`.
  * ------------------------------------------------------------------------ */
 
-export const ImportValidationError = z.object({
-  row_id: z.string().nullable().optional(),
+// One per-row validation-error group, as emitted by `_build_summary`:
+// { translation_id, locale, row_index, key, errors: string[] }.
+export const ImportValidationError = z.looseObject({
+  translation_id: z.string().nullable().optional(),
   locale: z.string().nullable().optional(),
+  row_index: z.number().nullable().optional(),
   key: z.string().nullable().optional(),
-  kind: z.string(), // "placeholders_mismatch" | "length_exceeded" | "icu_malformed" | "glossary" | ...
-  detail: z.string().nullable().optional(),
+  errors: z.array(z.string()).nullable().optional(),
 });
 export type ImportValidationError = z.infer<typeof ImportValidationError>;
 
@@ -412,31 +417,43 @@ export const ImportDryRunSummary = z.looseObject({
   project_slug: z.string().nullable().optional(),
   project_match: z.boolean().nullable().optional(),
   export_timestamp: z.string().nullable().optional(),
-  conflicts: z.number().nullable().optional(),
+  conflicts: z
+    .looseObject({
+      source_changed: z.number().nullable().optional(),
+      translation_modified_externally: z.number().nullable().optional(),
+      details: z
+        .array(
+          z.looseObject({
+            translation_id: z.string().nullable().optional(),
+            locale: z.string().nullable().optional(),
+            row_index: z.number().nullable().optional(),
+            key: z.string().nullable().optional(),
+            type: z.string().nullable().optional(),
+            detail: z.string().nullable().optional(),
+          }),
+        )
+        .nullable()
+        .optional(),
+    })
+    .nullable()
+    .optional(),
   locales: z.array(z.string()).nullable().optional(),
-  actions: z
+  counts: z
     .looseObject({
       approve: z.number().nullable().optional(),
       edit: z.number().nullable().optional(),
       reject: z.number().nullable().optional(),
-      flag: z.number().nullable().optional(),
+      needs_more_context: z.number().nullable().optional(),
       skip: z.number().nullable().optional(),
+      unknown: z.number().nullable().optional(),
     })
     .nullable()
     .optional(),
-  validation: z
-    .looseObject({
-      placeholders_match: z.number().nullable().optional(),
-      placeholders_mismatch: z.number().nullable().optional(),
-      length_ok: z.number().nullable().optional(),
-      length_exceeded: z.number().nullable().optional(),
-      glossary_ok: z.number().nullable().optional(),
-      icu_malformed: z.number().nullable().optional(),
-    })
-    .nullable()
-    .optional(),
-  errors: z.array(ImportValidationError).nullable().optional(),
+  validation_error_count: z.number().nullable().optional(),
+  validation_errors: z.array(ImportValidationError).nullable().optional(),
+  action_plan: z.array(z.looseObject({})).nullable().optional(),
   total_rows: z.number().nullable().optional(),
+  format: z.string().nullable().optional(),
 });
 export type ImportDryRunSummary = z.infer<typeof ImportDryRunSummary>;
 
@@ -592,9 +609,29 @@ export const api = {
     },
   },
   translations: {
-    listByBatch: async (batchId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(`/translations?batch_id=${batchId}`);
-      return z.object({ items: z.array(Translation) }).parse(data).items;
+    listByBatch: async (projectId: string, batchId: string) => {
+      // The list endpoint requires project_id and paginates (page_size <= 200);
+      // a screen batch can exceed 200 rows, so fetch every page and concatenate.
+      const pageSize = 200;
+      const all: Translation[] = [];
+      for (let page = 1; ; page += 1) {
+        const params = new URLSearchParams({
+          project_id: projectId,
+          batch_id: batchId,
+          page: String(page),
+          page_size: String(pageSize),
+        });
+        const data = await apiFetch<{ items: unknown[]; total?: number }>(
+          `/translations?${params.toString()}`,
+        );
+        const parsed = z
+          .object({ items: z.array(Translation), total: z.number().optional() })
+          .parse(data);
+        all.push(...parsed.items);
+        const total = parsed.total ?? all.length;
+        if (parsed.items.length === 0 || all.length >= total) break;
+      }
+      return all;
     },
     // Project-scoped list, filterable by status. Used by the Flagged inbox
     // (docs/14 §7 + §10.W5) to surface `needs_more_context` rows.
@@ -686,10 +723,20 @@ export const api = {
     },
   },
   keys: {
-    listByIds: async (ids: string[]) => {
-      const params = ids.map((id) => `id=${id}`).join("&");
-      const data = await apiFetch<{ items: unknown[] }>(`/keys?${params}`);
-      return z.object({ items: z.array(Key) }).parse(data).items;
+    listByIds: async (projectId: string, ids: string[]) => {
+      if (ids.length === 0) return [];
+      // Backend requires project_id and caps page_size at 200; chunk the ids so
+      // the URL stays small and each chunk's matches come back in one page.
+      const chunkSize = 200;
+      const all: Key[] = [];
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        const params = new URLSearchParams({ project_id: projectId });
+        for (const id of ids.slice(i, i + chunkSize)) params.append("id", id);
+        params.set("page_size", String(chunkSize));
+        const data = await apiFetch<{ items: unknown[] }>(`/keys?${params.toString()}`);
+        all.push(...z.object({ items: z.array(Key) }).parse(data).items);
+      }
+      return all;
     },
     // Project-scoped list — used by the Keys index page. Backend supports
     // page/page_size; we set a generous page_size for the table.

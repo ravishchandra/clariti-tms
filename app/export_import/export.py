@@ -203,7 +203,7 @@ async def fetch_export_rows(
             if status_filter is not None:
                 stmt = stmt.where(Translation.status == status_filter)
             res = await db.execute(stmt)
-            return res.all()
+            return list(res.all())
 
         # Awaiting sequentially keeps the same AsyncSession safe.
         all_rows: list = []

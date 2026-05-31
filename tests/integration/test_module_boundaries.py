@@ -323,9 +323,7 @@ class TestH6PublishRepositoryRespectsBoundary:
         repo = seeded_repo["repo"]
 
         # The fr-FR path matches the only approved translation; PR opens.
-        pr_url = await publication_service.publish_repository(
-            db_session, repo, github_token="dummy", locale="fr-FR"
-        )
+        pr_url = await publication_service.publish_repository(db_session, repo, github_token="dummy", locale="fr-FR")
         assert pr_url == "https://github.com/acme/repo/pull/77"
         assert captured["translations_by_locale"] == {"fr-FR": {"hello": "Bonjour"}}
         assert "de-DE" not in captured["translations_by_locale"]
@@ -336,9 +334,7 @@ class TestH6PublishRepositoryRespectsBoundary:
         # The de-DE path finds zero approved rows (seeded_repo only has a
         # draft de-DE row). Service must short-circuit before constructing
         # the adapter.
-        result = await publication_service.publish_repository(
-            db_session, repo, github_token="dummy", locale="de-DE"
-        )
+        result = await publication_service.publish_repository(db_session, repo, github_token="dummy", locale="de-DE")
         assert result is None
         assert "ctor_calls" not in captured, (
             "publish_repository should short-circuit before constructing GitHubAdapter "

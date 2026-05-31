@@ -68,9 +68,7 @@ def upgrade() -> None:
     )
     # Singleton — only one row ever. ``((true))`` is a constant expression
     # so every row has the same index key; the second insert fails.
-    op.execute(
-        "CREATE UNIQUE INDEX uq_app_settings_singleton ON app_settings ((true))"
-    )
+    op.execute("CREATE UNIQUE INDEX uq_app_settings_singleton ON app_settings ((true))")
 
 
 def downgrade() -> None:

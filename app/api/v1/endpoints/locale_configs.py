@@ -75,17 +75,18 @@ async def create_locale_config(
             # Race: another writer inserted the row between SELECT and INSERT.
             # Re-fetch and continue as if we found it.
             await db.rollback()
-            lc = await db.scalar(
+            refetched = await db.scalar(
                 select(LocaleConfig).where(
                     LocaleConfig.project_id == project.id,
                     LocaleConfig.locale == body.locale,
                 )
             )
-            if lc is None:  # genuinely failed — bubble up
+            if refetched is None:  # genuinely failed — bubble up
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Locale config insert failed and re-fetch was empty.",
                 )
+            lc = refetched
             already_existed = True
         else:
             already_existed = False

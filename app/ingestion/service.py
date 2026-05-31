@@ -10,8 +10,9 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections import defaultdict
+from typing import Any, cast
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import CursorResult, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ingestion.parsers.types import ParseResult
@@ -268,4 +269,6 @@ async def fan_out_locale(
         """
     )
     result = await db.execute(stmt, {"project_id": project_id, "locale": locale})
-    return result.rowcount or 0
+    # DML (INSERT ... SELECT) returns a CursorResult; mypy only sees the base
+    # Result type, which has no rowcount.
+    return cast("CursorResult[Any]", result).rowcount or 0

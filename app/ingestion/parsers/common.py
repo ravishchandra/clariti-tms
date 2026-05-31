@@ -245,7 +245,9 @@ def infer_component_from_key(key: str) -> tuple[str | None, str | None]:
     """Derive (component, screen) from the key name.
 
     Screen is always None — real screen grouping requires AST analysis (Phase 7).
-    Component is the first meaningful segment of the key.
+    Component is the first meaningful segment of the key: the prefix before the
+    first dot/underscore, or — for delimiter-less keys — the leading camelCase
+    word.
 
     Returns (None, None) when no meaningful prefix can be identified.
     """
@@ -254,17 +256,24 @@ def infer_component_from_key(key: str) -> tuple[str | None, str | None]:
         if lower.startswith(prefix):
             return ("shared", None)
 
-    # Split on first dot or underscore
+    # Split on first dot or underscore.
     sep_dot = key.find(".")
     sep_us = key.find("_")
-
-    # Find the first separator
     candidates = [s for s in (sep_dot, sep_us) if s > 0]
-    if not candidates:
-        return (None, None)
 
-    first_sep = min(candidates)
-    prefix = key[:first_sep]
+    if candidates:
+        prefix = key[: min(candidates)]
+    else:
+        # No delimiter — fall back to camelCase. Flutter ARB keys (and many
+        # i18next / .strings keys) are camelCase with no dot or underscore,
+        # e.g. `merchantSearchHint` -> "merchant". Take the leading lowercase
+        # run ending at the first uppercase letter. A single-word key (no case
+        # boundary, e.g. `title`) yields no match, so we keep returning None
+        # rather than invent a component.
+        match = re.match(r"[a-z][a-z0-9]*(?=[A-Z])", key)
+        if match is None:
+            return (None, None)
+        prefix = match.group(0)
 
     if len(prefix) < 4:
         return (None, None)

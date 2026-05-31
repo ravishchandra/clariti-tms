@@ -105,7 +105,7 @@ def _build_app(
         return publish_side_effect
 
     app = FastAPI()
-    app.include_router(publication_router, prefix="/api/v1")
+    app.include_router(publication_router, prefix="/api/v1/publications")
     app.dependency_overrides[scoped_repository] = _override_scoped_repository
     app.dependency_overrides[get_db] = _override_get_db
     # The publication module imports `get_installation_token` and
@@ -145,7 +145,7 @@ async def test_install_token_retryable_returns_503_with_retry_after() -> None:
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 503, resp.text
     assert resp.headers.get("Retry-After") == "45"
@@ -163,7 +163,7 @@ async def test_install_token_404_returns_422_with_installation_id() -> None:
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 422, resp.text
     detail = resp.json()["detail"]
@@ -183,7 +183,7 @@ async def test_install_token_401_returns_422_with_app_credentials_hint() -> None
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 422, resp.text
     detail = resp.json()["detail"]
@@ -201,7 +201,7 @@ async def test_install_token_network_error_returns_503_without_retry_after() -> 
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 503, resp.text
     assert "Retry-After" not in resp.headers
@@ -217,7 +217,7 @@ async def test_install_token_runtime_error_returns_503_unchanged() -> None:
         install_token_side_effect=RuntimeError("GITHUB_APP_ID is not configured"),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 503, resp.text
     assert "GITHUB_APP_ID" in resp.json()["detail"]
@@ -240,7 +240,7 @@ async def test_publish_retryable_returns_503_with_retry_after() -> None:
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 503, resp.text
     assert resp.headers.get("Retry-After") == "15"
@@ -257,7 +257,7 @@ async def test_publish_403_returns_422_with_permissions_hint() -> None:
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 422, resp.text
     detail = resp.json()["detail"]
@@ -277,7 +277,7 @@ async def test_publish_404_returns_422_with_repo_or_app_hint() -> None:
         ),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 422, resp.text
     detail = resp.json()["detail"]
@@ -293,7 +293,7 @@ async def test_publish_network_error_returns_503() -> None:
         publish_side_effect=GitHubNetworkError("network failure while opening pull request: ConnectError: dns fail"),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 503, resp.text
     assert "Retry-After" not in resp.headers
@@ -313,7 +313,7 @@ async def test_happy_path_returns_pr_url() -> None:
         publish_side_effect="https://github.com/acme/example/pull/42",
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 200, resp.text
     assert resp.json() == {
@@ -330,7 +330,7 @@ async def test_no_op_when_publish_returns_none() -> None:
     repo = _FakeRepository()
     app = _build_app(repo, publish_side_effect=None)
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 200, resp.text
     payload = resp.json()
@@ -353,7 +353,7 @@ async def test_missing_github_repo_returns_422_before_calling_github() -> None:
         install_token_side_effect=RuntimeError("should not have been called"),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 422
     assert "GitHub integration" in resp.json()["detail"]
@@ -367,7 +367,7 @@ async def test_missing_installation_id_returns_503_before_calling_github() -> No
         install_token_side_effect=RuntimeError("should not have been called"),
     )
     async with await _client_for(app) as client:
-        resp = await client.post(f"/api/v1/repositories/{repo.id}/publish")
+        resp = await client.post(f"/api/v1/publications/repositories/{repo.id}/publish")
 
     assert resp.status_code == 503
     assert "github_installation_id" in resp.json()["detail"]

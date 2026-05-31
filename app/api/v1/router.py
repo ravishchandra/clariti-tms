@@ -63,7 +63,7 @@ try:
     from app.api.v1.endpoints.publication import router as publication_router
 
     router.include_router(github_webhook_router, prefix="/webhooks/github", tags=["GitHub"])
-    router.include_router(publication_router, tags=["Publication"])
+    router.include_router(publication_router, prefix="/publications", tags=["Publication"])
 except ImportError:
     pass
 

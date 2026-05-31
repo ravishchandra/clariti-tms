@@ -206,9 +206,7 @@ async def test_bulk_trigger_queues_pending_and_skips_running(
         assert running.status == BatchStatus.mt_running
 
 
-async def test_bulk_trigger_filters_by_locale(
-    tenant: tuple[Tenant, Tenant], client: AsyncClient
-) -> None:
+async def test_bulk_trigger_filters_by_locale(tenant: tuple[Tenant, Tenant], client: AsyncClient) -> None:
     """Passing locale=de-DE must not touch fr-FR batches."""
     a, _b = tenant
     resp = await client.post(
@@ -221,9 +219,7 @@ async def test_bulk_trigger_filters_by_locale(
     assert body == {"queued": 1, "skipped": 0}
 
 
-async def test_bulk_trigger_cross_org_returns_404(
-    tenant: tuple[Tenant, Tenant], client: AsyncClient
-) -> None:
+async def test_bulk_trigger_cross_org_returns_404(tenant: tuple[Tenant, Tenant], client: AsyncClient) -> None:
     """A's project hit with B's api key must be 404, not 403, to avoid leaking existence."""
     a, b = tenant
     resp = await client.post(
@@ -233,9 +229,7 @@ async def test_bulk_trigger_cross_org_returns_404(
     assert resp.status_code == 404
 
 
-async def test_bulk_trigger_invalid_status_returns_422(
-    tenant: tuple[Tenant, Tenant], client: AsyncClient
-) -> None:
+async def test_bulk_trigger_invalid_status_returns_422(tenant: tuple[Tenant, Tenant], client: AsyncClient) -> None:
     """Bogus status filter must be rejected by the enum validator."""
     a, _b = tenant
     resp = await client.post(

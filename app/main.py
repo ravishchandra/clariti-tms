@@ -157,9 +157,7 @@ async def _run_mt_worker_loop(settings) -> None:
                     api_key=decrypt(app_settings.anthropic_api_key_encrypted) or ""
                 )
             if app_settings.openai_api_key_encrypted:
-                providers["openai"] = OpenAIProvider(
-                    api_key=decrypt(app_settings.openai_api_key_encrypted) or ""
-                )
+                providers["openai"] = OpenAIProvider(api_key=decrypt(app_settings.openai_api_key_encrypted) or "")
             if app_settings.openrouter_api_key_encrypted:
                 providers["openrouter"] = OpenRouterProvider(
                     api_key=decrypt(app_settings.openrouter_api_key_encrypted) or "",
@@ -172,7 +170,9 @@ async def _run_mt_worker_loop(settings) -> None:
                 await asyncio.sleep(settings.MT_WORKER_POLL_INTERVAL_S * 5)
                 continue
 
-            primary = app_settings.primary_provider if app_settings.primary_provider in providers else next(iter(providers))
+            primary = (
+                app_settings.primary_provider if app_settings.primary_provider in providers else next(iter(providers))
+            )
             embed = "openai" if "openai" in providers else primary
 
             await run_worker(

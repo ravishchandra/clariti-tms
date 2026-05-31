@@ -438,7 +438,9 @@ class TestOpenRouterProvider:
         from app.llm.providers.openrouter import OpenRouterProvider
 
         p = OpenRouterProvider(api_key="or-test")
-        assert p.model_id == "anthropic/claude-sonnet-4-6"
+        # Default is the free-tier model (see OpenRouterProvider docstring);
+        # the namespaced `vendor/model` form is what matters here.
+        assert p.model_id == "google/gemini-2.0-flash-exp:free"
 
     def test_custom_model(self) -> None:
         from app.llm.providers.openrouter import OpenRouterProvider

@@ -197,9 +197,7 @@ async def test_patch_updates_non_key_field(client: AsyncClient, seeded: dict[str
 # ---------------------------------------------------------------------------
 
 
-async def test_patch_string_sets_encrypted_key(
-    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
-) -> None:
+async def test_patch_string_sets_encrypted_key(client: AsyncClient, seeded: dict[str, Any], db: AsyncSession) -> None:
     from app.core.crypto import decrypt
 
     plain = "sk-ant-test-key-xyz"
@@ -224,9 +222,7 @@ async def test_patch_string_sets_encrypted_key(
 # ---------------------------------------------------------------------------
 
 
-async def test_patch_empty_string_clears_key(
-    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
-) -> None:
+async def test_patch_empty_string_clears_key(client: AsyncClient, seeded: dict[str, Any], db: AsyncSession) -> None:
     # First set a value, then clear it.
     set_resp = await client.patch(
         "/api/v1/app-settings",

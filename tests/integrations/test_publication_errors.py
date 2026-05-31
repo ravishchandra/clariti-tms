@@ -319,6 +319,9 @@ async def test_happy_path_returns_pr_url() -> None:
     assert resp.json() == {
         "status": "ok",
         "pr_url": "https://github.com/acme/example/pull/42",
+        # `locale` echoes the (optional) query param; None when publishing all
+        # locales. Added with the per-locale publish feature (docs/15).
+        "locale": None,
     }
 
 

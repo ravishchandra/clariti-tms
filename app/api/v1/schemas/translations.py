@@ -25,6 +25,7 @@ class TranslationRead(BaseModel):
     qa_consistency: int | None
     qa_accuracy: int | None
     reviewer_action: str | None
+    reviewer_notes: str | None = None
     reviewed_at: datetime | None
     updated_at: datetime
 

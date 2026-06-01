@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,14 +70,14 @@ function ContextsPicker() {
     );
   }
   return (
-    <ContextsForFirstRepo
+    <ContextsForProject
       projectId={current.project.id}
       projectName={current.project.name}
     />
   );
 }
 
-function ContextsForFirstRepo({
+function ContextsForProject({
   projectId,
   projectName,
 }: {
@@ -88,8 +88,15 @@ function ContextsForFirstRepo({
     queryKey: ["contexts", "repos", projectId],
     queryFn: () => api.repositories.list(projectId),
   });
+  // Track the selected repo by id. Component contexts are scoped per
+  // repository, so a project with 2+ repos needs a switcher — otherwise the
+  // 2nd..Nth repo's contexts are unreachable from this page.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const repos = reposQuery.data ?? [];
+  const selected = repos.find((r) => r.id === selectedId) ?? repos[0] ?? null;
+
   if (reposQuery.isLoading) return <PageSkeleton />;
-  if (reposQuery.isError || !reposQuery.data || reposQuery.data.length === 0) {
+  if (reposQuery.isError || repos.length === 0) {
     return (
       <EmptyState
         title="No repositories in this project"
@@ -97,8 +104,31 @@ function ContextsForFirstRepo({
       />
     );
   }
+  if (!selected) return <PageSkeleton />;
+
+  const repoSelector =
+    repos.length > 1 ? (
+      <Select value={selected.id} onValueChange={setSelectedId}>
+        <SelectTrigger size="sm" className="w-[200px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {repos.map((r) => (
+            <SelectItem key={r.id} value={r.id}>
+              {r.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    ) : null;
+
   return (
-    <ContextsEditor projectName={projectName} repository={reposQuery.data[0]} />
+    <ContextsEditor
+      key={selected.id}
+      projectName={projectName}
+      repository={selected}
+      repoSelector={repoSelector}
+    />
   );
 }
 
@@ -114,9 +144,11 @@ type GroupedContexts = Array<{
 function ContextsEditor({
   projectName,
   repository,
+  repoSelector,
 }: {
   projectName: string;
   repository: Repository;
+  repoSelector?: ReactNode;
 }) {
   const contextsQuery = useQuery({
     queryKey: ["contexts", "list", repository.id],
@@ -163,12 +195,15 @@ function ContextsEditor({
             wouldn&apos;t reject.
           </p>
         </div>
-        {(contextsQuery.data?.length ?? 0) > 0 ? (
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus className="size-3.5" />
-            Add context
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2 shrink-0">
+          {repoSelector}
+          {(contextsQuery.data?.length ?? 0) > 0 ? (
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="size-3.5" />
+              Add context
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       {contextsQuery.isLoading ? (

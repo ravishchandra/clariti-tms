@@ -70,7 +70,11 @@ async def update_glossary_term(
     body: GlossaryTermUpdate, db: DB, project: ScopedProject, term: ScopedGlossaryTerm
 ) -> GlossaryTermRead:
     _assert_term_in_project(term, project)
-    for field, value in body.model_dump(exclude_none=True).items():
+    # exclude_unset (not exclude_none): apply only the fields the client
+    # actually sent, so an explicit ``notes: null`` clears the value while
+    # omitted fields are left untouched. With exclude_none a null could never
+    # be persisted, so notes/optional fields could be set but never cleared.
+    for field, value in body.model_dump(exclude_unset=True).items():
         setattr(term, field, value)
     await db.flush()
     await db.refresh(term)

@@ -22,7 +22,11 @@ _RE_I18NEXT_PLACEHOLDER = re.compile(r"\{\{[^}]+\}\}")
 
 # ICU single-curly simple variables: {name} — but NOT ICU keyword blocks
 # We match only bare identifiers, not "name, plural, ..." constructs.
-_RE_ICU_SIMPLE = re.compile(r"\{([^},\s]+)\}")
+# The char class excludes ``{`` so that an open brace immediately preceding a
+# placeholder (e.g. the ``other{{count}`` in a plural arm) is not swallowed
+# into the capture — that produced a malformed ``{{count}`` token. Dotted
+# (``{user.name}``) and positional (``{0}``) placeholders are still matched.
+_RE_ICU_SIMPLE = re.compile(r"\{([^{},\s]+)\}")
 
 # ICU keyword blocks to exclude from simple-variable extraction
 _RE_ICU_KEYWORD_BLOCK = re.compile(r"\{\s*\w+\s*,\s*(plural|select|selectordinal)\s*,")
@@ -137,7 +141,7 @@ _STRING_TYPE_RULES: list[tuple[tuple[str, ...], str]] = [
     (("error", "err_", "_err", "failure", "failed"), "error"),
     (("success", "confirmed", "complete"), "success"),
     (("help", "tooltip", "hint"), "help_text"),
-    (("notification", "push", "alert"), "notification"),
+    (("notification", "push", "alert", "snackbar", "toast"), "notification"),
     (("permission", "perm_", "_permission"), "permission"),
 ]
 

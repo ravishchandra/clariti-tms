@@ -97,6 +97,22 @@ class TestExtractPlaceholders:
         result = extract_placeholders(text, "icu")
         assert result == []
 
+    def test_icu_plural_arm_referencing_placeholder(self):
+        # Regression (packet §11a): an arm that opens with the placeholder,
+        # e.g. ``other{{count} guided}``, used to swallow the arm's ``{`` into
+        # the capture and return ``{{count}``. It must extract ``{count}``.
+        text = "{count, plural, =0{0 guided} =1{1 guided} other{{count} guided}}"
+        result = extract_placeholders(text, "icu")
+        assert result == ["{count}"]
+
+    def test_icu_dotted_placeholder_preserved(self):
+        # The §11a regex tightening must not drop dotted placeholders.
+        assert extract_placeholders("{user.name}", "icu") == ["{user.name}"]
+
+    def test_icu_positional_placeholder_preserved(self):
+        # ...nor positional/numeric ones.
+        assert extract_placeholders("{0} of {1}", "icu") == ["{0}", "{1}"]
+
     def test_flat_json_simple_variable(self):
         result = extract_placeholders("Welcome {user}", "flat-json")
         assert result == ["{user}"]
@@ -174,6 +190,14 @@ class TestInferStringType:
 
     def test_notification_key(self):
         assert infer_string_type("push_notification_body", "You have a message") == "notification"
+
+    def test_snackbar_key_is_notification(self):
+        # Regression (packet §11c): camelCase ``*Snackbar`` keys used to fall to
+        # the "other" catch-all; snackbars are transient notifications.
+        assert infer_string_type("walletCardAddedSnackbar", "Card added") == "notification"
+
+    def test_toast_key_is_notification(self):
+        assert infer_string_type("orderPlacedToast", "Order placed") == "notification"
 
     def test_permission_key(self):
         assert infer_string_type("camera_permission", "Allow camera") == "permission"

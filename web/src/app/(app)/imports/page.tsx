@@ -103,6 +103,7 @@ function ImportsContent() {
         <ImportWizard
           projectId={projectQuery.data.id}
           projectName={projectQuery.data.name}
+          orgId={current?.org.id ?? null}
         />
       )}
     </div>
@@ -118,7 +119,15 @@ type WizardStep =
   | { kind: "preview"; preview: ImportPreviewResponse; file: File }
   | { kind: "committed"; commit: ImportCommitResponse; preview: ImportPreviewResponse };
 
-function ImportWizard({ projectId, projectName }: { projectId: string; projectName: string }) {
+function ImportWizard({
+  projectId,
+  projectName,
+  orgId,
+}: {
+  projectId: string;
+  projectName: string;
+  orgId: string | null;
+}) {
   const [step, setStep] = useState<WizardStep>({ kind: "upload" });
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -166,6 +175,8 @@ function ImportWizard({ projectId, projectName }: { projectId: string; projectNa
             pending={previewMutation.isPending}
             error={previewMutation.error}
             onSubmit={() => file && previewMutation.mutate(file)}
+            orgId={orgId}
+            onUserCreated={() => file && previewMutation.mutate(file)}
           />
         ) : null}
 
@@ -231,6 +242,15 @@ function StepIndicator({ current }: { current: WizardStep["kind"] }) {
  * Step 1 — Upload + dry-run
  * ------------------------------------------------------------------------ */
 
+/** True when the preview failed specifically because the org has no user to
+ *  stamp as import_jobs.uploaded_by (backend _resolve_uploaded_by 409). */
+function isNoActiveUsersError(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.status !== 409) return false;
+  const haystack =
+    typeof error.detail === "string" ? error.detail : JSON.stringify(error.detail ?? "");
+  return haystack.includes("no active users");
+}
+
 function UploadStep({
   file,
   fileInputRef,
@@ -238,6 +258,8 @@ function UploadStep({
   pending,
   error,
   onSubmit,
+  orgId,
+  onUserCreated,
 }: {
   file: File | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -245,8 +267,13 @@ function UploadStep({
   pending: boolean;
   error: unknown;
   onSubmit: () => void;
+  orgId: string | null;
+  onUserCreated: () => void;
 }) {
   const message = useMemo(() => formatApiError(error), [error]);
+  // The "no active users" 409 is recoverable in place: provision a user and
+  // retry, instead of dead-ending on a raw error the operator can't action.
+  const needsUser = isNoActiveUsersError(error) && !!orgId;
   return (
     <form
       onSubmit={(e) => {
@@ -294,8 +321,77 @@ function UploadStep({
         </span>
       </div>
 
-      {message ? <InlineError message={message} /> : null}
+      {needsUser && orgId ? (
+        <InlineCreateUser orgId={orgId} onCreated={onUserCreated} />
+      ) : message ? (
+        <InlineError message={message} />
+      ) : null}
     </form>
+  );
+}
+
+/** Inline recovery for the no-active-users 409: an org needs ≥1 user before
+ *  imports can stamp uploaded_by. Collect one, create it, and retry the
+ *  preview — so the operator never has to leave the page for the CLI. */
+function InlineCreateUser({
+  orgId,
+  onCreated,
+}: {
+  orgId: string;
+  onCreated: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api.users.create(orgId, { email: email.trim(), name: name.trim(), role: "org_admin" }),
+    onSuccess: () => {
+      setErr(null);
+      onCreated();
+    },
+    onError: (e) => setErr(formatApiError(e) ?? "Could not create user."),
+  });
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-flame-soft/40 bg-flame-soft/5 p-4">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-flame-soft" />
+        <div className="flex flex-col gap-0.5">
+          <p className="text-sm font-medium text-app-text">
+            This organization has no users yet
+          </p>
+          <p className="text-xs text-app-text-secondary">
+            Imports are attributed to a user. Create one to continue — we&apos;ll
+            retry your upload automatically.
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          aria-label="User email"
+        />
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name"
+          aria-label="User name"
+        />
+        <Button
+          type="button"
+          onClick={() => mutation.mutate()}
+          disabled={!email.trim() || !name.trim() || mutation.isPending}
+          className="shrink-0"
+        >
+          {mutation.isPending ? "Creating…" : "Create & retry"}
+        </Button>
+      </div>
+      {err ? <InlineError message={err} /> : null}
+    </div>
   );
 }
 

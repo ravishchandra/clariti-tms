@@ -145,6 +145,27 @@ export const ApiKeyCreated = ApiKey.extend({
 });
 export type ApiKeyCreated = z.infer<typeof ApiKeyCreated>;
 
+export const USER_ROLES = [
+  "developer",
+  "translator",
+  "reviewer",
+  "admin",
+  "org_admin",
+] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+export const User = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid().nullable(),
+  email: z.string(),
+  name: z.string(),
+  role: z.string(),
+  assigned_locales: z.array(z.string()),
+  is_active: z.boolean(),
+  created_at: z.string(),
+});
+export type User = z.infer<typeof User>;
+
 export const Repository = z.object({
   id: z.string().uuid(),
   project_id: z.string().uuid(),
@@ -549,6 +570,20 @@ export const api = {
     },
     revoke: async (keyId: string) => {
       await apiFetch<void>(`/api-keys/${keyId}`, { method: "DELETE" });
+    },
+  },
+  users: {
+    list: async (orgId: string) => {
+      const data = await apiFetch<{ items: unknown[] }>(`/organizations/${orgId}/users`);
+      return z.object({ items: z.array(User) }).parse(data).items;
+    },
+    create: async (
+      orgId: string,
+      body: { email: string; name: string; role?: UserRole; assigned_locales?: string[] },
+    ) => {
+      return User.parse(
+        await apiFetch(`/organizations/${orgId}/users`, { method: "POST", body }),
+      );
     },
   },
   repositories: {

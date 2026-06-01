@@ -1812,5 +1812,115 @@ async def _agent_install(
         console.print("  The agent should call the [bold]clariti-tms.list_projects[/bold] tool.")
 
 
+# ---------------------------------------------------------------------------
+# loc user — provision attribution users (imports need a non-NULL uploaded_by)
+# ---------------------------------------------------------------------------
+
+user_app = typer.Typer(
+    name="user",
+    help="Manage organization users (attribution records imports require).",
+    no_args_is_help=True,
+)
+app.add_typer(user_app)
+
+
+async def _resolve_org(db, org_slug: str | None):  # type: ignore[no-untyped-def]
+    """Return the Organization for ``org_slug``, or the only org if unambiguous."""
+    from app.models import Organization
+
+    if org_slug:
+        org = await db.scalar(select(Organization).where(Organization.slug == org_slug))
+        if org is None:
+            err.print(f"[red]Organization '{org_slug}' not found.[/red]")
+            raise typer.Exit(1)
+        return org
+    orgs = (await db.execute(select(Organization))).scalars().all()
+    if not orgs:
+        err.print("[red]No organizations found. Create one first (e.g. `loc agent install`).[/red]")
+        raise typer.Exit(1)
+    if len(orgs) > 1:
+        err.print("[red]Multiple organizations exist — pass --org <slug> to disambiguate.[/red]")
+        raise typer.Exit(1)
+    return orgs[0]
+
+
+async def _create_user(org_slug: str | None, email: str, name: str, role: str) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    from app.core.database import AsyncSessionLocal
+    from app.models import User, UserRole
+
+    valid_roles = {r.value for r in UserRole}
+    if role not in valid_roles:
+        err.print(f"[red]--role must be one of {sorted(valid_roles)} (got {role!r}).[/red]")
+        raise typer.Exit(1)
+
+    async with AsyncSessionLocal() as db:
+        org = await _resolve_org(db, org_slug)
+        # Idempotent on email: a user with this email already exists -> report it.
+        existing = await db.scalar(select(User).where(User.email == email))
+        if existing is not None:
+            err.print(f"[red]A user with email {email!r} already exists.[/red]")
+            raise typer.Exit(1)
+        user = User(
+            organization_id=org.id,
+            email=email.strip(),
+            name=name.strip(),
+            role=role,
+            is_active=True,
+        )
+        db.add(user)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            err.print(f"[red]A user with email {email!r} already exists.[/red]")
+            raise typer.Exit(1)
+        console.print(f"[green]✓[/green] Created user [bold]{email}[/bold] ({role}) in org '{org.slug}'.")
+
+
+async def _list_users(org_slug: str | None) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.models import User
+
+    async with AsyncSessionLocal() as db:
+        org = await _resolve_org(db, org_slug)
+        users = (
+            (await db.execute(select(User).where(User.organization_id == org.id).order_by(User.created_at)))
+            .scalars()
+            .all()
+        )
+        if not users:
+            console.print(f"[yellow]No users in org '{org.slug}'.[/yellow]")
+            return
+        table = Table(title=f"Users — {org.slug}")
+        table.add_column("Email")
+        table.add_column("Name")
+        table.add_column("Role")
+        table.add_column("Active")
+        for u in users:
+            table.add_row(u.email, u.name, u.role, "yes" if u.is_active else "no")
+        console.print(table)
+
+
+@user_app.command("create")
+def user_create(
+    email: str = typer.Option(..., "--email", help="User email (globally unique)."),
+    name: str = typer.Option(..., "--name", help="Display name."),
+    org: str = typer.Option(None, "--org", help="Organization slug (defaults to the only org)."),
+    role: str = typer.Option("org_admin", "--role", help="developer|translator|reviewer|admin|org_admin."),
+) -> None:
+    """Create a user in an organization. Imports need at least one active user."""
+    asyncio.run(_create_user(org, email, name, role))
+
+
+@user_app.command("list")
+def user_list(
+    org: str = typer.Option(None, "--org", help="Organization slug (defaults to the only org)."),
+) -> None:
+    """List users in an organization."""
+    asyncio.run(_list_users(org))
+
+
 if __name__ == "__main__":
     app()

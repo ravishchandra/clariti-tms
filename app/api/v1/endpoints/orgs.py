@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, CurrentKey, OrgAdminKey, ScopedOrganization
 from app.api.v1.schemas.orgs import OrgCreate, OrgRead, OrgUpdate
-from app.models import Organization
+from app.models import Organization, User, UserRole
 
 router = APIRouter()
 
@@ -19,6 +19,10 @@ async def create_org(body: OrgCreate, db: DB, _: OrgAdminKey) -> OrgRead:
 
     The bootstrap admin key is created out of band by `loc api-key` or the seed
     script; ordinary keys created via `POST /api-keys` are not org admins.
+
+    If ``admin_email`` is supplied, an initial ``org_admin`` user is created in
+    the same transaction so the org is import-ready by default (imports need a
+    non-NULL ``import_jobs.uploaded_by``). Omit it to create an org with no user.
     """
     org = Organization(name=body.name, slug=body.slug)
     db.add(org)
@@ -27,6 +31,26 @@ async def create_org(body: OrgCreate, db: DB, _: OrgAdminKey) -> OrgRead:
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Slug already exists")
+
+    if body.admin_email:
+        db.add(
+            User(
+                organization_id=org.id,
+                email=body.admin_email.strip(),
+                name=(body.admin_name or "Org Admin").strip(),
+                role=UserRole.org_admin.value,
+                is_active=True,
+            )
+        )
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A user with email {body.admin_email!r} already exists.",
+            )
+
     await db.refresh(org)
     return OrgRead.model_validate(org)
 

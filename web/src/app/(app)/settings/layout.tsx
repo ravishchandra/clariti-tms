@@ -11,6 +11,7 @@ const TABS = [
   { href: "/settings/locales", label: "Locales" },
   { href: "/settings/data", label: "Data" },
   { href: "/settings/providers", label: "Providers" },
+  { href: "/settings/users", label: "Users" },
   { href: "/settings/api-keys", label: "API keys" },
 ] as const;
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
 
@@ -11,6 +12,7 @@ from app.integrations.github.errors import (
     GitHubPermanentError,
     GitHubRetryableError,
 )
+from app.mt.api import list_approved_translations, mark_translations_published
 from app.publication.service import publish_repository
 
 router = APIRouter()
@@ -206,3 +208,35 @@ async def trigger_publication(
         }
 
     return {"status": "ok", "pr_url": pr_url, "locale": locale}
+
+
+@router.post("/repositories/{repo_id}/publish-to-ota")
+async def publish_to_ota(
+    db: DB,
+    repository: ScopedRepository,
+    locale: str | None = Query(
+        None,
+        description=(
+            "Restrict the transition to this BCP-47 locale. Omitting publishes "
+            "every locale's approved set for the repository."
+        ),
+    ),
+) -> dict:
+    """Bulk-transition a repository's approved translations to ``published``.
+
+    The OTA endpoint (``GET /ota/{slug}/{locale}.json``) serves ``published``
+    rows. For OTA-first projects there is no GitHub round-trip, so this path
+    deliberately does NOT require ``github_repo`` (unlike ``/publish``) — it
+    just flips ``approved -> published`` so the strings become OTA-visible.
+
+    Reuses the same state-machine transition as the GitHub path
+    (``mark_translations_published`` -> ``apply_transition``); rows not in
+    ``approved`` are silently skipped (best-effort). No direct writes to the
+    ``translations`` table — everything goes through ``mt.api`` to respect the
+    module boundary.
+    """
+    pairs = await list_approved_translations(db, repository.id, locale)
+    translation_ids = [t.id for t, _ in pairs]
+    await mark_translations_published(db, translation_ids, datetime.now(tz=UTC))
+    await db.flush()
+    return {"status": "ok", "published": len(translation_ids), "locale": locale}

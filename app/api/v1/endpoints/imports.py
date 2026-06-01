@@ -60,8 +60,10 @@ async def _resolve_uploaded_by(db, current_key) -> uuid.UUID:  # type: ignore[no
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "Cannot record import_jobs.uploaded_by — no active users in "
-                "this organization. Create a user before importing."
+                "Cannot record import_jobs.uploaded_by — no active users in this "
+                "organization. Create one first: `loc user create --org <slug> "
+                "--email <e> --name <n> --role org_admin`, or "
+                "POST /api/v1/organizations/{org_id}/users."
             ),
         )
     return user_id

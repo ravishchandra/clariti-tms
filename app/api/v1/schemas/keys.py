@@ -22,6 +22,15 @@ class KeyRead(BaseModel):
     risk_class: str
     is_active: bool
     created_at: datetime
+    # Source-derived grouping + structural metadata. These columns exist on the
+    # Key model and are rendered by the dashboard (Keys index Component/Screen
+    # columns, key-detail placeholder chips + structural/ICU badges); they were
+    # previously dropped here, leaving those fields permanently blank.
+    component: str | None = None
+    screen: str | None = None
+    placeholders: list[str] = []
+    has_structural_tags: bool = False
+    icu_shape: str | None = None
 
 
 class KeyUpdate(BaseModel):

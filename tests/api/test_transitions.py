@@ -54,6 +54,8 @@ async def app(engine: Any) -> AsyncIterator[Any]:
     from fastapi import FastAPI
 
     from app.api.v1.endpoints.batches import router as batches_router
+    from app.api.v1.endpoints.glossary import router as glossary_router
+    from app.api.v1.endpoints.keys import router as keys_router
     from app.api.v1.endpoints.translations import router as translations_router
     from app.core.database import get_db as _real_get_db
 
@@ -71,6 +73,8 @@ async def app(engine: Any) -> AsyncIterator[Any]:
     test_app = FastAPI()
     test_app.include_router(translations_router, prefix="/api/v1/translations")
     test_app.include_router(batches_router, prefix="/api/v1/batches")
+    test_app.include_router(keys_router, prefix="/api/v1/keys")
+    test_app.include_router(glossary_router, prefix="/api/v1/projects")
     test_app.dependency_overrides[_real_get_db] = _override_get_db
     try:
         yield test_app
@@ -503,6 +507,131 @@ async def test_batch_approve_writes_one_history_per_translation(
 
 
 # ---------------------------------------------------------------------------
+# Serializer regression — *Read schemas must emit the columns the dashboard
+# renders. These five Key fields + reviewer_notes were silently dropped from
+# KeyRead/TranslationRead, leaving the Keys page columns/badges and the
+# Flagged inbox note column permanently blank (audit M1/M2). Guard against a
+# re-drop: assert they round-trip through the actual endpoint serializer.
+# ---------------------------------------------------------------------------
+
+
+async def test_key_read_serializes_grouping_and_structural_fields(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    from app.models import Key
+
+    k_id = seeded["key"].id
+    # Populate the metadata columns the parsers would set on a real ingest.
+    row = await db.scalar(select(Key).where(Key.id == k_id))
+    assert row is not None
+    row.component = "checkout"
+    row.screen = "payment"
+    row.placeholders = ["{count}", "{name}"]
+    row.has_structural_tags = True
+    row.icu_shape = "plural"
+    await db.commit()
+
+    resp = await client.get(f"/api/v1/keys/{k_id}", headers=seeded["headers"])
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["component"] == "checkout"
+    assert body["screen"] == "payment"
+    assert body["placeholders"] == ["{count}", "{name}"]
+    assert body["has_structural_tags"] is True
+    assert body["icu_shape"] == "plural"
+
+
+async def test_translation_read_serializes_reviewer_notes(
+    client: AsyncClient, seeded: dict[str, Any], db: AsyncSession
+) -> None:
+    from app.models import Translation
+
+    t_id = seeded["translation"].id
+    row = await db.scalar(select(Translation).where(Translation.id == t_id))
+    assert row is not None
+    row.reviewer_notes = "Is this formal or informal?"
+    await db.commit()
+
+    resp = await client.get(f"/api/v1/translations/{t_id}", headers=seeded["headers"])
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["reviewer_notes"] == "Is this formal or informal?"
+
+
+# ---------------------------------------------------------------------------
+# Glossary notes-clear — PATCH used exclude_none, so an explicit ``notes: null``
+# was dropped before the setattr loop and the note could never be cleared. The
+# fix (exclude_unset) must let a sent null reach the column.
+# ---------------------------------------------------------------------------
+
+
+async def test_glossary_patch_can_clear_notes(client: AsyncClient, seeded: dict[str, Any]) -> None:
+    project_id = seeded["project"].id
+    headers = seeded["headers"]
+
+    # Create a term that has a note.
+    resp = await client.post(
+        f"/api/v1/projects/{project_id}/glossary",
+        json={
+            "source_term": "checkout",
+            "locale": "fr-FR",
+            "target_term": "paiement",
+            "notes": "keep lowercase",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    term_id = resp.json()["id"]
+    assert resp.json()["notes"] == "keep lowercase"
+
+    # Clear the note with an explicit null.
+    resp = await client.patch(
+        f"/api/v1/projects/{project_id}/glossary/{term_id}",
+        json={"notes": None},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["notes"] is None
+
+    # And it stays cleared on a fresh read (not just an echo of the response).
+    resp = await client.get(
+        f"/api/v1/projects/{project_id}/glossary/{term_id}",
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["notes"] is None
+
+
+async def test_glossary_patch_omitting_notes_leaves_it_untouched(client: AsyncClient, seeded: dict[str, Any]) -> None:
+    """The flip side of exclude_unset: a PATCH that doesn't mention notes must
+    not wipe an existing note (only target_term changes here)."""
+    project_id = seeded["project"].id
+    headers = seeded["headers"]
+
+    resp = await client.post(
+        f"/api/v1/projects/{project_id}/glossary",
+        json={
+            "source_term": "cart",
+            "locale": "fr-FR",
+            "target_term": "panier",
+            "notes": "shopping cart, not card",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    term_id = resp.json()["id"]
+
+    resp = await client.patch(
+        f"/api/v1/projects/{project_id}/glossary/{term_id}",
+        json={"target_term": "le panier"},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["target_term"] == "le panier"
+    assert body["notes"] == "shopping cart, not card"
+
+
+# ---------------------------------------------------------------------------
 # Teardown
 # ---------------------------------------------------------------------------
 
@@ -519,7 +648,7 @@ async def _cleanup(db: AsyncSession):
         text(
             "TRUNCATE TABLE organizations, projects, repositories, "
             "translation_batches, keys, translations, translation_history, "
-            "api_keys RESTART IDENTITY CASCADE"
+            "glossary_terms, api_keys RESTART IDENTITY CASCADE"
         )
     )
     await db.commit()

@@ -16,7 +16,9 @@ per-test isolation.
 
 from __future__ import annotations
 
+import gc
 import os
+import warnings
 
 # Must happen before any ``import app.*`` — `app.core.settings.Settings`
 # refuses to construct with an empty SECRET_KEY when DEBUG=False, and that
@@ -26,6 +28,7 @@ os.environ.setdefault("DEBUG", "true")
 import uuid  # noqa: E402, I001
 
 import pytest_asyncio  # noqa: E402
+from sqlalchemy import exc as sa_exc  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import (  # noqa: E402
     async_sessionmaker,
@@ -133,6 +136,22 @@ async def db_session(_engine):
             await session.close()
         except Exception:  # noqa: BLE001  — cross-loop cleanup, best effort
             pass
+        # Failure-path tests (provider raises mid-translate_batch) can leave a
+        # DBAPI connection unreferenced. Collect it now, while THIS loop is
+        # still alive, so asyncpg finalizes it cleanly — otherwise the GC runs
+        # during pytest's post-test hook after the session loop has closed,
+        # which both prints a cosmetic "non-checked-in connection" SAWarning
+        # and leaves asyncpg's Connection._cancel coroutine un-awaitable on the
+        # dead loop. Suppressing here, at the source, covers every MT test that
+        # uses this fixture. NOT a production leak: translate_batch reuses the
+        # session it is handed and opens no connection of its own.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="The garbage collector is trying to clean up.*",
+                category=sa_exc.SAWarning,
+            )
+            gc.collect()
 
 
 @pytest_asyncio.fixture(loop_scope="session")

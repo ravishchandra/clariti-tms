@@ -111,7 +111,7 @@ async def create_export(
 
     if body.status_filter is not None and body.status_filter not in _ALLOWED_STATUSES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"status_filter={body.status_filter!r} is not a known TranslationStatus. "
                 f"Valid: {sorted(_ALLOWED_STATUSES)}"

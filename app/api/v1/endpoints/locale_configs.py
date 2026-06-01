@@ -101,7 +101,7 @@ async def create_locale_config(
         except FanOutValidationError as exc:
             await db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"code": exc.code, "message": str(exc)},
             )
         # Once any drafts exist (or we re-confirmed there's nothing to add),

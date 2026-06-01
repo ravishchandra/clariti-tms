@@ -37,8 +37,10 @@ from app.models import (
 from app.mt.service import translate_batch
 
 # Every test in this module runs on the session-scoped event loop — see
-# tests/mt/conftest.py for the rationale (asyncpg connections aren't
-# safe across loops).
+# tests/mt/conftest.py for the rationale (asyncpg connections aren't safe
+# across loops). The cosmetic asyncpg/SQLAlchemy teardown warning that the
+# failure-path tests used to emit is handled at the source, in the
+# ``db_session`` fixture teardown (see conftest.py) — not suppressed here.
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 # ---------------------------------------------------------------------------

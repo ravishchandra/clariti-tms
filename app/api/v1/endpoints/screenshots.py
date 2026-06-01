@@ -122,19 +122,19 @@ async def upload_screenshot(
     raw = await file.read()
     if len(raw) > _MAX_UPLOAD_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=f"Upload exceeds {_MAX_UPLOAD_BYTES} bytes.",
         )
     if len(raw) == 0:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Empty upload.",
         )
 
     detected = _detect_image_kind(raw)
     if detected is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="File is not a PNG or JPEG (magic bytes did not match).",
         )
     ext, _content_type = detected

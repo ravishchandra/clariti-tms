@@ -66,14 +66,14 @@ async def update_app_settings(body: AppSettingsUpdate, db: DB, _: CurrentKey) ->
     # Validate enum-like fields up-front so we don't half-apply.
     if "primary_provider" in updates and updates["primary_provider"] not in _ALLOWED_PROVIDERS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"primary_provider must be one of {_ALLOWED_PROVIDERS}",
         )
     if "fallback_chain" in updates:
         chain = updates["fallback_chain"]
         if not isinstance(chain, list) or any(p not in _ALLOWED_PROVIDERS for p in chain):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"fallback_chain entries must each be one of {_ALLOWED_PROVIDERS}",
             )
 

@@ -35,7 +35,7 @@ async def receive_contentful_webhook(
     space_id = payload.get("sys", {}).get("space", {}).get("sys", {}).get("id")
     if not space_id:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Cannot determine Contentful space from payload",
         )
 

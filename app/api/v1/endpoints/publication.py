@@ -88,7 +88,7 @@ async def trigger_publication(
 ) -> dict:
     if not repository.github_repo:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Repository has no GitHub integration configured",
         )
 
@@ -145,7 +145,7 @@ async def trigger_publication(
             exc,
         )
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=_permanent_detail_for_installation(installation_id, exc),
         )
     except GitHubNetworkError as exc:
@@ -183,7 +183,7 @@ async def trigger_publication(
             exc,
         )
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=_permanent_detail_for_publish(installation_id, exc),
         )
     except GitHubNetworkError as exc:

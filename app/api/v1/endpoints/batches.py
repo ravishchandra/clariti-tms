@@ -8,7 +8,16 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedBatch, ScopedProject, assert_project_in_org
-from app.api.v1.schemas.batches import BatchRead, BatchTrigger, MtRunRead
+from app.api.v1.schemas.batches import (
+    BatchApproveResult,
+    BatchDetail,
+    BatchRead,
+    BatchRejectResult,
+    BatchTrigger,
+    BatchTriggerResult,
+    BulkTriggerResult,
+    MtRunRead,
+)
 from app.api.v1.schemas.common import ListResponse
 from app.ingestion.service import assemble_batches
 from app.models import BatchStatus, MtRun, Repository, Translation, TranslationBatch, TranslationStatus
@@ -56,7 +65,7 @@ async def list_batches(
     return {"items": [BatchRead.model_validate(b) for b in batches], "total": total}
 
 
-@router.get("/{batch_id}")
+@router.get("/{batch_id}", response_model=BatchDetail)
 async def get_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     stats_result = await db.execute(
         select(Translation.status, func.count(Translation.id))
@@ -81,7 +90,7 @@ async def get_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     }
 
 
-@router.post("/{batch_id}/trigger-mt")
+@router.post("/{batch_id}/trigger-mt", response_model=BatchTriggerResult)
 async def trigger_mt(
     body: BatchTrigger,
     db: DB,
@@ -97,7 +106,7 @@ async def trigger_mt(
     return {"batch_id": str(batch.id), "status": batch.status, "provider": body.provider}
 
 
-@router.post("/{batch_id}/approve")
+@router.post("/{batch_id}/approve", response_model=BatchApproveResult)
 async def approve_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     rows = await db.execute(
         select(Translation).where(
@@ -138,7 +147,7 @@ async def approve_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     }
 
 
-@router.post("/{batch_id}/reject")
+@router.post("/{batch_id}/reject", response_model=BatchRejectResult)
 async def reject_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     rows = await db.execute(
         select(Translation).where(
@@ -177,7 +186,7 @@ async def reject_batch(batch: ScopedBatch, db: DB) -> dict[str, Any]:
     }
 
 
-@project_router.post("/{project_id}/trigger-mt")
+@project_router.post("/{project_id}/trigger-mt", response_model=BulkTriggerResult)
 async def trigger_project_mt(
     project: ScopedProject,
     db: DB,

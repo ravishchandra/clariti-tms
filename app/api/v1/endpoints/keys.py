@@ -15,7 +15,7 @@ from app.api.deps import (
     assert_repository_in_org,
 )
 from app.api.v1.schemas.common import ListResponse
-from app.api.v1.schemas.keys import KeyRead, KeyUpdate
+from app.api.v1.schemas.keys import KeyDetail, KeyRead, KeyUpdate
 from app.api.v1.schemas.translations import TranslationRead
 from app.models import Key, Translation, TranslationStatus
 
@@ -73,7 +73,7 @@ async def list_keys(
     return {"items": [KeyRead.model_validate(k) for k in keys], "total": total}
 
 
-@router.get("/{key_id}")
+@router.get("/{key_id}", response_model=KeyDetail)
 async def get_key(key: ScopedKey, db: DB) -> dict[str, Any]:
     # ScopedKey already enforced org membership. Reload with eager-loaded
     # translations for the response payload.

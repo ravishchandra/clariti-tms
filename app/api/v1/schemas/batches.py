@@ -26,6 +26,46 @@ class BatchTrigger(BaseModel):
     provider: str = "anthropic"
 
 
+# --- Action-result response models (§19/§20 Phase 2). Mirror the endpoint
+# returns exactly so the contract is typed in the OpenAPI spec. ---
+
+
+class BatchStats(BaseModel):
+    total_keys: int
+    translated: int
+    approved: int
+    needs_review: int
+
+
+class BatchDetail(BatchRead):
+    """GET /batches/{id} — the BatchRead fields plus a computed stats block."""
+
+    stats: BatchStats
+
+
+class BatchApproveResult(BaseModel):
+    batch_id: str
+    approved: int
+    skipped: int
+
+
+class BatchRejectResult(BaseModel):
+    batch_id: str
+    rejected: int
+    skipped: int
+
+
+class BatchTriggerResult(BaseModel):
+    batch_id: str
+    status: str
+    provider: str
+
+
+class BulkTriggerResult(BaseModel):
+    queued: int
+    skipped: int
+
+
 class MtRunRead(BaseModel):
     """One row from the `mt_runs` audit table.
 

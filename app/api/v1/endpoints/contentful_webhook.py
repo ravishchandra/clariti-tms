@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB
+from app.api.v1.schemas.webhooks import WebhookAck
 from app.core.crypto import InvalidToken, decrypt
 from app.integrations.contentful.webhook import handle_contentful_publish, verify_contentful_signature
 from app.models import Repository
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("")
+@router.post("", response_model=WebhookAck, response_model_exclude_unset=True)
 async def receive_contentful_webhook(
     request: Request,
     db: DB,

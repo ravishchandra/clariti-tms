@@ -14,6 +14,7 @@ from app.api.deps import (
     assert_project_in_org,
     assert_repository_in_org,
 )
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.keys import KeyRead, KeyUpdate
 from app.api.v1.schemas.translations import TranslationRead
 from app.models import Key, Translation, TranslationStatus
@@ -21,7 +22,7 @@ from app.models import Key, Translation, TranslationStatus
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=ListResponse[KeyRead])
 async def list_keys(
     db: DB,
     current_key: CurrentKey,

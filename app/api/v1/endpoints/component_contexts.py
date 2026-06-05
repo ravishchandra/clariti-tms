@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, ScopedComponentContext, ScopedRepository
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.component_contexts import (
     ComponentContextCreate,
     ComponentContextRead,
@@ -50,7 +51,7 @@ async def create_component_context(
     return ComponentContextRead.model_validate(ctx)
 
 
-@router.get("/{repo_id}/component-contexts", response_model=dict)
+@router.get("/{repo_id}/component-contexts", response_model=ListResponse[ComponentContextRead])
 async def list_component_contexts(db: DB, repo: ScopedRepository) -> dict:
     total_result = await db.execute(
         select(func.count()).select_from(ComponentContext).where(ComponentContext.repository_id == repo.id)

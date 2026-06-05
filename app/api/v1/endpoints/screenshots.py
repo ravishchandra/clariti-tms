@@ -28,12 +28,14 @@ from __future__ import annotations
 import logging
 import uuid
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.api.deps import DB, CurrentKey, ScopedKey
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.screenshots import ScreenshotRead
 from app.models import Key, Project, Repository, Screenshot
 
@@ -189,15 +191,18 @@ async def upload_screenshot(
     return ScreenshotRead.model_validate(screenshot)
 
 
-@router.get("/{key_id}/screenshots")
+@router.get("/{key_id}/screenshots", response_model=ListResponse[ScreenshotRead])
 async def list_screenshots(
     db: DB,
     key: ScopedKey,
-) -> dict[str, list[ScreenshotRead]]:
+) -> dict[str, Any]:
     """List every screenshot row tied to a key (oldest first)."""
     result = await db.execute(select(Screenshot).where(Screenshot.key_id == key.id).order_by(Screenshot.uploaded_at))
     rows = result.scalars().all()
-    return {"items": [ScreenshotRead.model_validate(s) for s in rows]}
+    items = [ScreenshotRead.model_validate(s) for s in rows]
+    # ``total`` added for envelope consistency; the web client reads only
+    # ``items`` and ignores it, so this is wire-compatible.
+    return {"items": items, "total": len(items)}
 
 
 # --------------------------------------------------------------------------- #

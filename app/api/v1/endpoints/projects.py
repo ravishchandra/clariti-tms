@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, CurrentKey, ScopedOrganization, ScopedProject
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.projects import ProjectCreate, ProjectRead, ProjectUpdate
 from app.models import Project
 
@@ -31,7 +32,7 @@ async def create_project(body: ProjectCreate, db: DB, org: ScopedOrganization) -
     return ProjectRead.model_validate(project)
 
 
-@router.get("/{org_id}/projects", response_model=dict)
+@router.get("/{org_id}/projects", response_model=ListResponse[ProjectRead])
 async def list_projects(db: DB, org: ScopedOrganization) -> dict:
     total_result = await db.execute(select(func.count()).select_from(Project).where(Project.organization_id == org.id))
     total = total_result.scalar_one()

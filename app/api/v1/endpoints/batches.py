@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedBatch, ScopedProject, assert_project_in_org
 from app.api.v1.schemas.batches import BatchRead, BatchTrigger, MtRunRead
+from app.api.v1.schemas.common import ListResponse
 from app.ingestion.service import assemble_batches
 from app.models import BatchStatus, MtRun, Repository, Translation, TranslationBatch, TranslationStatus
 from app.mt.service import enqueue_batch_for_mt
@@ -25,7 +26,7 @@ router = APIRouter()
 project_router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=ListResponse[BatchRead])
 async def list_batches(
     db: DB,
     current_key: CurrentKey,
@@ -263,7 +264,7 @@ async def trigger_project_mt(
     return {"queued": queued, "skipped": skipped}
 
 
-@router.get("/{batch_id}/mt-runs", response_model=dict)
+@router.get("/{batch_id}/mt-runs", response_model=ListResponse[MtRunRead])
 async def list_mt_runs(
     db: DB,
     batch: ScopedBatch,

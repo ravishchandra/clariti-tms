@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentKey, ScopedTranslation, assert_project_in_org
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.translations import (
     TranslationHistoryRead,
     TranslationRead,
@@ -24,7 +25,7 @@ from app.mt.transitions import (
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=ListResponse[TranslationRead])
 async def list_translations(
     db: DB,
     current_key: CurrentKey,
@@ -125,7 +126,7 @@ async def update_translation(
     return TranslationRead.model_validate(translation)
 
 
-@router.get("/{translation_id}/history", response_model=dict)
+@router.get("/{translation_id}/history", response_model=ListResponse[TranslationHistoryRead])
 async def get_translation_history(
     db: DB,
     translation: ScopedTranslation,

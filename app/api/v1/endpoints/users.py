@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, ScopedOrganization
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.users import UserCreate, UserRead
 from app.models import User
 
@@ -43,7 +44,7 @@ async def create_user(body: UserCreate, db: DB, org: ScopedOrganization) -> User
     return UserRead.model_validate(user)
 
 
-@router.get("/{org_id}/users", response_model=dict)
+@router.get("/{org_id}/users", response_model=ListResponse[UserRead])
 async def list_users(db: DB, org: ScopedOrganization) -> dict:
     """List users in an organization, newest first."""
     result = await db.execute(select(User).where(User.organization_id == org.id).order_by(User.created_at.desc()))

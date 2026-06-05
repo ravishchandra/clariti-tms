@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, ScopedGlossaryTerm, ScopedProject
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.glossary import GlossaryTermCreate, GlossaryTermRead, GlossaryTermUpdate
 from app.models import GlossaryTerm
 
@@ -35,7 +36,7 @@ async def create_glossary_term(body: GlossaryTermCreate, db: DB, project: Scoped
     return GlossaryTermRead.model_validate(term)
 
 
-@router.get("/{project_id}/glossary", response_model=dict)
+@router.get("/{project_id}/glossary", response_model=ListResponse[GlossaryTermRead])
 async def list_glossary_terms(db: DB, project: ScopedProject) -> dict:
     total_result = await db.execute(
         select(func.count()).select_from(GlossaryTerm).where(GlossaryTerm.project_id == project.id)

@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB
+from app.api.v1.schemas.webhooks import WebhookAck
 from app.core.crypto import InvalidToken, decrypt
 from app.integrations.github.webhook import handle_github_push, verify_github_signature
 from app.models import Repository
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("")
+@router.post("", response_model=WebhookAck, response_model_exclude_unset=True)
 async def receive_github_webhook(
     request: Request,
     db: DB,

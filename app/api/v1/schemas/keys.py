@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.api.v1.schemas.translations import TranslationRead
+
 
 class KeyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -31,6 +33,12 @@ class KeyRead(BaseModel):
     placeholders: list[str] = []
     has_structural_tags: bool = False
     icu_shape: str | None = None
+
+
+class KeyDetail(KeyRead):
+    """GET /keys/{id} — the KeyRead fields plus the key's translations."""
+
+    translations: list[TranslationRead]
 
 
 class KeyUpdate(BaseModel):

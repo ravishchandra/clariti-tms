@@ -323,6 +323,130 @@
         "title": "AppSettingsUpdate",
         "type": "object"
       },
+      "BatchApproveResult": {
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "approved",
+          "skipped"
+        ],
+        "title": "BatchApproveResult",
+        "type": "object"
+      },
+      "BatchDetail": {
+        "description": "GET /batches/{id} \u2014 the BatchRead fields plus a computed stats block.",
+        "properties": {
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "mt_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mt Model"
+          },
+          "mt_prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mt Prompt Version"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "ran_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ran At"
+          },
+          "repository_id": {
+            "format": "uuid",
+            "title": "Repository Id",
+            "type": "string"
+          },
+          "screen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screen"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/BatchStats"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "repository_id",
+          "locale",
+          "component",
+          "screen",
+          "status",
+          "mt_model",
+          "mt_prompt_version",
+          "ran_at",
+          "created_at",
+          "stats"
+        ],
+        "title": "BatchDetail",
+        "type": "object"
+      },
       "BatchRead": {
         "properties": {
           "component": {
@@ -419,6 +543,57 @@
         "title": "BatchRead",
         "type": "object"
       },
+      "BatchRejectResult": {
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "rejected",
+          "skipped"
+        ],
+        "title": "BatchRejectResult",
+        "type": "object"
+      },
+      "BatchStats": {
+        "properties": {
+          "approved": {
+            "title": "Approved",
+            "type": "integer"
+          },
+          "needs_review": {
+            "title": "Needs Review",
+            "type": "integer"
+          },
+          "total_keys": {
+            "title": "Total Keys",
+            "type": "integer"
+          },
+          "translated": {
+            "title": "Translated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_keys",
+          "translated",
+          "approved",
+          "needs_review"
+        ],
+        "title": "BatchStats",
+        "type": "object"
+      },
       "BatchStatus": {
         "enum": [
           "pending",
@@ -440,6 +615,29 @@
           }
         },
         "title": "BatchTrigger",
+        "type": "object"
+      },
+      "BatchTriggerResult": {
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch_id",
+          "status",
+          "provider"
+        ],
+        "title": "BatchTriggerResult",
         "type": "object"
       },
       "Body_post_preview_api_v1_imports_preview_post": {
@@ -501,6 +699,24 @@
           "file"
         ],
         "title": "Body_upload_screenshot_api_v1_keys__key_id__screenshots_post",
+        "type": "object"
+      },
+      "BulkTriggerResult": {
+        "properties": {
+          "queued": {
+            "title": "Queued",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "queued",
+          "skipped"
+        ],
+        "title": "BulkTriggerResult",
         "type": "object"
       },
       "ComponentContextCreate": {
@@ -1232,6 +1448,232 @@
           "content"
         ],
         "title": "IngestRequest",
+        "type": "object"
+      },
+      "IngestResult": {
+        "properties": {
+          "batches": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Batches",
+            "type": "array"
+          },
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "keys": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Keys",
+            "type": "array"
+          },
+          "parsed": {
+            "title": "Parsed",
+            "type": "integer"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "repository_id": {
+            "title": "Repository Id",
+            "type": "string"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "repository_id",
+          "format",
+          "path",
+          "parsed",
+          "created",
+          "updated",
+          "unchanged",
+          "keys",
+          "batches"
+        ],
+        "title": "IngestResult",
+        "type": "object"
+      },
+      "KeyDetail": {
+        "description": "GET /keys/{id} \u2014 the KeyRead fields plus the key's translations.",
+        "properties": {
+          "component": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Component"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "file_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Format"
+          },
+          "has_structural_tags": {
+            "default": false,
+            "title": "Has Structural Tags",
+            "type": "boolean"
+          },
+          "icu_shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icu Shape"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "max_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Length"
+          },
+          "placeholders": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Placeholders",
+            "type": "array"
+          },
+          "plural_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plural Format"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "repository_id": {
+            "format": "uuid",
+            "title": "Repository Id",
+            "type": "string"
+          },
+          "risk_class": {
+            "title": "Risk Class",
+            "type": "string"
+          },
+          "screen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screen"
+          },
+          "source_text": {
+            "title": "Source Text",
+            "type": "string"
+          },
+          "string_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "String Type"
+          },
+          "translations": {
+            "items": {
+              "$ref": "#/components/schemas/TranslationRead"
+            },
+            "title": "Translations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "repository_id",
+          "project_id",
+          "key",
+          "source_text",
+          "string_type",
+          "plural_format",
+          "max_length",
+          "risk_class",
+          "is_active",
+          "created_at",
+          "translations"
+        ],
+        "title": "KeyDetail",
         "type": "object"
       },
       "KeyRead": {
@@ -2428,6 +2870,86 @@
         "title": "ProjectUpdate",
         "type": "object"
       },
+      "PublishResult": {
+        "description": "POST /publications/repositories/{id}/publish.\n\n``status`` is \"ok\" (PR opened) or \"no_op\" (nothing approved to publish);\n``pr_url`` is None on no_op. ``detail`` is only present on no_op, so it is\noptional here.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "pr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Url"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "pr_url",
+          "locale"
+        ],
+        "title": "PublishResult",
+        "type": "object"
+      },
+      "PublishToOtaResult": {
+        "description": "POST /publications/repositories/{id}/publish-to-ota.",
+        "properties": {
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "published": {
+            "title": "Published",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "published",
+          "locale"
+        ],
+        "title": "PublishToOtaResult",
+        "type": "object"
+      },
       "RepositoryCreate": {
         "properties": {
           "contentful_env": {
@@ -3422,6 +3944,30 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WebhookAck": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "WebhookAck",
+        "type": "object"
       }
     }
   },
@@ -3796,9 +4342,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Batch Api V1 Batches  Batch Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/BatchDetail"
                 }
               }
             },
@@ -3850,9 +4394,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Approve Batch Api V1 Batches  Batch Id  Approve Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/BatchApproveResult"
                 }
               }
             },
@@ -3969,9 +4511,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Reject Batch Api V1 Batches  Batch Id  Reject Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/BatchRejectResult"
                 }
               }
             },
@@ -4033,9 +4573,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Trigger Mt Api V1 Batches  Batch Id  Trigger Mt Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/BatchTriggerResult"
                 }
               }
             },
@@ -4462,9 +5000,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Key Api V1 Keys  Key Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/KeyDetail"
                 }
               }
             },
@@ -6301,9 +6837,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Trigger Project Mt Api V1 Projects  Project Id  Trigger Mt Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/BulkTriggerResult"
                 }
               }
             },
@@ -6373,9 +6907,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Trigger Publication Api V1 Publications Repositories  Repo Id  Publish Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PublishResult"
                 }
               }
             },
@@ -6446,9 +6978,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Publish To Ota Api V1 Publications Repositories  Repo Id  Publish To Ota Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PublishToOtaResult"
                 }
               }
             },
@@ -6807,9 +7337,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Ingest Repository Api V1 Repositories  Repo Id  Ingest Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/IngestResult"
                 }
               }
             },
@@ -7273,9 +7801,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Receive Contentful Webhook Api V1 Webhooks Contentful Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WebhookAck"
                 }
               }
             },
@@ -7324,9 +7850,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Receive Github Webhook Api V1 Webhooks Github Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/WebhookAck"
                 }
               }
             },

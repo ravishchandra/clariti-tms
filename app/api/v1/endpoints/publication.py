@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import DB, ScopedRepository
+from app.api.v1.schemas.publication import PublishResult, PublishToOtaResult
 from app.integrations.github.auth import get_installation_token
 from app.integrations.github.errors import (
     GitHubNetworkError,
@@ -75,7 +76,7 @@ def _permanent_detail_for_publish(installation_id: int, exc: GitHubPermanentErro
     )
 
 
-@router.post("/repositories/{repo_id}/publish")
+@router.post("/repositories/{repo_id}/publish", response_model=PublishResult, response_model_exclude_unset=True)
 async def trigger_publication(
     db: DB,
     repository: ScopedRepository,
@@ -210,7 +211,7 @@ async def trigger_publication(
     return {"status": "ok", "pr_url": pr_url, "locale": locale}
 
 
-@router.post("/repositories/{repo_id}/publish-to-ota")
+@router.post("/repositories/{repo_id}/publish-to-ota", response_model=PublishToOtaResult)
 async def publish_to_ota(
     db: DB,
     repository: ScopedRepository,

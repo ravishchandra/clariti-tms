@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.api.deps import DB, ScopedRepository
+from app.api.v1.schemas.ingestion import IngestResult
 from app.ingestion.parsers import parse_file
 from app.ingestion.service import assemble_batches, upsert_keys
 from app.models import (
@@ -65,7 +66,7 @@ class IngestRequest(BaseModel):
     )
 
 
-@router.post("/repositories/{repo_id}/ingest")
+@router.post("/repositories/{repo_id}/ingest", response_model=IngestResult)
 async def ingest_repository(
     body: IngestRequest,
     db: DB,

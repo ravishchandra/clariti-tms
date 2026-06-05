@@ -19,6 +19,12 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy app cli --ignore-missing-imports
+      # Fail if the committed OpenAPI spec is stale vs. the live app. Keeps the
+      # SDK/web-client contract from silently drifting (developer-packet §19/§20).
+      - name: OpenAPI spec is current
+        run: python scripts/dump_openapi.py --check
+        env:
+          DEBUG: "true"
 
   test:
     name: Tests

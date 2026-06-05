@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, ScopedProject, ScopedRepository
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.repositories import RepositoryCreate, RepositoryRead, RepositoryUpdate
 from app.core.crypto import encrypt
 from app.models import Repository
@@ -54,7 +55,7 @@ async def create_repository(body: RepositoryCreate, db: DB, project: ScopedProje
     return RepositoryRead.model_validate(repo)
 
 
-@router.get("/{project_id}/repositories", response_model=dict)
+@router.get("/{project_id}/repositories", response_model=ListResponse[RepositoryRead])
 async def list_repositories(db: DB, project: ScopedProject) -> dict:
     total_result = await db.execute(
         select(func.count()).select_from(Repository).where(Repository.project_id == project.id)

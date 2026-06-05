@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, CurrentKey
 from app.api.v1.schemas.api_keys import ApiKeyCreate, ApiKeyCreated, ApiKeyRead
+from app.api.v1.schemas.common import ListResponse
 from app.models import ApiKey
 
 router = APIRouter()
@@ -47,7 +48,7 @@ async def create_api_key(body: ApiKeyCreate, db: DB, current_key: CurrentKey) ->
     )
 
 
-@router.get("", response_model=dict)
+@router.get("", response_model=ListResponse[ApiKeyRead])
 async def list_api_keys(db: DB, current_key: CurrentKey) -> dict:
     result = await db.execute(select(ApiKey).where(ApiKey.organization_id == current_key.organization_id))
     keys = result.scalars().all()

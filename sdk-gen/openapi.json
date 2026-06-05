@@ -75,6 +75,60 @@
         "title": "ApiKeyCreated",
         "type": "object"
       },
+      "ApiKeyRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_org_admin": {
+            "title": "Is Org Admin",
+            "type": "boolean"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "organization_id",
+          "is_active",
+          "is_org_admin",
+          "created_at",
+          "last_used_at"
+        ],
+        "title": "ApiKeyRead",
+        "type": "object"
+      },
       "AppSettingsRead": {
         "properties": {
           "evaluate_temperature": {
@@ -267,6 +321,102 @@
           }
         },
         "title": "AppSettingsUpdate",
+        "type": "object"
+      },
+      "BatchRead": {
+        "properties": {
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "mt_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mt Model"
+          },
+          "mt_prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mt Prompt Version"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "ran_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ran At"
+          },
+          "repository_id": {
+            "format": "uuid",
+            "title": "Repository Id",
+            "type": "string"
+          },
+          "screen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Screen"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "repository_id",
+          "locale",
+          "component",
+          "screen",
+          "status",
+          "mt_model",
+          "mt_prompt_version",
+          "ran_at",
+          "created_at"
+        ],
+        "title": "BatchRead",
         "type": "object"
       },
       "BatchStatus": {
@@ -1301,6 +1451,357 @@
         "title": "KeyUpdate",
         "type": "object"
       },
+      "ListResponse_ApiKeyRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[ApiKeyRead]",
+        "type": "object"
+      },
+      "ListResponse_BatchRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[BatchRead]",
+        "type": "object"
+      },
+      "ListResponse_ComponentContextRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentContextRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[ComponentContextRead]",
+        "type": "object"
+      },
+      "ListResponse_GlossaryTermRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GlossaryTermRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[GlossaryTermRead]",
+        "type": "object"
+      },
+      "ListResponse_KeyRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/KeyRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[KeyRead]",
+        "type": "object"
+      },
+      "ListResponse_MtRunRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MtRunRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[MtRunRead]",
+        "type": "object"
+      },
+      "ListResponse_OrgRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrgRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[OrgRead]",
+        "type": "object"
+      },
+      "ListResponse_ProjectRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[ProjectRead]",
+        "type": "object"
+      },
+      "ListResponse_RepositoryRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[RepositoryRead]",
+        "type": "object"
+      },
+      "ListResponse_ScreenshotRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScreenshotRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[ScreenshotRead]",
+        "type": "object"
+      },
+      "ListResponse_TranslationHistoryRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TranslationHistoryRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[TranslationHistoryRead]",
+        "type": "object"
+      },
+      "ListResponse_TranslationRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TranslationRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[TranslationRead]",
+        "type": "object"
+      },
+      "ListResponse_UserRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[UserRead]",
+        "type": "object"
+      },
       "LocaleConfigActivationResult": {
         "description": "Response shape for `POST /locale-configs?fan_out=true`.\n\nReturned alongside the created/found `locale_config` row so the UI can\nrender an immediate success state (\"Seeded 247 drafts \u00b7 Bootstrap \u2192\").",
         "properties": {
@@ -1521,6 +2022,145 @@
           }
         },
         "title": "LocaleConfigUpdate",
+        "type": "object"
+      },
+      "MtRunRead": {
+        "description": "One row from the `mt_runs` audit table.\n\nPowers the Phase 6 key-detail MT-run inspector. One row per LLM call \u2014\nprimary attempt, retry, fallback. Full prompt + output text are\nincluded so reviewers can dig into a specific translation's provenance.",
+        "properties": {
+          "batch_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_text": {
+            "title": "Output Text",
+            "type": "string"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "prompt_text": {
+            "title": "Prompt Text",
+            "type": "string"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "ran_at": {
+            "format": "date-time",
+            "title": "Ran At",
+            "type": "string"
+          },
+          "string_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "String Count"
+          },
+          "validator_errors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validator Errors"
+          },
+          "validators_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validators Passed"
+          }
+        },
+        "required": [
+          "id",
+          "batch_id",
+          "prompt_version",
+          "model",
+          "prompt_text",
+          "output_text",
+          "validators_passed",
+          "validator_errors",
+          "string_count",
+          "latency_ms",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd",
+          "ran_at"
+        ],
+        "title": "MtRunRead",
         "type": "object"
       },
       "OrgCreate": {
@@ -2297,6 +2937,117 @@
         "title": "ScreenshotRead",
         "type": "object"
       },
+      "TranslationHistoryRead": {
+        "description": "One row from the `translation_history` audit log.\n\nWritten by the Postgres `record_translation_history()` trigger on every\nUPDATE of `translations` (see migration `0001` + `0006`). The actor\nidentity (`changed_by`, `change_source`) comes from session-level GUCs\nset by `app.core.database.set_request_attribution`.",
+        "properties": {
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "change_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Source"
+          },
+          "changed_at": {
+            "format": "date-time",
+            "title": "Changed At",
+            "type": "string"
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "new_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Status"
+          },
+          "new_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Value"
+          },
+          "prev_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Status"
+          },
+          "prev_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Value"
+          },
+          "translation_id": {
+            "format": "uuid",
+            "title": "Translation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "translation_id",
+          "prev_value",
+          "new_value",
+          "prev_status",
+          "new_status",
+          "changed_by",
+          "change_source",
+          "change_note",
+          "changed_at"
+        ],
+        "title": "TranslationHistoryRead",
+        "type": "object"
+      },
       "TranslationRead": {
         "properties": {
           "back_translation": {
@@ -2699,9 +3450,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Api Keys Api V1 Api Keys Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_ApiKeyRead_"
                 }
               }
             },
@@ -2995,9 +3744,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Batches Api V1 Batches Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_BatchRead_"
                 }
               }
             },
@@ -3170,9 +3917,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Mt Runs Api V1 Batches  Batch Id  Mt Runs Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_MtRunRead_"
                 }
               }
             },
@@ -3665,9 +4410,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Keys Api V1 Keys Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_KeyRead_"
                 }
               }
             },
@@ -3834,14 +4577,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "items": {
-                      "$ref": "#/components/schemas/ScreenshotRead"
-                    },
-                    "type": "array"
-                  },
-                  "title": "Response List Screenshots Api V1 Keys  Key Id  Screenshots Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_ScreenshotRead_"
                 }
               }
             },
@@ -3945,9 +4681,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Orgs Api V1 Organizations Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_OrgRead_"
                 }
               }
             },
@@ -4206,9 +4940,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Projects Api V1 Organizations  Org Id  Projects Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_ProjectRead_"
                 }
               }
             },
@@ -4476,9 +5208,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Users Api V1 Organizations  Org Id  Users Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_UserRead_"
                 }
               }
             },
@@ -4664,9 +5394,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Glossary Terms Api V1 Projects  Project Id  Glossary Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_GlossaryTermRead_"
                 }
               }
             },
@@ -5275,9 +6003,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Repositories Api V1 Projects  Project Id  Repositories Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_RepositoryRead_"
                 }
               }
             },
@@ -5774,9 +6500,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Component Contexts Api V1 Repositories  Repo Id  Component Contexts Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_ComponentContextRead_"
                 }
               }
             },
@@ -6323,9 +7047,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Translations Api V1 Translations Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_TranslationRead_"
                 }
               }
             },
@@ -6502,9 +7224,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Translation History Api V1 Translations  Translation Id  History Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_TranslationHistoryRead_"
                 }
               }
             },

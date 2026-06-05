@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, CurrentKey, OrgAdminKey, ScopedOrganization
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.orgs import OrgCreate, OrgRead, OrgUpdate
 from app.models import Organization, User, UserRole
 
@@ -55,7 +56,7 @@ async def create_org(body: OrgCreate, db: DB, _: OrgAdminKey) -> OrgRead:
     return OrgRead.model_validate(org)
 
 
-@router.get("", response_model=dict)
+@router.get("", response_model=ListResponse[OrgRead])
 async def list_orgs(db: DB, current_key: CurrentKey) -> dict:
     """List organizations visible to the caller.
 

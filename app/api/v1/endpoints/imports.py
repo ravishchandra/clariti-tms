@@ -15,6 +15,11 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 
 from app.api.deps import DB, CurrentKey, assert_project_in_org
+from app.api.v1.schemas.imports import (
+    ImportCommitResponse,
+    ImportPreviewResponse,
+    ImportRollbackResponse,
+)
 from app.export_import.commit import (
     ExcelImportError,
     ImportFormat,
@@ -69,7 +74,7 @@ async def _resolve_uploaded_by(db, current_key) -> uuid.UUID:  # type: ignore[no
     return user_id
 
 
-@router.post("/preview", status_code=status.HTTP_201_CREATED)
+@router.post("/preview", status_code=status.HTTP_201_CREATED, response_model=ImportPreviewResponse)
 async def post_preview(
     db: DB,
     current_key: CurrentKey,
@@ -121,7 +126,7 @@ async def post_preview(
     return {"job_id": str(job.id), "status": job.status, "summary": job.dry_run_summary}
 
 
-@router.post("/{job_id}/commit")
+@router.post("/{job_id}/commit", response_model=ImportCommitResponse)
 async def post_commit(
     job_id: uuid.UUID,
     db: DB,
@@ -150,7 +155,7 @@ async def post_commit(
     }
 
 
-@router.post("/{job_id}/rollback")
+@router.post("/{job_id}/rollback", response_model=ImportRollbackResponse)
 async def post_rollback(
     job_id: uuid.UUID,
     db: DB,

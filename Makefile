@@ -20,8 +20,13 @@ sdk-ts:
 sdk-python:
 	uvx openapi-python-client generate --path sdk-gen/openapi.json --output-path sdks/python --overwrite
 
+# Generate the OpenAPI spec in-process (no running server needed) so it can
+# never silently rot. `make spec-check` is the CI guard (fails on a stale spec).
 spec:
-	curl -s http://localhost:8000/api/v1/openapi.json > sdk-gen/openapi.json
+	python scripts/dump_openapi.py
+
+spec-check:
+	python scripts/dump_openapi.py --check
 
 dev:
 	uvicorn app.main:app --reload --port 8000

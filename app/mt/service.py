@@ -832,6 +832,11 @@ async def translate_batch(
         back_text: str | None = None
         back_sim: float | None = None
         qa_scores: dict = {}
+        # Tracks an *unexpected* QA failure on the non-DeepL path (e.g. provider
+        # 402/timeout). Distinct from DeepL's by-design QA skip: a failure here
+        # must NOT silently auto-approve via the `.get(d, 5)` default below — it
+        # forces review so an operator can tell "QA passed" from "QA never ran".
+        qa_failed = False
 
         if not is_deepl and batch_embedding is not None:
             try:
@@ -843,7 +848,13 @@ async def translate_batch(
                     embed_fn=embed_prov.embed,
                 )
             except Exception as exc:
-                logger.warning("Back-translation failed for key %s: %s", key_str, exc)
+                qa_failed = True
+                logger.error(
+                    "Back-translation QA failed for key %s (batch %s) — forcing review: %s",
+                    key_str,
+                    batch.id,
+                    exc,
+                )
 
             try:
                 qa_scores = await locale_consistency_eval(
@@ -857,7 +868,13 @@ async def translate_batch(
                     temperature=evaluate_temp,
                 )
             except Exception as exc:
-                logger.warning("QA eval failed for key %s: %s", key_str, exc)
+                qa_failed = True
+                logger.error(
+                    "Locale-consistency QA failed for key %s (batch %s) — forcing review: %s",
+                    key_str,
+                    batch.id,
+                    exc,
+                )
 
         # Risk-class routing — see docs/06-human-review-workflow.md:100-113.
         review_forced = (
@@ -866,6 +883,9 @@ async def translate_batch(
             or (key.risk_class == "standard")
             or (back_sim is not None and back_sim < 0.80)
             or any(qa_scores.get(d, 5) < 3 for d in ("naturalness", "consistency", "accuracy"))
+            # QA was attempted but errored (e.g. provider 402) — never let a
+            # failed QA pass via the `.get(d, 5)` default. (§15e)
+            or qa_failed
             # docs/06:109 — force review until native-speaker bootstrap complete
             or (locale_cfg is not None and not locale_cfg.is_bootstrapped)
         )

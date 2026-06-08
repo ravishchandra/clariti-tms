@@ -59,6 +59,7 @@ def make_provider(
     translate_return: str | None = None,
     translate_side_effect: Any = None,
     evaluate_return: str = '{"naturalness": 5, "consistency": 5, "accuracy": 5, "issue": null}',
+    evaluate_side_effect: Any = None,
     embed_return: list[float] | None = None,
     embed_side_effect: Any = None,
     translate_usage: dict[str, int] | None = None,
@@ -87,7 +88,10 @@ def make_provider(
         usage = translate_usage if translate_usage is not None else _DEFAULT_USAGE
         p.translate = AsyncMock(return_value=(translate_return or "", usage))
     eval_usage = evaluate_usage if evaluate_usage is not None else _ZERO_USAGE
-    p.evaluate = AsyncMock(return_value=(evaluate_return, eval_usage))
+    if evaluate_side_effect is not None:
+        p.evaluate = AsyncMock(side_effect=evaluate_side_effect)
+    else:
+        p.evaluate = AsyncMock(return_value=(evaluate_return, eval_usage))
     if embed_side_effect is not None:
         p.embed = AsyncMock(side_effect=embed_side_effect)
     else:
@@ -262,6 +266,54 @@ class TestH5BootstrapEnforcement:
         trans = await db_session.scalar(select(Translation).where(Translation.key_id == sample_batch["key"].id))
         assert trans is not None
         assert trans.status == TranslationStatus.approved
+
+
+# ---------------------------------------------------------------------------
+# §15e — a QA *failure* must force review, never silently auto-approve
+# ---------------------------------------------------------------------------
+
+
+class TestQaFailureForcesReview:
+    @pytest.mark.asyncio
+    async def test_qa_evaluate_failure_forces_review(self, db_session, sample_batch):
+        """When evaluate() raises (e.g. provider 402), the translation must land
+        in needs_review with NULL qa_* — not auto-approve via the .get(d,5)
+        default. Regression for developer-packet §15e."""
+        # Same setup as the happy path (auto_publish + bootstrap=True) so the
+        # ONLY thing forcing review is the QA failure.
+        sample_batch["locale_cfg"].is_bootstrapped = True
+        await db_session.commit()
+
+        anthropic = make_provider(
+            name="anthropic",
+            model_id="claude-test",
+            translate_return=json.dumps({"hello": "Bonjour le monde"}),
+            embed_return=[1.0] * 1536,
+            # evaluate() blows up — simulates the OpenRouter 402 the integrator hit.
+            evaluate_side_effect=httpx.HTTPStatusError(
+                "402 Payment Required",
+                request=httpx.Request("POST", "http://test"),
+                response=httpx.Response(402),
+            ),
+        )
+
+        summary = await translate_batch(
+            db=db_session,
+            batch=sample_batch["batch"],
+            providers={"anthropic": anthropic, "openai": anthropic},
+            config_provider="anthropic",
+            embed_provider="anthropic",
+        )
+
+        assert summary["needs_review"] == 1
+        assert summary["translated"] == 0
+        trans = await db_session.scalar(select(Translation).where(Translation.key_id == sample_batch["key"].id))
+        assert trans is not None
+        assert trans.status == TranslationStatus.needs_review
+        # QA never produced scores — they stay NULL, distinguishable from a pass.
+        assert trans.qa_naturalness is None
+        assert trans.qa_consistency is None
+        assert trans.qa_accuracy is None
 
 
 # ---------------------------------------------------------------------------

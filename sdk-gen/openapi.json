@@ -3969,6 +3969,13 @@
         "title": "WebhookAck",
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
     }
   },
   "info": {
@@ -3980,17 +3987,6 @@
     "/api/v1/api-keys": {
       "get": {
         "operationId": "list_api_keys_api_v1_api_keys_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -4001,18 +3997,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Api Keys",
         "tags": [
           "API Keys"
@@ -4020,17 +4011,6 @@
       },
       "post": {
         "operationId": "create_api_key_api_v1_api_keys_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4063,6 +4043,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Api Key",
         "tags": [
           "API Keys"
@@ -4082,15 +4067,6 @@
               "title": "Key Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -4108,6 +4084,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Revoke Api Key",
         "tags": [
           "API Keys"
@@ -4117,17 +4098,6 @@
     "/api/v1/app-settings": {
       "get": {
         "operationId": "get_app_settings_api_v1_app_settings_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -4138,18 +4108,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get App Settings",
         "tags": [
           "App Settings"
@@ -4157,17 +4122,6 @@
       },
       "patch": {
         "operationId": "update_app_settings_api_v1_app_settings_patch",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4200,6 +4154,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update App Settings",
         "tags": [
           "App Settings"
@@ -4274,15 +4233,6 @@
               "title": "Page Size",
               "type": "integer"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -4307,6 +4257,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Batches",
         "tags": [
           "Batches"
@@ -4324,15 +4279,6 @@
             "schema": {
               "format": "uuid",
               "title": "Batch Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -4359,6 +4305,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Batch",
         "tags": [
           "Batches"
@@ -4376,15 +4327,6 @@
             "schema": {
               "format": "uuid",
               "title": "Batch Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -4411,6 +4353,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Approve Batch",
         "tags": [
           "Batches"
@@ -4443,15 +4390,6 @@
               "title": "Limit",
               "type": "integer"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -4476,6 +4414,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Mt Runs",
         "tags": [
           "Batches"
@@ -4493,15 +4436,6 @@
             "schema": {
               "format": "uuid",
               "title": "Batch Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -4528,6 +4462,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Reject Batch",
         "tags": [
           "Batches"
@@ -4545,15 +4484,6 @@
             "schema": {
               "format": "uuid",
               "title": "Batch Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -4590,6 +4520,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Trigger Mt",
         "tags": [
           "Batches"
@@ -4600,17 +4535,6 @@
       "post": {
         "description": "Generate and stream a translation export.\n\n``format=xlsx`` (default) returns the Phase 5 Excel workbook;\n``format=xliff`` returns an XLIFF 1.2 document for professional LSP\nexchange. Either way the response is the raw bytes with a\nContent-Disposition attachment header so browsers download it under\nthe conventional filename. Empty result sets still return a valid\nworkbook / document.",
         "operationId": "create_export_api_v1_exports_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4636,6 +4560,11 @@
             "description": "Invalid status filter or empty locales."
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Export",
         "tags": [
           "Exports"
@@ -4646,17 +4575,6 @@
       "post": {
         "description": "Dry-run an upload. Persists an ``import_jobs`` row in ``preview`` status.\n\n``format`` chooses the wire parser; when omitted the server falls back\nto filename-extension detection (``.xlf`` / ``.xliff`` -> XLIFF, else\nXLSX). The chosen format is recorded on the import_jobs row so commit /\nrollback / audit downstream don't need to re-detect.",
         "operationId": "post_preview_api_v1_imports_preview_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -4689,6 +4607,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Post Preview",
         "tags": [
           "Imports"
@@ -4719,15 +4642,6 @@
               "title": "Force Overwrite",
               "type": "boolean"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -4752,6 +4666,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Post Commit",
         "tags": [
           "Imports"
@@ -4770,15 +4689,6 @@
             "schema": {
               "format": "uuid",
               "title": "Job Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -4805,6 +4715,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Post Rollback",
         "tags": [
           "Imports"
@@ -4932,15 +4847,6 @@
               "title": "Page Size",
               "type": "integer"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -4965,6 +4871,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Keys",
         "tags": [
           "Keys"
@@ -4982,15 +4893,6 @@
             "schema": {
               "format": "uuid",
               "title": "Key Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5017,6 +4919,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Key",
         "tags": [
           "Keys"
@@ -5032,15 +4939,6 @@
             "schema": {
               "format": "uuid",
               "title": "Key Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5077,6 +4975,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Key",
         "tags": [
           "Keys"
@@ -5095,15 +4998,6 @@
             "schema": {
               "format": "uuid",
               "title": "Key Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5130,6 +5024,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Screenshots",
         "tags": [
           "Screenshots"
@@ -5146,15 +5045,6 @@
             "schema": {
               "format": "uuid",
               "title": "Key Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5191,6 +5081,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Upload Screenshot",
         "tags": [
           "Screenshots"
@@ -5201,17 +5096,6 @@
       "get": {
         "description": "List organizations visible to the caller.\n\nRegular keys see exactly one org (their own). Org-admin keys see every org.",
         "operationId": "list_orgs_api_v1_organizations_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -5222,18 +5106,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Orgs",
         "tags": [
           "Organizations"
@@ -5242,17 +5121,6 @@
       "post": {
         "description": "Create a new organization. Restricted to org-admin keys (403 otherwise).\n\nThe bootstrap admin key is created out of band by `loc api-key` or the seed\nscript; ordinary keys created via `POST /api-keys` are not org admins.\n\nIf ``admin_email`` is supplied, an initial ``org_admin`` user is created in\nthe same transaction so the org is import-ready by default (imports need a\nnon-NULL ``import_jobs.uploaded_by``). Omit it to create an org with no user.",
         "operationId": "create_org_api_v1_organizations_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5285,6 +5153,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Org",
         "tags": [
           "Organizations"
@@ -5305,15 +5178,6 @@
               "title": "Org Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5331,6 +5195,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Org",
         "tags": [
           "Organizations"
@@ -5346,15 +5215,6 @@
             "schema": {
               "format": "uuid",
               "title": "Org Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5381,6 +5241,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Org",
         "tags": [
           "Organizations"
@@ -5396,15 +5261,6 @@
             "schema": {
               "format": "uuid",
               "title": "Org Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5441,6 +5297,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Org",
         "tags": [
           "Organizations"
@@ -5458,15 +5319,6 @@
             "schema": {
               "format": "uuid",
               "title": "Org Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5493,6 +5345,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Projects",
         "tags": [
           "Projects"
@@ -5508,15 +5365,6 @@
             "schema": {
               "format": "uuid",
               "title": "Org Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5553,6 +5401,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Project",
         "tags": [
           "Projects"
@@ -5572,15 +5425,6 @@
               "title": "Project Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5598,6 +5442,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Project",
         "tags": [
           "Projects"
@@ -5613,15 +5462,6 @@
             "schema": {
               "format": "uuid",
               "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5648,6 +5488,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Project",
         "tags": [
           "Projects"
@@ -5663,15 +5508,6 @@
             "schema": {
               "format": "uuid",
               "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5708,6 +5544,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Project",
         "tags": [
           "Projects"
@@ -5726,15 +5567,6 @@
             "schema": {
               "format": "uuid",
               "title": "Org Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5761,6 +5593,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Users",
         "tags": [
           "Users"
@@ -5777,15 +5614,6 @@
             "schema": {
               "format": "uuid",
               "title": "Org Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -5822,6 +5650,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create User",
         "tags": [
           "Users"
@@ -5914,15 +5747,6 @@
               "title": "Project Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5947,6 +5771,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Glossary Terms",
         "tags": [
           "Glossary"
@@ -5962,15 +5791,6 @@
             "schema": {
               "format": "uuid",
               "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6007,6 +5827,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Glossary Term",
         "tags": [
           "Glossary"
@@ -6036,15 +5861,6 @@
               "title": "Term Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6062,6 +5878,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Glossary Term",
         "tags": [
           "Glossary"
@@ -6089,15 +5910,6 @@
               "title": "Term Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6122,6 +5934,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Glossary Term",
         "tags": [
           "Glossary"
@@ -6147,15 +5964,6 @@
             "schema": {
               "format": "uuid",
               "title": "Term Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6192,6 +6000,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Glossary Term",
         "tags": [
           "Glossary"
@@ -6209,15 +6022,6 @@
             "schema": {
               "format": "uuid",
               "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6246,6 +6050,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Locale Configs",
         "tags": [
           "Locale Configs"
@@ -6275,15 +6084,6 @@
               "description": "Activate the locale: fan out draft Translation rows for every active key in the project and flip is_activated=true. Idempotent \u2014 re-running inserts zero rows for keys that already have a translation for this locale. Without fan_out, the endpoint only creates/finds the locale_config row (state 1: 'registered').",
               "title": "Fan Out",
               "type": "boolean"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
             }
           }
         ],
@@ -6319,6 +6119,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Locale Config",
         "tags": [
           "Locale Configs"
@@ -6348,15 +6153,6 @@
               "title": "Config Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6374,6 +6170,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Locale Config",
         "tags": [
           "Locale Configs"
@@ -6401,15 +6202,6 @@
               "title": "Config Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6434,6 +6226,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Locale Config",
         "tags": [
           "Locale Configs"
@@ -6459,15 +6256,6 @@
             "schema": {
               "format": "uuid",
               "title": "Config Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6504,6 +6292,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Locale Config",
         "tags": [
           "Locale Configs"
@@ -6521,15 +6314,6 @@
             "schema": {
               "format": "uuid",
               "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6556,6 +6340,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Repositories",
         "tags": [
           "Repositories"
@@ -6571,15 +6360,6 @@
             "schema": {
               "format": "uuid",
               "title": "Project Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6616,6 +6396,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Repository",
         "tags": [
           "Repositories"
@@ -6635,15 +6420,6 @@
               "title": "Repo Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6661,6 +6437,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Repository",
         "tags": [
           "Repositories"
@@ -6676,15 +6457,6 @@
             "schema": {
               "format": "uuid",
               "title": "Repo Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6711,6 +6483,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Repository",
         "tags": [
           "Repositories"
@@ -6726,15 +6503,6 @@
             "schema": {
               "format": "uuid",
               "title": "Repo Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -6771,6 +6539,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Repository",
         "tags": [
           "Repositories"
@@ -6821,15 +6594,6 @@
               "title": "Status",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6854,6 +6618,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Trigger Project Mt",
         "tags": [
           "Batches"
@@ -6891,15 +6660,6 @@
               "description": "Restrict the PR to approved translations for this BCP-47 locale. Omitting publishes every locale's approved set, which matches the pre-docs/15 behavior (CLI / scheduler callers).",
               "title": "Locale"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6924,6 +6684,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Trigger Publication",
         "tags": [
           "Publication"
@@ -6962,15 +6727,6 @@
               "description": "Restrict the transition to this BCP-47 locale. Omitting publishes every locale's approved set for the repository.",
               "title": "Locale"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6995,6 +6751,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Publish To Ota",
         "tags": [
           "Publication"
@@ -7012,15 +6773,6 @@
             "schema": {
               "format": "uuid",
               "title": "Repo Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7047,6 +6799,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Component Contexts",
         "tags": [
           "Component Contexts"
@@ -7062,15 +6819,6 @@
             "schema": {
               "format": "uuid",
               "title": "Repo Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7107,6 +6855,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Create Component Context",
         "tags": [
           "Component Contexts"
@@ -7136,15 +6889,6 @@
               "title": "Ctx Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -7162,6 +6906,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Component Context",
         "tags": [
           "Component Contexts"
@@ -7189,15 +6938,6 @@
               "title": "Ctx Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -7222,6 +6962,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Component Context",
         "tags": [
           "Component Contexts"
@@ -7247,15 +6992,6 @@
             "schema": {
               "format": "uuid",
               "title": "Ctx Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7292,6 +7028,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Component Context",
         "tags": [
           "Component Contexts"
@@ -7309,15 +7050,6 @@
             "schema": {
               "format": "uuid",
               "title": "Repo Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7354,6 +7086,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Ingest Repository",
         "tags": [
           "Ingest"
@@ -7374,15 +7111,6 @@
               "title": "Screenshot Id",
               "type": "string"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -7400,6 +7128,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Delete Screenshot",
         "tags": [
           "Screenshots"
@@ -7418,15 +7151,6 @@
             "schema": {
               "format": "uuid",
               "title": "Screenshot Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7451,6 +7175,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Screenshot Image",
         "tags": [
           "Screenshots"
@@ -7559,15 +7288,6 @@
               "title": "Page Size",
               "type": "integer"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -7592,6 +7312,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "List Translations",
         "tags": [
           "Translations"
@@ -7609,15 +7334,6 @@
             "schema": {
               "format": "uuid",
               "title": "Translation Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7644,6 +7360,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Translation",
         "tags": [
           "Translations"
@@ -7659,15 +7380,6 @@
             "schema": {
               "format": "uuid",
               "title": "Translation Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
               "type": "string"
             }
           }
@@ -7704,6 +7416,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Update Translation",
         "tags": [
           "Translations"
@@ -7736,15 +7453,6 @@
               "title": "Limit",
               "type": "integer"
             }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "required": true,
-            "schema": {
-              "title": "X-Api-Key",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -7769,6 +7477,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
         "summary": "Get Translation History",
         "tags": [
           "Translations"

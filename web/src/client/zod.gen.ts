@@ -931,10 +931,6 @@ export const zWebhookAck = z.object({
     status: z.string()
 });
 
-export const zListApiKeysApiV1ApiKeysGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 /**
  * Successful Response
  */
@@ -942,18 +938,10 @@ export const zListApiKeysApiV1ApiKeysGetResponse = zListResponseApiKeyRead;
 
 export const zCreateApiKeyApiV1ApiKeysPostBody = zApiKeyCreate;
 
-export const zCreateApiKeyApiV1ApiKeysPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 /**
  * Successful Response
  */
 export const zCreateApiKeyApiV1ApiKeysPostResponse = zApiKeyCreated;
-
-export const zRevokeApiKeyApiV1ApiKeysKeyIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zRevokeApiKeyApiV1ApiKeysKeyIdDeletePath = z.object({
     key_id: z.uuid()
@@ -964,10 +952,6 @@ export const zRevokeApiKeyApiV1ApiKeysKeyIdDeletePath = z.object({
  */
 export const zRevokeApiKeyApiV1ApiKeysKeyIdDeleteResponse = z.void();
 
-export const zGetAppSettingsApiV1AppSettingsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 /**
  * Successful Response
  */
@@ -975,18 +959,10 @@ export const zGetAppSettingsApiV1AppSettingsGetResponse = zAppSettingsRead;
 
 export const zUpdateAppSettingsApiV1AppSettingsPatchBody = zAppSettingsUpdate;
 
-export const zUpdateAppSettingsApiV1AppSettingsPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 /**
  * Successful Response
  */
 export const zUpdateAppSettingsApiV1AppSettingsPatchResponse = zAppSettingsRead;
-
-export const zListBatchesApiV1BatchesGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListBatchesApiV1BatchesGetQuery = z.object({
     project_id: z.uuid(),
@@ -1001,10 +977,6 @@ export const zListBatchesApiV1BatchesGetQuery = z.object({
  */
 export const zListBatchesApiV1BatchesGetResponse = zListResponseBatchRead;
 
-export const zGetBatchApiV1BatchesBatchIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zGetBatchApiV1BatchesBatchIdGetPath = z.object({
     batch_id: z.uuid()
 });
@@ -1014,10 +986,6 @@ export const zGetBatchApiV1BatchesBatchIdGetPath = z.object({
  */
 export const zGetBatchApiV1BatchesBatchIdGetResponse = zBatchDetail;
 
-export const zApproveBatchApiV1BatchesBatchIdApprovePostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zApproveBatchApiV1BatchesBatchIdApprovePostPath = z.object({
     batch_id: z.uuid()
 });
@@ -1026,10 +994,6 @@ export const zApproveBatchApiV1BatchesBatchIdApprovePostPath = z.object({
  * Successful Response
  */
 export const zApproveBatchApiV1BatchesBatchIdApprovePostResponse = zBatchApproveResult;
-
-export const zListMtRunsApiV1BatchesBatchIdMtRunsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListMtRunsApiV1BatchesBatchIdMtRunsGetPath = z.object({
     batch_id: z.uuid()
@@ -1044,10 +1008,6 @@ export const zListMtRunsApiV1BatchesBatchIdMtRunsGetQuery = z.object({
  */
 export const zListMtRunsApiV1BatchesBatchIdMtRunsGetResponse = zListResponseMtRunRead;
 
-export const zRejectBatchApiV1BatchesBatchIdRejectPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zRejectBatchApiV1BatchesBatchIdRejectPostPath = z.object({
     batch_id: z.uuid()
 });
@@ -1058,10 +1018,6 @@ export const zRejectBatchApiV1BatchesBatchIdRejectPostPath = z.object({
 export const zRejectBatchApiV1BatchesBatchIdRejectPostResponse = zBatchRejectResult;
 
 export const zTriggerMtApiV1BatchesBatchIdTriggerMtPostBody = zBatchTrigger;
-
-export const zTriggerMtApiV1BatchesBatchIdTriggerMtPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zTriggerMtApiV1BatchesBatchIdTriggerMtPostPath = z.object({
     batch_id: z.uuid()
@@ -1074,24 +1030,12 @@ export const zTriggerMtApiV1BatchesBatchIdTriggerMtPostResponse = zBatchTriggerR
 
 export const zCreateExportApiV1ExportsPostBody = zExportCreate;
 
-export const zCreateExportApiV1ExportsPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zPostPreviewApiV1ImportsPreviewPostBody = zBodyPostPreviewApiV1ImportsPreviewPost;
-
-export const zPostPreviewApiV1ImportsPreviewPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 /**
  * Successful Response
  */
 export const zPostPreviewApiV1ImportsPreviewPostResponse = zImportPreviewResponse;
-
-export const zPostCommitApiV1ImportsJobIdCommitPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zPostCommitApiV1ImportsJobIdCommitPostPath = z.object({
     job_id: z.uuid()
@@ -1106,10 +1050,6 @@ export const zPostCommitApiV1ImportsJobIdCommitPostQuery = z.object({
  */
 export const zPostCommitApiV1ImportsJobIdCommitPostResponse = zImportCommitResponse;
 
-export const zPostRollbackApiV1ImportsJobIdRollbackPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zPostRollbackApiV1ImportsJobIdRollbackPostPath = z.object({
     job_id: z.uuid()
 });
@@ -1118,10 +1058,6 @@ export const zPostRollbackApiV1ImportsJobIdRollbackPostPath = z.object({
  * Successful Response
  */
 export const zPostRollbackApiV1ImportsJobIdRollbackPostResponse = zImportRollbackResponse;
-
-export const zListKeysApiV1KeysGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListKeysApiV1KeysGetQuery = z.object({
     project_id: z.uuid(),
@@ -1139,10 +1075,6 @@ export const zListKeysApiV1KeysGetQuery = z.object({
  */
 export const zListKeysApiV1KeysGetResponse = zListResponseKeyRead;
 
-export const zGetKeyApiV1KeysKeyIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zGetKeyApiV1KeysKeyIdGetPath = z.object({
     key_id: z.uuid()
 });
@@ -1154,10 +1086,6 @@ export const zGetKeyApiV1KeysKeyIdGetResponse = zKeyDetail;
 
 export const zUpdateKeyApiV1KeysKeyIdPatchBody = zKeyUpdate;
 
-export const zUpdateKeyApiV1KeysKeyIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateKeyApiV1KeysKeyIdPatchPath = z.object({
     key_id: z.uuid()
 });
@@ -1166,10 +1094,6 @@ export const zUpdateKeyApiV1KeysKeyIdPatchPath = z.object({
  * Successful Response
  */
 export const zUpdateKeyApiV1KeysKeyIdPatchResponse = zKeyRead;
-
-export const zListScreenshotsApiV1KeysKeyIdScreenshotsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListScreenshotsApiV1KeysKeyIdScreenshotsGetPath = z.object({
     key_id: z.uuid()
@@ -1182,10 +1106,6 @@ export const zListScreenshotsApiV1KeysKeyIdScreenshotsGetResponse = zListRespons
 
 export const zUploadScreenshotApiV1KeysKeyIdScreenshotsPostBody = zBodyUploadScreenshotApiV1KeysKeyIdScreenshotsPost;
 
-export const zUploadScreenshotApiV1KeysKeyIdScreenshotsPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUploadScreenshotApiV1KeysKeyIdScreenshotsPostPath = z.object({
     key_id: z.uuid()
 });
@@ -1195,10 +1115,6 @@ export const zUploadScreenshotApiV1KeysKeyIdScreenshotsPostPath = z.object({
  */
 export const zUploadScreenshotApiV1KeysKeyIdScreenshotsPostResponse = zScreenshotRead;
 
-export const zListOrgsApiV1OrganizationsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 /**
  * Successful Response
  */
@@ -1206,18 +1122,10 @@ export const zListOrgsApiV1OrganizationsGetResponse = zListResponseOrgRead;
 
 export const zCreateOrgApiV1OrganizationsPostBody = zOrgCreate;
 
-export const zCreateOrgApiV1OrganizationsPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 /**
  * Successful Response
  */
 export const zCreateOrgApiV1OrganizationsPostResponse = zOrgRead;
-
-export const zDeleteOrgApiV1OrganizationsOrgIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zDeleteOrgApiV1OrganizationsOrgIdDeletePath = z.object({
     org_id: z.uuid()
@@ -1227,10 +1135,6 @@ export const zDeleteOrgApiV1OrganizationsOrgIdDeletePath = z.object({
  * Successful Response
  */
 export const zDeleteOrgApiV1OrganizationsOrgIdDeleteResponse = z.void();
-
-export const zGetOrgApiV1OrganizationsOrgIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetOrgApiV1OrganizationsOrgIdGetPath = z.object({
     org_id: z.uuid()
@@ -1243,10 +1147,6 @@ export const zGetOrgApiV1OrganizationsOrgIdGetResponse = zOrgRead;
 
 export const zUpdateOrgApiV1OrganizationsOrgIdPatchBody = zOrgUpdate;
 
-export const zUpdateOrgApiV1OrganizationsOrgIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateOrgApiV1OrganizationsOrgIdPatchPath = z.object({
     org_id: z.uuid()
 });
@@ -1255,10 +1155,6 @@ export const zUpdateOrgApiV1OrganizationsOrgIdPatchPath = z.object({
  * Successful Response
  */
 export const zUpdateOrgApiV1OrganizationsOrgIdPatchResponse = zOrgRead;
-
-export const zListProjectsApiV1OrganizationsOrgIdProjectsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListProjectsApiV1OrganizationsOrgIdProjectsGetPath = z.object({
     org_id: z.uuid()
@@ -1271,10 +1167,6 @@ export const zListProjectsApiV1OrganizationsOrgIdProjectsGetResponse = zListResp
 
 export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostBody = zProjectCreate;
 
-export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostPath = z.object({
     org_id: z.uuid()
 });
@@ -1284,10 +1176,6 @@ export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostPath = z.object({
  */
 export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostResponse = zProjectRead;
 
-export const zDeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zDeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeletePath = z.object({
     project_id: z.uuid()
 });
@@ -1296,10 +1184,6 @@ export const zDeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeletePath = 
  * Successful Response
  */
 export const zDeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponse = z.void();
-
-export const zGetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetPath = z.object({
     project_id: z.uuid()
@@ -1312,10 +1196,6 @@ export const zGetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponse = zP
 
 export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchBody = zProjectUpdate;
 
-export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchPath = z.object({
     project_id: z.uuid()
 });
@@ -1324,10 +1204,6 @@ export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchPath = z
  * Successful Response
  */
 export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponse = zProjectRead;
-
-export const zListUsersApiV1OrganizationsOrgIdUsersGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListUsersApiV1OrganizationsOrgIdUsersGetPath = z.object({
     org_id: z.uuid()
@@ -1339,10 +1215,6 @@ export const zListUsersApiV1OrganizationsOrgIdUsersGetPath = z.object({
 export const zListUsersApiV1OrganizationsOrgIdUsersGetResponse = zListResponseUserRead;
 
 export const zCreateUserApiV1OrganizationsOrgIdUsersPostBody = zUserCreate;
-
-export const zCreateUserApiV1OrganizationsOrgIdUsersPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zCreateUserApiV1OrganizationsOrgIdUsersPostPath = z.object({
     org_id: z.uuid()
@@ -1362,10 +1234,6 @@ export const zGetLocaleApiV1OtaProjectSlugLocaleJsonGetQuery = z.object({
     platform: z.literal('ios').nullish()
 });
 
-export const zListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetPath = z.object({
     project_id: z.uuid()
 });
@@ -1377,10 +1245,6 @@ export const zListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetResponse = zList
 
 export const zCreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostBody = zGlossaryTermCreate;
 
-export const zCreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zCreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostPath = z.object({
     project_id: z.uuid()
 });
@@ -1389,10 +1253,6 @@ export const zCreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostPath = z.objec
  * Successful Response
  */
 export const zCreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostResponse = zGlossaryTermRead;
-
-export const zDeleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zDeleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDeletePath = z.object({
     project_id: z.uuid(),
@@ -1403,10 +1263,6 @@ export const zDeleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDeletePath =
  * Successful Response
  */
 export const zDeleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDeleteResponse = z.void();
-
-export const zGetGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdGetPath = z.object({
     project_id: z.uuid(),
@@ -1420,10 +1276,6 @@ export const zGetGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdGetResponse = z
 
 export const zUpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchBody = zGlossaryTermUpdate;
 
-export const zUpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchPath = z.object({
     project_id: z.uuid(),
     term_id: z.uuid()
@@ -1433,10 +1285,6 @@ export const zUpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchPath = 
  * Successful Response
  */
 export const zUpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchResponse = zGlossaryTermRead;
-
-export const zListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetPath = z.object({
     project_id: z.uuid()
@@ -1451,10 +1299,6 @@ export const zListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponse = 
 
 export const zCreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostBody = zLocaleConfigCreate;
 
-export const zCreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zCreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostPath = z.object({
     project_id: z.uuid()
 });
@@ -1468,10 +1312,6 @@ export const zCreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostQuery = z
  */
 export const zCreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostResponse = zLocaleConfigActivationResult;
 
-export const zDeleteLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zDeleteLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdDeletePath = z.object({
     project_id: z.uuid(),
     config_id: z.uuid()
@@ -1481,10 +1321,6 @@ export const zDeleteLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdDelet
  * Successful Response
  */
 export const zDeleteLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdDeleteResponse = z.void();
-
-export const zGetLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdGetPath = z.object({
     project_id: z.uuid(),
@@ -1498,10 +1334,6 @@ export const zGetLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdGetRespo
 
 export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchBody = zLocaleConfigUpdate;
 
-export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchPath = z.object({
     project_id: z.uuid(),
     config_id: z.uuid()
@@ -1511,10 +1343,6 @@ export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatch
  * Successful Response
  */
 export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchResponse = zLocaleConfigRead;
-
-export const zListRepositoriesApiV1ProjectsProjectIdRepositoriesGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zListRepositoriesApiV1ProjectsProjectIdRepositoriesGetPath = z.object({
     project_id: z.uuid()
@@ -1527,10 +1355,6 @@ export const zListRepositoriesApiV1ProjectsProjectIdRepositoriesGetResponse = zL
 
 export const zCreateRepositoryApiV1ProjectsProjectIdRepositoriesPostBody = zRepositoryCreate;
 
-export const zCreateRepositoryApiV1ProjectsProjectIdRepositoriesPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zCreateRepositoryApiV1ProjectsProjectIdRepositoriesPostPath = z.object({
     project_id: z.uuid()
 });
@@ -1540,10 +1364,6 @@ export const zCreateRepositoryApiV1ProjectsProjectIdRepositoriesPostPath = z.obj
  */
 export const zCreateRepositoryApiV1ProjectsProjectIdRepositoriesPostResponse = zRepositoryRead;
 
-export const zDeleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zDeleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDeletePath = z.object({
     repo_id: z.uuid()
 });
@@ -1552,10 +1372,6 @@ export const zDeleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDeletePath
  * Successful Response
  */
 export const zDeleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDeleteResponse = z.void();
-
-export const zGetRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGetPath = z.object({
     repo_id: z.uuid()
@@ -1568,10 +1384,6 @@ export const zGetRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGetResponse =
 
 export const zUpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchBody = zRepositoryUpdate;
 
-export const zUpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchPath = z.object({
     repo_id: z.uuid()
 });
@@ -1580,10 +1392,6 @@ export const zUpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchPath 
  * Successful Response
  */
 export const zUpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchResponse = zRepositoryRead;
-
-export const zTriggerProjectMtApiV1ProjectsProjectIdTriggerMtPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zTriggerProjectMtApiV1ProjectsProjectIdTriggerMtPostPath = z.object({
     project_id: z.uuid()
@@ -1599,10 +1407,6 @@ export const zTriggerProjectMtApiV1ProjectsProjectIdTriggerMtPostQuery = z.objec
  */
 export const zTriggerProjectMtApiV1ProjectsProjectIdTriggerMtPostResponse = zBulkTriggerResult;
 
-export const zTriggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zTriggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPostPath = z.object({
     repo_id: z.uuid()
 });
@@ -1615,10 +1419,6 @@ export const zTriggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPostQu
  * Successful Response
  */
 export const zTriggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPostResponse = zPublishResult;
-
-export const zPublishToOtaApiV1PublicationsRepositoriesRepoIdPublishToOtaPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zPublishToOtaApiV1PublicationsRepositoriesRepoIdPublishToOtaPostPath = z.object({
     repo_id: z.uuid()
@@ -1633,10 +1433,6 @@ export const zPublishToOtaApiV1PublicationsRepositoriesRepoIdPublishToOtaPostQue
  */
 export const zPublishToOtaApiV1PublicationsRepositoriesRepoIdPublishToOtaPostResponse = zPublishToOtaResult;
 
-export const zListComponentContextsApiV1RepositoriesRepoIdComponentContextsGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zListComponentContextsApiV1RepositoriesRepoIdComponentContextsGetPath = z.object({
     repo_id: z.uuid()
 });
@@ -1648,10 +1444,6 @@ export const zListComponentContextsApiV1RepositoriesRepoIdComponentContextsGetRe
 
 export const zCreateComponentContextApiV1RepositoriesRepoIdComponentContextsPostBody = zComponentContextCreate;
 
-export const zCreateComponentContextApiV1RepositoriesRepoIdComponentContextsPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zCreateComponentContextApiV1RepositoriesRepoIdComponentContextsPostPath = z.object({
     repo_id: z.uuid()
 });
@@ -1660,10 +1452,6 @@ export const zCreateComponentContextApiV1RepositoriesRepoIdComponentContextsPost
  * Successful Response
  */
 export const zCreateComponentContextApiV1RepositoriesRepoIdComponentContextsPostResponse = zComponentContextRead;
-
-export const zDeleteComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zDeleteComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdDeletePath = z.object({
     repo_id: z.uuid(),
@@ -1674,10 +1462,6 @@ export const zDeleteComponentContextApiV1RepositoriesRepoIdComponentContextsCtxI
  * Successful Response
  */
 export const zDeleteComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdDeleteResponse = z.void();
-
-export const zGetComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdGetPath = z.object({
     repo_id: z.uuid(),
@@ -1691,10 +1475,6 @@ export const zGetComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdGe
 
 export const zUpdateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatchBody = zComponentContextUpdate;
 
-export const zUpdateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatchPath = z.object({
     repo_id: z.uuid(),
     ctx_id: z.uuid()
@@ -1707,10 +1487,6 @@ export const zUpdateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxI
 
 export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostBody = zIngestRequest;
 
-export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostPath = z.object({
     repo_id: z.uuid()
 });
@@ -1719,10 +1495,6 @@ export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostPath = z.object({
  * Successful Response
  */
 export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostResponse = zIngestResult;
-
-export const zDeleteScreenshotApiV1ScreenshotsScreenshotIdDeleteHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zDeleteScreenshotApiV1ScreenshotsScreenshotIdDeletePath = z.object({
     screenshot_id: z.uuid()
@@ -1733,16 +1505,8 @@ export const zDeleteScreenshotApiV1ScreenshotsScreenshotIdDeletePath = z.object(
  */
 export const zDeleteScreenshotApiV1ScreenshotsScreenshotIdDeleteResponse = z.void();
 
-export const zGetScreenshotImageApiV1ScreenshotsScreenshotIdImageGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zGetScreenshotImageApiV1ScreenshotsScreenshotIdImageGetPath = z.object({
     screenshot_id: z.uuid()
-});
-
-export const zListTranslationsApiV1TranslationsGetHeaders = z.object({
-    'X-API-Key': z.string()
 });
 
 export const zListTranslationsApiV1TranslationsGetQuery = z.object({
@@ -1760,10 +1524,6 @@ export const zListTranslationsApiV1TranslationsGetQuery = z.object({
  */
 export const zListTranslationsApiV1TranslationsGetResponse = zListResponseTranslationRead;
 
-export const zGetTranslationApiV1TranslationsTranslationIdGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zGetTranslationApiV1TranslationsTranslationIdGetPath = z.object({
     translation_id: z.uuid()
 });
@@ -1775,10 +1535,6 @@ export const zGetTranslationApiV1TranslationsTranslationIdGetResponse = zTransla
 
 export const zUpdateTranslationApiV1TranslationsTranslationIdPatchBody = zTranslationUpdate;
 
-export const zUpdateTranslationApiV1TranslationsTranslationIdPatchHeaders = z.object({
-    'X-API-Key': z.string()
-});
-
 export const zUpdateTranslationApiV1TranslationsTranslationIdPatchPath = z.object({
     translation_id: z.uuid()
 });
@@ -1787,10 +1543,6 @@ export const zUpdateTranslationApiV1TranslationsTranslationIdPatchPath = z.objec
  * Successful Response
  */
 export const zUpdateTranslationApiV1TranslationsTranslationIdPatchResponse = zTranslationRead;
-
-export const zGetTranslationHistoryApiV1TranslationsTranslationIdHistoryGetHeaders = z.object({
-    'X-API-Key': z.string()
-});
 
 export const zGetTranslationHistoryApiV1TranslationsTranslationIdHistoryGetPath = z.object({
     translation_id: z.uuid()

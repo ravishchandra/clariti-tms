@@ -1,16 +1,22 @@
 /**
- * Typed fetch wrapper for the ClaritiTMS REST API.
+ * The dashboard's API surface (`api.*`) and shared types.
  *
- * We intentionally hand-roll this thin client instead of pulling in the
- * generated SDK (`@clariti-tms/sdk`, produced by `make sdks` in the repo root)
- * because:
- *  1. The SDK is regenerated whenever the OpenAPI spec changes — embedding
- *     it directly avoids a packaging step during early Phase 6 iteration.
- *  2. The shapes used by the review UI are a narrow subset of the full
- *     `/api/v1/` surface; we declare just what we need.
+ * As of §19/§20 Phase 3, every group delegates to the GENERATED, Zod-validating
+ * client in `src/client/` (regenerate with `pnpm gen:client`; CI fails on
+ * drift). `_unwrap()` adapts the generated `{ data, error }` envelope back to
+ * "return data / throw ApiError" so call sites and their error handling are
+ * unchanged. Two endpoints keep a raw `fetch`: `exports.create` (binary blob
+ * download) and `imports.preview` (multipart upload) — neither fits the JSON
+ * SDK path. `apiFetch` remains only for those.
+ *
+ * The page-facing types below are the source of truth for what the UI consumes:
+ * `Translation`/`Key`/`LocaleConfig` alias the generated contract types; the
+ * remaining zod schemas double as both runtime guards (where still parsed) and
+ * the inferred types pages import.
  *
  * Auth: API key in `X-API-Key` header, read from `localStorage` (set on the
- * sign-in screen). NextAuth / SSO is a follow-up — see docs/09:159.
+ * sign-in screen) and injected per-request by `src/lib/client.ts`. NextAuth /
+ * SSO is a follow-up — see docs/09:159.
  */
 
 import { useEffect, useState } from "react";

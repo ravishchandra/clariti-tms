@@ -1185,6 +1185,20 @@ export type ListResponseKeyRead = {
 };
 
 /**
+ * ListResponse[LocaleConfigRead]
+ */
+export type ListResponseLocaleConfigRead = {
+    /**
+     * Items
+     */
+    items: Array<LocaleConfigRead>;
+    /**
+     * Total
+     */
+    total?: number | null;
+};
+
+/**
  * ListResponse[MtRunRead]
  */
 export type ListResponseMtRunRead = {
@@ -2030,6 +2044,10 @@ export type TranslationRead = {
      * Qa Consistency
      */
     qa_consistency: number | null;
+    /**
+     * Qa Issue
+     */
+    qa_issue?: string | null;
     /**
      * Qa Naturalness
      */
@@ -3359,13 +3377,9 @@ export type ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetError = ListL
 
 export type ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponses = {
     /**
-     * Response List Locale Configs Api V1 Projects  Project Id  Locale Configs Get
-     *
      * Successful Response
      */
-    200: {
-        [key: string]: unknown;
-    };
+    200: ListResponseLocaleConfigRead;
 };
 
 export type ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponse = ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponses[keyof ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponses];

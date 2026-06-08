@@ -20,11 +20,49 @@ import { z } from "zod";
 // only; the SDK fns below read the configured singleton. (§19/§20 Phase 3.)
 import "@/lib/client";
 import {
+  createApiKeyApiV1ApiKeysPost,
+  createComponentContextApiV1RepositoriesRepoIdComponentContextsPost,
   createGlossaryTermApiV1ProjectsProjectIdGlossaryPost,
+  createLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPost,
+  createProjectApiV1OrganizationsOrgIdProjectsPost,
+  createRepositoryApiV1ProjectsProjectIdRepositoriesPost,
+  createUserApiV1OrganizationsOrgIdUsersPost,
   deleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDelete,
+  deleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDelete,
+  deleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDelete,
+  getAppSettingsApiV1AppSettingsGet,
+  getBatchApiV1BatchesBatchIdGet,
+  getKeyApiV1KeysKeyIdGet,
+  getProjectApiV1OrganizationsOrgIdProjectsProjectIdGet,
+  getRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGet,
+  getTranslationHistoryApiV1TranslationsTranslationIdHistoryGet,
+  listApiKeysApiV1ApiKeysGet,
+  listBatchesApiV1BatchesGet,
+  listComponentContextsApiV1RepositoriesRepoIdComponentContextsGet,
   listGlossaryTermsApiV1ProjectsProjectIdGlossaryGet,
+  listKeysApiV1KeysGet,
+  listLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGet,
+  listMtRunsApiV1BatchesBatchIdMtRunsGet,
+  listOrgsApiV1OrganizationsGet,
+  listProjectsApiV1OrganizationsOrgIdProjectsGet,
+  listRepositoriesApiV1ProjectsProjectIdRepositoriesGet,
+  listScreenshotsApiV1KeysKeyIdScreenshotsGet,
+  listTranslationsApiV1TranslationsGet,
+  listUsersApiV1OrganizationsOrgIdUsersGet,
+  postCommitApiV1ImportsJobIdCommitPost,
+  postRollbackApiV1ImportsJobIdRollbackPost,
+  revokeApiKeyApiV1ApiKeysKeyIdDelete,
+  triggerProjectMtApiV1ProjectsProjectIdTriggerMtPost,
+  triggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPost,
+  updateAppSettingsApiV1AppSettingsPatch,
+  updateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatch,
   updateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatch,
+  updateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatch,
+  updateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatch,
+  updateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatch,
+  updateTranslationApiV1TranslationsTranslationIdPatch,
 } from "@/client/sdk.gen";
+import type { BatchStatus, KeyRead, LocaleConfigRead, TranslationRead } from "@/client/types.gen";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 const API_KEY_STORAGE_KEY = "clariti.api_key";
@@ -242,7 +280,9 @@ export const Key = z.object({
   has_structural_tags: z.boolean().optional(),
   icu_shape: z.string().optional(),
 });
-export type Key = z.infer<typeof Key>;
+// The page-facing type is the generated contract type (single source of truth);
+// the zod object above is retained only for any value-level .parse() callers.
+export type Key = KeyRead;
 
 export const Translation = z.object({
   id: z.string().uuid(),
@@ -264,7 +304,8 @@ export const Translation = z.object({
   reviewer_notes: z.string().nullable().optional(),
   reviewed_at: z.string().nullable().optional(),
 });
-export type Translation = z.infer<typeof Translation>;
+// Page-facing type is the generated contract type (single source of truth).
+export type Translation = TranslationRead;
 
 export const TranslationBatch = z.object({
   id: z.string().uuid(),
@@ -386,7 +427,8 @@ export const LocaleConfig = z.object({
   bootstrap_state: BootstrapState.nullable().optional(),
   created_at: z.string(),
 });
-export type LocaleConfig = z.infer<typeof LocaleConfig>;
+// Page-facing type is the generated contract type (single source of truth).
+export type LocaleConfig = LocaleConfigRead;
 
 export const LocaleConfigActivationResult = z.object({
   locale_config: LocaleConfig,
@@ -545,19 +587,18 @@ export type ImportRollbackResponse = z.infer<typeof ImportRollbackResponse>;
 
 export const api = {
   organizations: {
-    list: async () => {
-      const data = await apiFetch<{ items: unknown[] }>("/organizations");
-      return z.object({ items: z.array(Organization) }).parse(data).items;
-    },
+    list: async (): Promise<Organization[]> =>
+      (await _unwrap(listOrgsApiV1OrganizationsGet({}))).items,
   },
   projects: {
-    list: async (orgId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(`/organizations/${orgId}/projects`);
-      return z.object({ items: z.array(Project) }).parse(data).items;
-    },
-    get: async (orgId: string, projectId: string) => {
-      return Project.parse(await apiFetch(`/organizations/${orgId}/projects/${projectId}`));
-    },
+    list: async (orgId: string): Promise<Project[]> =>
+      (await _unwrap(listProjectsApiV1OrganizationsOrgIdProjectsGet({ path: { org_id: orgId } }))).items,
+    get: async (orgId: string, projectId: string): Promise<Project> =>
+      _unwrap(
+        getProjectApiV1OrganizationsOrgIdProjectsProjectIdGet({
+          path: { project_id: projectId },
+        }),
+      ),
     create: async (
       orgId: string,
       body: {
@@ -567,11 +608,8 @@ export const api = {
         target_locales?: string[];
         style_guide?: string | null;
       },
-    ) => {
-      return Project.parse(
-        await apiFetch(`/organizations/${orgId}/projects`, { method: "POST", body }),
-      );
-    },
+    ): Promise<Project> =>
+      _unwrap(createProjectApiV1OrganizationsOrgIdProjectsPost({ path: { org_id: orgId }, body })),
     update: async (
       orgId: string,
       projectId: string,
@@ -581,58 +619,48 @@ export const api = {
         target_locales?: string[];
         style_guide?: string | null;
       },
-    ) => {
-      return Project.parse(
-        await apiFetch(`/organizations/${orgId}/projects/${projectId}`, {
-          method: "PATCH",
+    ): Promise<Project> =>
+      _unwrap(
+        updateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatch({
+          path: { project_id: projectId },
           body,
+        }),
+      ),
+    delete: async (orgId: string, projectId: string): Promise<void> => {
+      await _unwrap(
+        deleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDelete({
+          path: { project_id: projectId },
         }),
       );
     },
-    delete: async (orgId: string, projectId: string) => {
-      await apiFetch<void>(`/organizations/${orgId}/projects/${projectId}`, {
-        method: "DELETE",
-      });
-    },
   },
   apiKeys: {
-    list: async () => {
-      const data = await apiFetch<{ items: unknown[] }>(`/api-keys`);
-      return z.object({ items: z.array(ApiKey) }).parse(data).items;
-    },
-    create: async (body: { name: string }) => {
-      return ApiKeyCreated.parse(
-        await apiFetch(`/api-keys`, { method: "POST", body }),
-      );
-    },
-    revoke: async (keyId: string) => {
-      await apiFetch<void>(`/api-keys/${keyId}`, { method: "DELETE" });
+    list: async (): Promise<ApiKey[]> =>
+      (await _unwrap(listApiKeysApiV1ApiKeysGet({}))).items,
+    create: async (body: { name: string }): Promise<ApiKeyCreated> =>
+      _unwrap(createApiKeyApiV1ApiKeysPost({ body })),
+    revoke: async (keyId: string): Promise<void> => {
+      await _unwrap(revokeApiKeyApiV1ApiKeysKeyIdDelete({ path: { key_id: keyId } }));
     },
   },
   users: {
-    list: async (orgId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(`/organizations/${orgId}/users`);
-      return z.object({ items: z.array(User) }).parse(data).items;
-    },
+    list: async (orgId: string): Promise<User[]> =>
+      (await _unwrap(listUsersApiV1OrganizationsOrgIdUsersGet({ path: { org_id: orgId } }))).items,
     create: async (
       orgId: string,
       body: { email: string; name: string; role?: UserRole; assigned_locales?: string[] },
-    ) => {
-      return User.parse(
-        await apiFetch(`/organizations/${orgId}/users`, { method: "POST", body }),
-      );
-    },
+    ): Promise<User> =>
+      _unwrap(createUserApiV1OrganizationsOrgIdUsersPost({ path: { org_id: orgId }, body })),
   },
   repositories: {
-    list: async (projectId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/repositories`);
-      return z.object({ items: z.array(Repository) }).parse(data).items;
-    },
-    get: async (projectId: string, repoId: string) => {
-      return Repository.parse(
-        await apiFetch(`/projects/${projectId}/repositories/${repoId}`),
-      );
-    },
+    list: async (projectId: string): Promise<Repository[]> =>
+      (await _unwrap(listRepositoriesApiV1ProjectsProjectIdRepositoriesGet({ path: { project_id: projectId } }))).items,
+    get: async (projectId: string, repoId: string): Promise<Repository> =>
+      _unwrap(
+        getRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGet({
+          path: { repo_id: repoId },
+        }),
+      ),
     create: async (
       projectId: string,
       body: {
@@ -645,14 +673,8 @@ export const api = {
         github_installation_id?: number | null;
         context_notes?: string | null;
       },
-    ) => {
-      return Repository.parse(
-        await apiFetch(`/projects/${projectId}/repositories`, {
-          method: "POST",
-          body,
-        }),
-      );
-    },
+    ): Promise<Repository> =>
+      _unwrap(createRepositoryApiV1ProjectsProjectIdRepositoriesPost({ path: { project_id: projectId }, body })),
     update: async (
       projectId: string,
       repoId: string,
@@ -666,42 +688,36 @@ export const api = {
         github_installation_id?: number | null;
         context_notes?: string | null;
       },
-    ) => {
-      return Repository.parse(
-        await apiFetch(`/projects/${projectId}/repositories/${repoId}`, {
-          method: "PATCH",
+    ): Promise<Repository> =>
+      _unwrap(
+        updateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatch({
+          path: { repo_id: repoId },
           body,
+        }),
+      ),
+    delete: async (projectId: string, repoId: string): Promise<void> => {
+      await _unwrap(
+        deleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDelete({
+          path: { repo_id: repoId },
         }),
       );
     },
-    delete: async (projectId: string, repoId: string) => {
-      await apiFetch<void>(`/projects/${projectId}/repositories/${repoId}`, {
-        method: "DELETE",
-      });
-    },
   },
   translations: {
-    listByBatch: async (projectId: string, batchId: string) => {
+    listByBatch: async (projectId: string, batchId: string): Promise<Translation[]> => {
       // The list endpoint requires project_id and paginates (page_size <= 200);
       // a screen batch can exceed 200 rows, so fetch every page and concatenate.
       const pageSize = 200;
       const all: Translation[] = [];
       for (let page = 1; ; page += 1) {
-        const params = new URLSearchParams({
-          project_id: projectId,
-          batch_id: batchId,
-          page: String(page),
-          page_size: String(pageSize),
-        });
-        const data = await apiFetch<{ items: unknown[]; total?: number }>(
-          `/translations?${params.toString()}`,
+        const data = await _unwrap(
+          listTranslationsApiV1TranslationsGet({
+            query: { project_id: projectId, batch_id: batchId, page, page_size: pageSize },
+          }),
         );
-        const parsed = z
-          .object({ items: z.array(Translation), total: z.number().optional() })
-          .parse(data);
-        all.push(...parsed.items);
-        const total = parsed.total ?? all.length;
-        if (parsed.items.length === 0 || all.length >= total) break;
+        all.push(...data.items);
+        const total = data.total ?? all.length;
+        if (data.items.length === 0 || all.length >= total) break;
       }
       return all;
     },
@@ -710,44 +726,42 @@ export const api = {
     listByProject: async (
       projectId: string,
       filter?: { status?: TranslationStatus; page?: number; pageSize?: number },
-    ) => {
-      const params = new URLSearchParams({ project_id: projectId });
-      if (filter?.status) params.set("status", filter.status);
-      params.set("page", String(filter?.page ?? 1));
-      params.set("page_size", String(filter?.pageSize ?? 100));
-      const data = await apiFetch<{ items: unknown[]; total?: number }>(
-        `/translations?${params.toString()}`,
-      );
-      return z
-        .object({ items: z.array(Translation), total: z.number().optional() })
-        .parse(data);
-    },
-    // List translations for a single key. Filters by project_id (the
-    // backend requires it) and key_id. Locale is omitted so we get every
-    // locale's row in one call — needed for the Key detail "Translations
-    // panel" (one row per locale).
-    listByKey: async (projectId: string, keyId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(
-        `/translations?project_id=${projectId}&key_id=${keyId}&page_size=200`,
-      );
-      return z.object({ items: z.array(Translation) }).parse(data).items;
-    },
+    ) =>
+      _unwrap(
+        listTranslationsApiV1TranslationsGet({
+          query: {
+            project_id: projectId,
+            status: filter?.status,
+            page: filter?.page ?? 1,
+            page_size: filter?.pageSize ?? 100,
+          },
+        }),
+      ),
+    // List translations for a single key (every locale's row in one call) —
+    // needed for the Key detail "Translations panel".
+    listByKey: async (projectId: string, keyId: string): Promise<Translation[]> =>
+      (
+        await _unwrap(
+          listTranslationsApiV1TranslationsGet({
+            query: { project_id: projectId, key_id: keyId, page_size: 200 },
+          }),
+        )
+      ).items,
     update: async (
       id: string,
       body: { value?: string | null; status?: TranslationStatus; reviewer_action?: string; reviewer_notes?: string },
-    ) => {
-      return Translation.parse(await apiFetch(`/translations/${id}`, { method: "PATCH", body }));
-    },
-    // Append-only history for a single translation. The route is a
-    // planned-but-not-yet-shipped endpoint (the table exists, the
-    // controller may not); the caller treats 404 as "no history feed
-    // yet" rather than an error.
+    ): Promise<Translation> =>
+      _unwrap(updateTranslationApiV1TranslationsTranslationIdPatch({ path: { translation_id: id }, body })),
+    // Append-only history for a single translation. 404 → "no history yet".
     history: async (translationId: string): Promise<TranslationHistoryEntry[]> => {
       try {
-        const data = await apiFetch<{ items: unknown[] }>(
-          `/translations/${translationId}/history`,
-        );
-        return z.object({ items: z.array(TranslationHistoryEntry) }).parse(data).items;
+        return (
+          await _unwrap(
+            getTranslationHistoryApiV1TranslationsTranslationIdHistoryGet({
+              path: { translation_id: translationId },
+            }),
+          )
+        ).items;
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) return [];
         throw err;
@@ -755,22 +769,27 @@ export const api = {
     },
   },
   batches: {
-    listByProject: async (projectId: string, filter?: { locale?: string; status?: string }) => {
-      const params = new URLSearchParams({ project_id: projectId });
-      if (filter?.locale) params.set("locale", filter.locale);
-      if (filter?.status) params.set("status", filter.status);
-      const data = await apiFetch<{ items: unknown[] }>(`/batches?${params.toString()}`);
-      return z.object({ items: z.array(TranslationBatch) }).parse(data).items;
-    },
-    get: async (id: string) => {
-      return TranslationBatch.parse(await apiFetch(`/batches/${id}`));
-    },
+    listByProject: async (projectId: string, filter?: { locale?: string; status?: string }): Promise<TranslationBatch[]> =>
+      (
+        await _unwrap(
+          listBatchesApiV1BatchesGet({
+            query: {
+              project_id: projectId,
+              locale: filter?.locale,
+              status: filter?.status as BatchStatus | undefined,
+            },
+          }),
+        )
+      ).items,
+    get: async (id: string): Promise<TranslationBatch> =>
+      _unwrap(getBatchApiV1BatchesBatchIdGet({ path: { batch_id: id } })),
     // MT runs for a batch — used by the Key detail "MT run inspector".
-    // Endpoint is planned; if absent we degrade to "no MT runs recorded".
+    // 404 → "no MT runs recorded".
     mtRuns: async (batchId: string): Promise<MtRun[]> => {
       try {
-        const data = await apiFetch<{ items: unknown[] }>(`/batches/${batchId}/mt-runs`);
-        return z.object({ items: z.array(MtRun) }).parse(data).items;
+        return (
+          await _unwrap(listMtRunsApiV1BatchesBatchIdMtRunsGet({ path: { batch_id: batchId } }))
+        ).items;
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) return [];
         throw err;
@@ -778,70 +797,61 @@ export const api = {
     },
     /**
      * Bulk-trigger MT for every batch in a project + locale matching
-     * `status` (default 'pending'). docs/15 F3: avoids the client-side
-     * fan-out the v1 plan considered. Returns counts; the MT worker
-     * dedupes idempotently so re-running this within the same second
-     * doesn't double-translate.
+     * `status` (default 'pending'). Returns counts; the MT worker dedupes.
      */
     triggerProjectMt: async (
       projectId: string,
       opts: { locale: string; status?: string },
-    ): Promise<{ queued: number; skipped: number }> => {
-      const params = new URLSearchParams({ locale: opts.locale });
-      if (opts.status) params.set("status", opts.status);
-      return await apiFetch(`/projects/${projectId}/trigger-mt?${params}`, {
-        method: "POST",
-      });
-    },
+    ): Promise<{ queued: number; skipped: number }> =>
+      _unwrap(
+        triggerProjectMtApiV1ProjectsProjectIdTriggerMtPost({
+          path: { project_id: projectId },
+          query: { locale: opts.locale, status: opts.status },
+        }),
+      ),
   },
   keys: {
-    listByIds: async (projectId: string, ids: string[]) => {
+    listByIds: async (projectId: string, ids: string[]): Promise<Key[]> => {
       if (ids.length === 0) return [];
-      // Backend requires project_id and caps page_size at 200; chunk the ids so
-      // the URL stays small and each chunk's matches come back in one page.
+      // Backend caps page_size at 200; chunk the ids so each chunk's matches
+      // come back in one page.
       const chunkSize = 200;
       const all: Key[] = [];
       for (let i = 0; i < ids.length; i += chunkSize) {
-        const params = new URLSearchParams({ project_id: projectId });
-        for (const id of ids.slice(i, i + chunkSize)) params.append("id", id);
-        params.set("page_size", String(chunkSize));
-        const data = await apiFetch<{ items: unknown[] }>(`/keys?${params.toString()}`);
-        all.push(...z.object({ items: z.array(Key) }).parse(data).items);
+        const data = await _unwrap(
+          listKeysApiV1KeysGet({
+            query: { project_id: projectId, id: ids.slice(i, i + chunkSize), page_size: chunkSize },
+          }),
+        );
+        all.push(...data.items);
       }
       return all;
     },
-    // Project-scoped list — used by the Keys index page. Backend supports
-    // page/page_size; we set a generous page_size for the table.
+    // Project-scoped list — used by the Keys index page.
     listByProject: async (
       projectId: string,
       opts?: { component?: string; page?: number; pageSize?: number },
-    ) => {
-      const params = new URLSearchParams({ project_id: projectId });
-      if (opts?.component) params.set("component", opts.component);
-      params.set("page", String(opts?.page ?? 1));
-      params.set("page_size", String(opts?.pageSize ?? 200));
-      const data = await apiFetch<{ items: unknown[]; total?: number }>(
-        `/keys?${params.toString()}`,
-      );
-      const parsed = z
-        .object({ items: z.array(Key), total: z.number().optional() })
-        .parse(data);
-      return parsed;
-    },
-    get: async (keyId: string): Promise<Key> => {
-      // The server returns the full key + translations under one envelope.
-      // We only need the Key fields for the header; translations are
-      // refetched via translations.listByKey so the cache key composition
-      // matches the rest of the UI.
-      const data = await apiFetch<Record<string, unknown>>(`/keys/${keyId}`);
-      return Key.parse(data);
-    },
-    // Screenshots for a key. Per docs/09:186 the upload SDK is Phase 7,
-    // so the endpoint may not exist yet — treat 404 as "no screenshots".
+    ) =>
+      _unwrap(
+        listKeysApiV1KeysGet({
+          query: {
+            project_id: projectId,
+            component: opts?.component,
+            page: opts?.page ?? 1,
+            page_size: opts?.pageSize ?? 200,
+          },
+        }),
+      ),
+    get: async (keyId: string): Promise<Key> =>
+      // The server returns the full key + translations under one envelope;
+      // KeyDetail extends KeyRead so the Key fields the header needs are present.
+      _unwrap(getKeyApiV1KeysKeyIdGet({ path: { key_id: keyId } })),
+    // Screenshots for a key. 404 → "no screenshots" (upload is Phase 7).
     screenshots: async (keyId: string): Promise<Screenshot[]> => {
       try {
-        const data = await apiFetch<{ items: unknown[] }>(`/keys/${keyId}/screenshots`);
-        return z.object({ items: z.array(Screenshot) }).parse(data).items;
+        return (
+          await _unwrap(listScreenshotsApiV1KeysKeyIdScreenshotsGet({ path: { key_id: keyId } }))
+        ).items;
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) return [];
         throw err;
@@ -926,16 +936,10 @@ export const api = {
       }
       return ImportPreviewResponse.parse(await res.json());
     },
-    commit: async (jobId: string): Promise<ImportCommitResponse> => {
-      return ImportCommitResponse.parse(
-        await apiFetch(`/imports/${jobId}/commit`, { method: "POST" }),
-      );
-    },
-    rollback: async (jobId: string): Promise<ImportRollbackResponse> => {
-      return ImportRollbackResponse.parse(
-        await apiFetch(`/imports/${jobId}/rollback`, { method: "POST" }),
-      );
-    },
+    commit: async (jobId: string): Promise<ImportCommitResponse> =>
+      _unwrap(postCommitApiV1ImportsJobIdCommitPost({ path: { job_id: jobId } })),
+    rollback: async (jobId: string): Promise<ImportRollbackResponse> =>
+      _unwrap(postRollbackApiV1ImportsJobIdRollbackPost({ path: { job_id: jobId } })),
   },
   // Migrated to the generated, Zod-validating SDK (§19/§20 Phase 3b probe).
   // Call sites are unchanged: same method names, same return shapes. The
@@ -986,15 +990,12 @@ export const api = {
     },
   },
   localeConfigs: {
-    list: async (projectId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/locale-configs`);
-      return z.object({ items: z.array(LocaleConfig) }).parse(data).items;
-    },
+    list: async (projectId: string) =>
+      (await _unwrap(listLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGet({ path: { project_id: projectId } }))).items,
     /**
      * Upsert a locale config. With `fan_out=true`, also seeds draft
-     * Translation rows for every active key in the project (idempotent) and
-     * flips `is_activated` on the config. Always returns 200 — see docs/15
-     * plan v2 for the state machine and why duplicate-Add is quiet, not 409.
+     * Translation rows for every active key (idempotent) and flips
+     * `is_activated`. See docs/15 plan v2 for the state machine.
      */
     create: async (
       projectId: string,
@@ -1006,15 +1007,14 @@ export const api = {
         is_bootstrapped?: boolean;
       },
       opts?: { fan_out?: boolean },
-    ) => {
-      const qs = opts?.fan_out ? "?fan_out=true" : "";
-      return LocaleConfigActivationResult.parse(
-        await apiFetch(`/projects/${projectId}/locale-configs${qs}`, {
-          method: "POST",
+    ) =>
+      _unwrap(
+        createLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPost({
+          path: { project_id: projectId },
+          query: { fan_out: opts?.fan_out },
           body,
         }),
-      );
-    },
+      ),
     update: async (
       projectId: string,
       configId: string,
@@ -1026,14 +1026,13 @@ export const api = {
         is_activated?: boolean;
         bootstrap_state?: BootstrapState | null;
       },
-    ) => {
-      return LocaleConfig.parse(
-        await apiFetch(`/projects/${projectId}/locale-configs/${configId}`, {
-          method: "PATCH",
+    ) =>
+      _unwrap(
+        updateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatch({
+          path: { project_id: projectId, config_id: configId },
           body,
         }),
-      );
-    },
+      ),
   },
   publications: {
     /**
@@ -1052,34 +1051,27 @@ export const api = {
      * — the server is durable so a dropped client connection doesn't lose
      * data; the message just tells the user to check GitHub.
      */
-    publishRepo: async (
-      repoId: string,
-      opts?: { locale?: string; signal?: AbortSignal },
-    ): Promise<{ status: string; pr_url: string | null; locale: string | null; detail?: string }> => {
-      const qs = opts?.locale ? `?locale=${encodeURIComponent(opts.locale)}` : "";
-      return await apiFetch(`/publications/repositories/${repoId}/publish${qs}`, {
-        method: "POST",
-        signal: opts?.signal,
-      });
-    },
+    publishRepo: async (repoId: string, opts?: { locale?: string; signal?: AbortSignal }) =>
+      _unwrap(
+        triggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPost({
+          path: { repo_id: repoId },
+          query: { locale: opts?.locale },
+          signal: opts?.signal,
+        }),
+      ),
   },
   appSettings: {
-    get: async (): Promise<AppSettings> => {
-      return AppSettings.parse(await apiFetch("/app-settings"));
-    },
-    update: async (body: AppSettingsUpdate): Promise<AppSettings> => {
-      return AppSettings.parse(
-        await apiFetch("/app-settings", { method: "PATCH", body }),
-      );
-    },
+    get: async () => _unwrap(getAppSettingsApiV1AppSettingsGet({})),
+    update: async (body: AppSettingsUpdate) =>
+      _unwrap(updateAppSettingsApiV1AppSettingsPatch({ body })),
   },
   componentContexts: {
-    list: async (repoId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(
-        `/repositories/${repoId}/component-contexts`,
-      );
-      return z.object({ items: z.array(ComponentContext) }).parse(data).items;
-    },
+    list: async (repoId: string) =>
+      (
+        await _unwrap(
+          listComponentContextsApiV1RepositoriesRepoIdComponentContextsGet({ path: { repo_id: repoId } }),
+        )
+      ).items,
     create: async (
       repoId: string,
       body: {
@@ -1090,14 +1082,10 @@ export const api = {
         default_max_length?: number | null;
         notes?: string | null;
       },
-    ) => {
-      return ComponentContext.parse(
-        await apiFetch(`/repositories/${repoId}/component-contexts`, {
-          method: "POST",
-          body,
-        }),
-      );
-    },
+    ) =>
+      _unwrap(
+        createComponentContextApiV1RepositoriesRepoIdComponentContextsPost({ path: { repo_id: repoId }, body }),
+      ),
     update: async (
       repoId: string,
       ctxId: string,
@@ -1109,13 +1097,12 @@ export const api = {
         default_max_length?: number | null;
         notes?: string | null;
       },
-    ) => {
-      return ComponentContext.parse(
-        await apiFetch(`/repositories/${repoId}/component-contexts/${ctxId}`, {
-          method: "PATCH",
+    ) =>
+      _unwrap(
+        updateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatch({
+          path: { repo_id: repoId, ctx_id: ctxId },
           body,
         }),
-      );
-    },
+      ),
   },
 };

@@ -24,6 +24,10 @@ class TranslationRead(BaseModel):
     qa_naturalness: int | None
     qa_consistency: int | None
     qa_accuracy: int | None
+    # qa_issue is on the model + rendered by the key-detail / batch-review pages;
+    # it was dropped from this serializer (same class as the M2 reviewer_notes
+    # gap). Surfaced by the Phase 3 client migration.
+    qa_issue: str | None = None
     reviewer_action: str | None
     reviewer_notes: str | None = None
     reviewed_at: datetime | None

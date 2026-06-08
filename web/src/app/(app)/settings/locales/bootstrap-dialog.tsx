@@ -531,7 +531,7 @@ function StepSend({
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const exportedAt = config.bootstrap_state?.exported_at;
+  const exportedAt = (config.bootstrap_state as BootstrapState | null)?.exported_at;
   const briefText = buildBrief(config.locale);
 
   const reexport = useMutation({

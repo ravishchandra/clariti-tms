@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 
 import httpx
 
+from app.llm.protocol import TokenUsage
 from app.mt.errors import TranslationError
 from app.mt.service import _RETRYABLE_HTTP_STATUS, _cost_from_usage, _is_retryable
 
@@ -79,3 +80,43 @@ class TestCostFromUsage:
         provider = self._provider(0.003, 0.015)
         cost = _cost_from_usage(provider, {"input_tokens": 1, "output_tokens": 0})
         assert cost == 0.000003
+
+
+class TestCostUsesRunningProviderRates:
+    """M5 — cost is computed from the provider that ACTUALLY ran, not a
+    module-level hardcode.
+
+    The pre-M5 bug was a single Sonnet rate applied to every provider. This
+    pins the fix: the SAME token counts run through two DIFFERENT real
+    providers must produce DIFFERENT ``cost_usd``.
+    """
+
+    def test_openai_and_anthropic_same_tokens_different_cost(self) -> None:
+        from unittest.mock import patch
+
+        from app.llm.providers.anthropic import AnthropicProvider
+        from app.llm.providers.openai import OpenAIProvider
+
+        with patch("app.llm.providers.anthropic.anthropic.AsyncAnthropic"):
+            anthropic_provider = AnthropicProvider(api_key="x")
+        with patch("app.llm.providers.openai.openai.AsyncOpenAI"):
+            openai_provider = OpenAIProvider(api_key="x")
+
+        usage: TokenUsage = {"input_tokens": 1000, "output_tokens": 500}
+        anthropic_cost = _cost_from_usage(anthropic_provider, usage)
+        openai_cost = _cost_from_usage(openai_provider, usage)
+
+        # Anthropic Opus 4.8: 1000 @ $0.005 + 500 @ $0.025 = 0.005 + 0.0125 = 0.0175
+        assert anthropic_cost == 0.0175
+        # OpenAI gpt-4o: 1000 @ $0.0025 + 500 @ $0.01 = 0.0025 + 0.005 = 0.0075
+        assert openai_cost == 0.0075
+        # The whole point of M5: same tokens, different provider → different cost.
+        assert anthropic_cost != openai_cost
+
+    def test_ollama_local_run_costs_zero_even_with_tokens(self) -> None:
+        from app.llm.providers.ollama import OllamaProvider
+
+        provider = OllamaProvider()
+        # Ollama reports real token counts but is local/unbilled → 0.0.
+        cost = _cost_from_usage(provider, {"input_tokens": 5000, "output_tokens": 2000})
+        assert cost == 0.0

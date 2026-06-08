@@ -158,7 +158,7 @@ A `RoutingContext` dataclass would document intent and make adding new
 routing rules safer.
 **Effort:** ~30 min.
 
-### M5 🟡 — LLM cost rates hardcoded
+### M5 🟢 — LLM cost rates hardcoded
 **Where:** `app/mt/service.py:74-75` — `_COST_PER_1K_INPUT = 0.003`,
 `_COST_PER_1K_OUTPUT = 0.015` (Sonnet pricing).
 **Why it matters:** Pricing changes. The hardcode applies to every provider,
@@ -168,6 +168,14 @@ the cost-monitoring queries documented in `CLAUDE.md:82-86`.
 **Fix shape:** add `price_per_1k_input` / `price_per_1k_output` properties
 to the `LLMProvider` Protocol; each provider returns its own rates. Move
 the constants out of `service.py`.
+**Fixed:** `LLMProvider` Protocol gained `price_per_1k_input` /
+`price_per_1k_output` float properties (base default 0.0); each provider
+returns its own published rate for its default model — Anthropic
+`claude-opus-4-8` 0.005/0.025, OpenAI `gpt-4o` 0.0025/0.01, Ollama 0.0/0.0
+(local), DeepL 0.0/0.0 (per-character), OpenRouter 0.0/0.0 (rate varies).
+The module-level constants are gone; `service.py` computes cost via
+`_cost_from_usage(provider, usage)` reading the running provider's rates,
+so a given run is priced by the provider that actually produced it.
 **Effort:** ~1 hr.
 
 ---

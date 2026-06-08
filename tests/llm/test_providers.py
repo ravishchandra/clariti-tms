@@ -453,3 +453,91 @@ class TestOpenRouterProvider:
 
         p = OpenRouterProvider(api_key="or-test")
         assert str(p._client.base_url).rstrip("/") == _BASE_URL.rstrip("/")
+
+
+# ---------------------------------------------------------------------------
+# M5 — per-provider USD pricing (price_per_1k_input / price_per_1k_output)
+# ---------------------------------------------------------------------------
+
+
+class TestProviderPricing:
+    """M5 — every provider exposes its OWN per-1K-token rates.
+
+    Before M5, ``service.py`` hardcoded Sonnet pricing and applied it to
+    every provider, so ``mt_runs.cost_usd`` was wrong for OpenAI / Ollama /
+    etc. These tests pin the published rate each concrete provider reports
+    for its default model. If a published rate changes, this is the test
+    that should fail and get updated alongside the provider class.
+
+    Rates verified against published pricing (2026-06):
+      * Anthropic default ``claude-opus-4-8`` — $5 / $25 per MTok.
+      * OpenAI default ``gpt-4o`` — $2.50 / $10 per MTok.
+      * Ollama — local, unbilled.
+      * DeepL — per-character, no per-token rate exposed.
+      * OpenRouter — rate varies per underlying model; unknown.
+    """
+
+    def test_anthropic_rates_match_opus_4_8(self) -> None:
+        with patch("app.llm.providers.anthropic.anthropic.AsyncAnthropic"):
+            provider = AnthropicProvider(api_key="test-key")
+        assert provider.price_per_1k_input == 0.005
+        assert provider.price_per_1k_output == 0.025
+
+    def test_openai_rates_match_gpt_4o(self) -> None:
+        with patch("app.llm.providers.openai.openai.AsyncOpenAI"):
+            provider = OpenAIProvider(api_key="test-key")
+        assert provider.price_per_1k_input == 0.0025
+        assert provider.price_per_1k_output == 0.01
+
+    def test_ollama_rates_are_zero_local_unbilled(self) -> None:
+        provider = OllamaProvider()
+        assert provider.price_per_1k_input == 0.0
+        assert provider.price_per_1k_output == 0.0
+
+    def test_deepl_rates_are_zero_per_character_billing(self) -> None:
+        from app.llm.providers.deepl import DeepLProvider
+
+        provider = DeepLProvider(api_key="dl-test")
+        assert provider.price_per_1k_input == 0.0
+        assert provider.price_per_1k_output == 0.0
+
+    def test_openrouter_rates_are_zero_rate_varies_per_model(self) -> None:
+        from app.llm.providers.openrouter import OpenRouterProvider
+
+        provider = OpenRouterProvider(api_key="or-test")
+        assert provider.price_per_1k_input == 0.0
+        assert provider.price_per_1k_output == 0.0
+
+    def test_rates_are_typed_float(self) -> None:
+        """Repo convention: pricing properties are typed ``float``."""
+        with patch("app.llm.providers.anthropic.anthropic.AsyncAnthropic"):
+            provider = AnthropicProvider(api_key="test-key")
+        assert isinstance(provider.price_per_1k_input, float)
+        assert isinstance(provider.price_per_1k_output, float)
+
+    def test_every_provider_satisfies_pricing_protocol(self) -> None:
+        """All concrete providers structurally satisfy ``LLMProvider``.
+
+        ``LLMProvider`` is ``@runtime_checkable``, so this catches any
+        provider that forgets the M5 pricing members (mypy would also fail,
+        but this guards the runtime contract too).
+        """
+        from app.llm.protocol import LLMProvider
+        from app.llm.providers.deepl import DeepLProvider
+        from app.llm.providers.openrouter import OpenRouterProvider
+
+        with (
+            patch("app.llm.providers.anthropic.anthropic.AsyncAnthropic"),
+            patch("app.llm.providers.openai.openai.AsyncOpenAI"),
+        ):
+            providers = [
+                AnthropicProvider(api_key="x"),
+                OpenAIProvider(api_key="x"),
+                OllamaProvider(),
+                DeepLProvider(api_key="x"),
+                OpenRouterProvider(api_key="x"),
+            ]
+        for p in providers:
+            assert isinstance(p, LLMProvider), p.provider_name
+            assert isinstance(p.price_per_1k_input, float), p.provider_name
+            assert isinstance(p.price_per_1k_output, float), p.provider_name

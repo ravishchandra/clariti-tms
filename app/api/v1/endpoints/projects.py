@@ -10,6 +10,13 @@ from app.api.v1.schemas.projects import ProjectCreate, ProjectRead, ProjectUpdat
 from app.models import Project
 
 router = APIRouter()
+# Project-detail routes (get/update/delete) address a project by id alone:
+# ScopedProject resolves it via the caller's API-key org, so the old {org_id}
+# path segment was decorative — and it produced a dead literal `{org_id}` in
+# the generated client (the handler never declared it as a param). These mount
+# at /projects/{project_id}, consistent with the sibling /projects/{id}/...
+# resources. Create + list stay org-scoped on `router` below.
+detail_router = APIRouter()
 
 
 @router.post("/{org_id}/projects", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
@@ -43,16 +50,12 @@ async def list_projects(db: DB, org: ScopedOrganization) -> dict:
     return {"items": [ProjectRead.model_validate(p) for p in projects], "total": total}
 
 
-# NB: ScopedProject already restricts to the caller's org by JOIN against
-# Project.organization_id. The {org_id} path segment is therefore only a
-# routing convenience — if it doesn't match the project's actual org the
-# scoped helper returns 404.
-@router.get("/{org_id}/projects/{project_id}", response_model=ProjectRead)
+@detail_router.get("/{project_id}", response_model=ProjectRead)
 async def get_project(project: ScopedProject, _: CurrentKey) -> ProjectRead:
     return ProjectRead.model_validate(project)
 
 
-@router.patch("/{org_id}/projects/{project_id}", response_model=ProjectRead)
+@detail_router.patch("/{project_id}", response_model=ProjectRead)
 async def update_project(body: ProjectUpdate, db: DB, project: ScopedProject) -> ProjectRead:
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(project, field, value)
@@ -65,7 +68,7 @@ async def update_project(body: ProjectUpdate, db: DB, project: ScopedProject) ->
     return ProjectRead.model_validate(project)
 
 
-@router.delete("/{org_id}/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+@detail_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(db: DB, project: ScopedProject) -> None:
     await db.delete(project)
     await db.flush()

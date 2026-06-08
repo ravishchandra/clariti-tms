@@ -1185,35 +1185,6 @@ export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostPath = z.object({
  */
 export const zCreateProjectApiV1OrganizationsOrgIdProjectsPostResponse = zProjectRead;
 
-export const zDeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeletePath = z.object({
-    project_id: z.uuid()
-});
-
-/**
- * Successful Response
- */
-export const zDeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponse = z.void();
-
-export const zGetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetPath = z.object({
-    project_id: z.uuid()
-});
-
-/**
- * Successful Response
- */
-export const zGetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponse = zProjectRead;
-
-export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchBody = zProjectUpdate;
-
-export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchPath = z.object({
-    project_id: z.uuid()
-});
-
-/**
- * Successful Response
- */
-export const zUpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponse = zProjectRead;
-
 export const zListUsersApiV1OrganizationsOrgIdUsersGetPath = z.object({
     org_id: z.uuid()
 });
@@ -1242,6 +1213,35 @@ export const zGetLocaleApiV1OtaProjectSlugLocaleJsonGetPath = z.object({
 export const zGetLocaleApiV1OtaProjectSlugLocaleJsonGetQuery = z.object({
     platform: z.literal('ios').nullish()
 });
+
+export const zDeleteProjectApiV1ProjectsProjectIdDeletePath = z.object({
+    project_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDeleteProjectApiV1ProjectsProjectIdDeleteResponse = z.void();
+
+export const zGetProjectApiV1ProjectsProjectIdGetPath = z.object({
+    project_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zGetProjectApiV1ProjectsProjectIdGetResponse = zProjectRead;
+
+export const zUpdateProjectApiV1ProjectsProjectIdPatchBody = zProjectUpdate;
+
+export const zUpdateProjectApiV1ProjectsProjectIdPatchPath = z.object({
+    project_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zUpdateProjectApiV1ProjectsProjectIdPatchResponse = zProjectRead;
 
 export const zListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetPath = z.object({
     project_id: z.uuid()

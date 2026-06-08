@@ -63,6 +63,12 @@ Thumbs.db
 sdks/typescript/
 sdks/python/
 
+# Dart SDK (sdks/dart/) is hand-authored and committed, but its build
+# artifacts are not. pubspec.lock is intentionally not committed for a library.
+sdks/dart/.dart_tool/
+sdks/dart/pubspec.lock
+sdks/dart/.packages
+
 # gstack / design-review tooling output (local audit artifacts, screenshots)
 .gstack/
 .gstack-audit/

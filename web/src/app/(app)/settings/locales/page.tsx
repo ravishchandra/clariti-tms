@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, api, getApiKey, useApiKey, type LocaleConfig, type Project } from "@/lib/api";
+import { ApiError, api, getApiKey, useApiKey, type BootstrapState, type LocaleConfig, type Project } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -326,7 +326,7 @@ function LocaleStateAction({
           className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-status-bootstrapping/15 text-status-bootstrapping border border-status-bootstrapping/30 hover:bg-status-bootstrapping/25 transition-colors"
         >
           <span className="size-1.5 rounded-full bg-status-bootstrapping animate-pulse" />
-          Step {config.bootstrap_state.step} / 4
+          Step {(config.bootstrap_state as BootstrapState).step} / 4
           <ArrowRight className="size-3" />
         </button>
         <BootstrapDialog

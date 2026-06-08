@@ -1,12 +1,14 @@
 import { cn } from "@/lib/utils";
-import type { TranslationStatus } from "@/lib/api";
 
 /**
  * Status chip — compact pill, 6px horizontal, 3px vertical, text-xs.
  * Filled background at ~20% opacity of the status color (DESIGN.md
  * "Status chips"). No icons inside — text only.
+ *
+ * `status` is a plain string (the generated API contract types statuses as
+ * string); unknown values fall back to neutral styling + the raw value.
  */
-type Variant = TranslationStatus | "mt_proposed" | "draft";
+type Variant = "draft" | "mt_proposed" | "needs_review" | "needs_more_context" | "approved" | "rejected" | "published";
 
 const STYLE_BY_STATUS: Record<Variant, string> = {
   // The token names come from globals.css — see docs/DESIGN.md "Color tokens".
@@ -29,15 +31,19 @@ const LABEL: Record<Variant, string> = {
   published: "published",
 };
 
+const _DEFAULT_STYLE = "text-status-draft bg-status-draft/15";
+
 export function StatusChip({
   status,
   count,
   className,
 }: {
-  status: Variant;
+  status: string;
   count?: number;
   className?: string;
 }) {
+  const style = STYLE_BY_STATUS[status as Variant] ?? _DEFAULT_STYLE;
+  const label = LABEL[status as Variant] ?? status.replace(/_/g, " ");
   // Mono-styled status chip — picks up the marketing site's editorial label
   // language (font-mono, 10.5px, uppercase, tracking-wide). The 15% tinted
   // background keeps the existing status colour coding so reviewers can
@@ -46,11 +52,11 @@ export function StatusChip({
     <span
       className={cn(
         "inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md font-mono text-[10.5px] uppercase tracking-[0.06em] leading-none whitespace-nowrap",
-        STYLE_BY_STATUS[status],
+        style,
         className,
       )}
     >
-      <span>{LABEL[status]}</span>
+      <span>{label}</span>
       {count !== undefined ? (
         <span className="text-text-muted">{count}</span>
       ) : null}

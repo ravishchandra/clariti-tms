@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB, ScopedLocaleConfig, ScopedProject
+from app.api.v1.schemas.common import ListResponse
 from app.api.v1.schemas.locale_configs import (
     LocaleConfigActivationResult,
     LocaleConfigCreate,
@@ -119,7 +120,11 @@ async def create_locale_config(
     )
 
 
-@router.get("/{project_id}/locale-configs", response_model=dict)
+@router.get(
+    "/{project_id}/locale-configs",
+    response_model=ListResponse[LocaleConfigRead],
+    response_model_by_alias=True,
+)
 async def list_locale_configs(db: DB, project: ScopedProject) -> dict:
     total_result = await db.execute(
         select(func.count()).select_from(LocaleConfig).where(LocaleConfig.project_id == project.id)
@@ -129,9 +134,9 @@ async def list_locale_configs(db: DB, project: ScopedProject) -> dict:
         select(LocaleConfig).where(LocaleConfig.project_id == project.id).order_by(LocaleConfig.locale)
     )
     configs = result.scalars().all()
-    # `by_alias=True` keeps the JSON field as `register` per L2 alias contract.
+    # response_model_by_alias keeps the JSON field as `register` per L2 alias contract.
     return {
-        "items": [LocaleConfigRead.model_validate(lc).model_dump(by_alias=True) for lc in configs],
+        "items": [LocaleConfigRead.model_validate(lc) for lc in configs],
         "total": total,
     }
 

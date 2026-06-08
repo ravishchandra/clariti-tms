@@ -2028,6 +2028,33 @@
         "title": "ListResponse[KeyRead]",
         "type": "object"
       },
+      "ListResponse_LocaleConfigRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LocaleConfigRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ListResponse[LocaleConfigRead]",
+        "type": "object"
+      },
       "ListResponse_MtRunRead_": {
         "properties": {
           "items": {
@@ -3663,6 +3690,17 @@
               }
             ],
             "title": "Qa Consistency"
+          },
+          "qa_issue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qa Issue"
           },
           "qa_naturalness": {
             "anyOf": [
@@ -6031,9 +6069,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Locale Configs Api V1 Projects  Project Id  Locale Configs Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ListResponse_LocaleConfigRead_"
                 }
               }
             },

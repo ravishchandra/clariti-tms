@@ -493,6 +493,14 @@ export const zLocaleConfigRead = z.object({
 });
 
 /**
+ * ListResponse[LocaleConfigRead]
+ */
+export const zListResponseLocaleConfigRead = z.object({
+    items: z.array(zLocaleConfigRead),
+    total: z.int().nullish()
+});
+
+/**
  * LocaleConfigActivationResult
  *
  * Response shape for `POST /locale-configs?fan_out=true`.
@@ -806,6 +814,7 @@ export const zTranslationRead = z.object({
     mt_value: z.string().nullable(),
     qa_accuracy: z.int().nullable(),
     qa_consistency: z.int().nullable(),
+    qa_issue: z.string().nullish(),
     qa_naturalness: z.int().nullable(),
     reviewed_at: z.iso.datetime().nullable(),
     reviewer_action: z.string().nullable(),
@@ -1291,11 +1300,9 @@ export const zListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetPath = z.ob
 });
 
 /**
- * Response List Locale Configs Api V1 Projects  Project Id  Locale Configs Get
- *
  * Successful Response
  */
-export const zListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponse = z.record(z.string(), z.unknown());
+export const zListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponse = zListResponseLocaleConfigRead;
 
 export const zCreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostBody = zLocaleConfigCreate;
 

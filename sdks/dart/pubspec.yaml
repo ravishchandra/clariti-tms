@@ -1,0 +1,19 @@
+name: clariti_tms_ota
+description: >-
+  Official Dart/Flutter client for the ClaritiTMS OTA (over-the-air) locale
+  delivery endpoint. Fetches published translations with ETag caching and a
+  bundled-file fallback, so a localized app degrades gracefully offline.
+version: 0.1.0
+repository: https://github.com/ravishchandra/clariti-tms
+homepage: https://github.com/ravishchandra/clariti-tms/tree/main/sdks/dart
+# Server is AGPL-3.0; this client ships under the same license (see LICENSE).
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  http: ">=1.0.0 <2.0.0"
+  shared_preferences: ">=2.0.0 <3.0.0"
+
+dev_dependencies:
+  lints: ">=3.0.0 <6.0.0"

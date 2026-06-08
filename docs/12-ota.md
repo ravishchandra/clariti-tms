@@ -291,6 +291,42 @@ object ClaritiTMSOTA {
 }
 ```
 
+## Flutter SDK (~130 LOC Dart)
+
+Unlike the iOS/Android sketches above, the Flutter client ships as a real,
+analyzable package in [`sdks/dart/`](../sdks/dart/) (`clariti_tms_ota`) — drop
+it into a Flutter app via a git/path dependency (see that package's README).
+Same contract: ETag caching via `shared_preferences`, bundled-file fallback on
+304/404/5xx/network/parse error, never throws for the expected failure modes.
+
+Usage at app launch (before `runApp`):
+
+```dart
+import 'package:clariti_tms_ota/clariti_tms_ota.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final overrides = await ClaritiTMSOTA.fetchLocale(
+    baseUrl: Uri.parse('https://cdn.example.com'),
+    project: 'clariti-app',
+    locale: PlatformDispatcher.instance.locale.toLanguageTag(), // "fr-FR"
+    bundledFallback: () async => await loadBundledArb('app_en.arb'),
+  );
+
+  runApp(MyApp(otaOverrides: overrides));
+}
+```
+
+**Reaching widget render is the part integrators miss.** The standard Flutter
+i18n toolchain (`flutter gen-l10n` + `AppLocalizations`) is property-keyed at
+runtime, while the OTA payload is a flat `Map<String, String>`. Getting the
+override map into widget `Text()` calls needs a `LocalizationsDelegate` wired
+into `MaterialApp.router(builder:)` — a working Riverpod provider that produces
+the overrides is necessary but **not sufficient**. The full recipe (overlay
+codegen + delegate injection) is the Flutter integrator's job today; a
+reference quickstart is tracked as a follow-up.
+
 ## Versioning policy
 
 * Locale files are **immutable per ETag**. A given ETag identifies one

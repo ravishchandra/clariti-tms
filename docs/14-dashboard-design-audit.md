@@ -2,6 +2,29 @@
 
 > Audit only. No code changes. A separate visual-refresh agent owns tokens, fonts, button and card styles in `web/`. This document is about IA, workflows, and what's missing — not pixels.
 
+> **Status update (2026-06-08).** Most of this audit has since shipped — the
+> sections below are kept as the historical record, but read this banner first.
+>
+> **Shipped since the audit (verified on `main`):**
+> - **Settings shell + tabs** (W2): `/settings/{project,repositories,locales,data,providers,users,api-keys}` all exist. The "no admin surface at all" finding in §1 is no longer true.
+> - **Project switcher + sidebar v2** (W1): `ProjectSwitcher` shipped; the `projects[0]` hard-coding called out in §6.2 is gone (0 files). Sidebar locale rows now show queue-count chips (§6.3).
+> - **Flagged inbox** (W5): `/flagged` exists.
+> - **Excel placement** (W4): `/settings/data` hub + `Export`/`Import` secondary buttons on `/review/[locale]` (export passes the locale, fixing the §6.4 context-loss).
+> - **`/locales`** is now a redirect to `/settings/locales`.
+> - **Providers** (W6) and the **bootstrap wizard** (W5) shipped.
+> - **M5** (per-provider LLM cost rates, `docs/11`) is implemented + now regression-tested.
+>
+> **Fixed in this change:** `/settings/contexts` — the `component_contexts`
+> editor (the *primary* MT input per CLAUDE.md) had been left as an orphaned
+> top-level `/contexts` page with **zero** nav links, i.e. unreachable. It now
+> lives under `Settings → Contexts` (repo-scoped, per IA v2 §8) with a redirect
+> at the old path.
+>
+> **Genuinely still open:**
+> 1. **Analytics page** — still missing (§9 tab 8, W6, `docs/06:60`): MT cost, edit rate, fallback rate. Cleanest remaining gap; cost data is accurate now that M5 landed.
+> 2. **In-page reviewer depth** (§3, `docs/06`): bulk-approve in the queue, `needs_more_context` note popover, three-way "source changed" diff, screenshot panel in batch review, glossary CSV import, TMX export.
+> 3. The **open product questions** in §11 still block Users/invites + SSO depth.
+
 ## 1. Executive summary
 
 The shipped dashboard is a clean, focused **reviewer cockpit** — the queue surface, screen-batch review, glossary, locale-config editor, contexts editor, keys browser, and Excel round-trip all exist and largely match the spec in `docs/06`. The single biggest gap is that the dashboard has **no admin surface at all**: every flow that creates, mutates, or configures the things the reviewer is reviewing (projects, repositories, target locales, API keys, users, LLM providers, GitHub App install ids, bootstrap walkthrough) requires the CLI or raw SQL. As soon as a non-developer admin shows up, the product breaks. The IA itself is also wrong in two specific places: `Locales`, `Contexts`, `Imports`, `Exports`, and `Keys` are top-level peers of `Glossary` even though four of them are project-scoped and three of them are repository-scoped — they belong inside a project-settings or project-tools tree, not in the global nav. Fix those two things (admin flows + IA collapse into `Settings`) and the dashboard becomes shippable to a non-developer admin.

@@ -26,6 +26,36 @@ jobs:
         env:
           DEBUG: "true"
 
+  web-client:
+    name: Web client up to date
+    runs-on: ubuntu-latest
+    # The generated, Zod-validating web API client (web/src/client/) must match
+    # the live OpenAPI spec. Regenerate spec + client and fail on any diff — the
+    # frontend half of the §19/§20 drift guard (Phase 3). If this fails: run
+    # `python scripts/dump_openapi.py && (cd web && pnpm gen:client)` and commit.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm --dir web install --frozen-lockfile
+      - name: Regenerate spec + client
+        run: |
+          python scripts/dump_openapi.py
+          pnpm --dir web gen:client
+        env:
+          DEBUG: "true"
+      - name: Fail if spec or client drifted
+        run: git diff --exit-code -- sdk-gen/openapi.json web/src/client
+
   test:
     name: Tests
     runs-on: ubuntu-latest

@@ -1,6 +1,153 @@
 {
   "components": {
     "schemas": {
+      "AnalyticsSummary": {
+        "description": "Aggregate metrics for one project over a trailing window.\n\nWindowing differs per section by design:\n  - cost / throughput: ``mt_runs.ran_at`` >= cutoff\n  - edit rate:         ``translations.reviewed_at`` >= cutoff\n  - QA averages:       ``translations.mt_run_at`` >= cutoff\n  - ``status_counts``: NOT windowed \u2014 it's the project's current queue\n    composition (a live snapshot), so a time filter would be misleading.",
+        "properties": {
+          "accept_count": {
+            "title": "Accept Count",
+            "type": "integer"
+          },
+          "avg_back_translation_similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Back Translation Similarity"
+          },
+          "avg_latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Latency Ms"
+          },
+          "avg_qa_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Qa Accuracy"
+          },
+          "avg_qa_consistency": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Qa Consistency"
+          },
+          "avg_qa_naturalness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Qa Naturalness"
+          },
+          "cost_by_model": {
+            "items": {
+              "$ref": "#/components/schemas/CostByModel"
+            },
+            "title": "Cost By Model",
+            "type": "array"
+          },
+          "edit_count": {
+            "title": "Edit Count",
+            "type": "integer"
+          },
+          "edit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Rate"
+          },
+          "needs_more_context_count": {
+            "title": "Needs More Context Count",
+            "type": "integer"
+          },
+          "reject_count": {
+            "title": "Reject Count",
+            "type": "integer"
+          },
+          "reviewed_count": {
+            "title": "Reviewed Count",
+            "type": "integer"
+          },
+          "status_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Status Counts",
+            "type": "object"
+          },
+          "total_cost_usd": {
+            "title": "Total Cost Usd",
+            "type": "number"
+          },
+          "total_input_tokens": {
+            "title": "Total Input Tokens",
+            "type": "integer"
+          },
+          "total_output_tokens": {
+            "title": "Total Output Tokens",
+            "type": "integer"
+          },
+          "total_runs": {
+            "title": "Total Runs",
+            "type": "integer"
+          },
+          "window_days": {
+            "title": "Window Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "window_days",
+          "total_cost_usd",
+          "total_runs",
+          "total_input_tokens",
+          "total_output_tokens",
+          "avg_latency_ms",
+          "cost_by_model",
+          "reviewed_count",
+          "edit_count",
+          "accept_count",
+          "reject_count",
+          "needs_more_context_count",
+          "edit_rate",
+          "avg_qa_naturalness",
+          "avg_qa_consistency",
+          "avg_qa_accuracy",
+          "avg_back_translation_similarity",
+          "status_counts"
+        ],
+        "title": "AnalyticsSummary",
+        "type": "object"
+      },
       "ApiKeyCreate": {
         "description": "Payload for `POST /api-keys`.\n\nNote: the new key always inherits the calling key's organization. The\ncallable does not accept an `org_id` field \u2014 any such field in the body\nis ignored, not honored, to prevent cross-tenant privilege escalation.",
         "properties": {
@@ -922,6 +1069,40 @@
           }
         },
         "title": "ComponentContextUpdate",
+        "type": "object"
+      },
+      "CostByModel": {
+        "description": "One row of the cost-by-model breakdown (mirrors the CLAUDE.md cost query).",
+        "properties": {
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "model",
+          "runs",
+          "cost_usd",
+          "input_tokens",
+          "output_tokens"
+        ],
+        "title": "CostByModel",
         "type": "object"
       },
       "ExportCreate": {
@@ -5769,6 +5950,69 @@
         "summary": "Update Project",
         "tags": [
           "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/analytics": {
+      "get": {
+        "description": "Aggregate MT cost, edit rate, and QA quality for a project.",
+        "operationId": "get_project_analytics_api_v1_projects__project_id__analytics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Trailing window in days for cost, edit-rate, and QA metrics. status_counts is always current-state and ignores this.",
+            "in": "query",
+            "name": "window_days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "description": "Trailing window in days for cost, edit-rate, and QA metrics. status_counts is always current-state and ignores this.",
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Window Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Project Analytics",
+        "tags": [
+          "Analytics"
         ]
       }
     },

@@ -39,6 +39,7 @@ import {
   getAppSettingsApiV1AppSettingsGet,
   getBatchApiV1BatchesBatchIdGet,
   getKeyApiV1KeysKeyIdGet,
+  getProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGet,
   getProjectApiV1ProjectsProjectIdGet,
   getRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGet,
   getTranslationHistoryApiV1TranslationsTranslationIdHistoryGet,
@@ -68,7 +69,14 @@ import {
   updateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatch,
   updateTranslationApiV1TranslationsTranslationIdPatch,
 } from "@/client/sdk.gen";
-import type { BatchStatus, KeyRead, LocaleConfigRead, TranslationRead } from "@/client/types.gen";
+import type {
+  AnalyticsSummary,
+  BatchStatus,
+  CostByModel,
+  KeyRead,
+  LocaleConfigRead,
+  TranslationRead,
+} from "@/client/types.gen";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 const API_KEY_STORAGE_KEY = "clariti.api_key";
@@ -442,6 +450,11 @@ export const LocaleConfigActivationResult = z.object({
   already_existed: z.boolean(),
 });
 export type LocaleConfigActivationResult = z.infer<typeof LocaleConfigActivationResult>;
+
+// Analytics summary (Settings → Analytics) — the generated contract types
+// (from app/api/v1/schemas/analytics.py); `api.analytics.get` below validates
+// the response via the generated client, same as every other group.
+export type { AnalyticsSummary, CostByModel };
 
 /* ---------------------------------------------------------------------------
  * App Settings — singleton row backing Settings → Providers.
@@ -1108,6 +1121,15 @@ export const api = {
         updateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatch({
           path: { repo_id: repoId, ctx_id: ctxId },
           body,
+        }),
+      ),
+  },
+  analytics: {
+    get: async (projectId: string, windowDays?: number): Promise<AnalyticsSummary> =>
+      _unwrap(
+        getProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGet({
+          path: { project_id: projectId },
+          query: { window_days: windowDays },
         }),
       ),
   },

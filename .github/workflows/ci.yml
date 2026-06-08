@@ -41,6 +41,8 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - uses: pnpm/action-setup@v4
+        with:
+          version: "10.14.0"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

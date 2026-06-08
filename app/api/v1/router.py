@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.api_keys import router as api_keys_router
 from app.api.v1.endpoints.app_settings import router as app_settings_router
 from app.api.v1.endpoints.component_contexts import router as component_contexts_router
@@ -28,6 +29,7 @@ router.include_router(repositories_router, prefix="/projects", tags=["Repositori
 router.include_router(locale_configs_router, prefix="/projects", tags=["Locale Configs"])
 router.include_router(component_contexts_router, prefix="/repositories", tags=["Component Contexts"])
 router.include_router(glossary_router, prefix="/projects", tags=["Glossary"])
+router.include_router(analytics_router, prefix="/projects", tags=["Analytics"])
 
 # Parallel agent routers — optional imports so the app starts without them.
 try:

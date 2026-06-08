@@ -240,6 +240,52 @@ export const zComponentContextUpdate = z.object({
 });
 
 /**
+ * CostByModel
+ *
+ * One row of the cost-by-model breakdown (mirrors the CLAUDE.md cost query).
+ */
+export const zCostByModel = z.object({
+    cost_usd: z.number(),
+    input_tokens: z.int(),
+    model: z.string(),
+    output_tokens: z.int(),
+    runs: z.int()
+});
+
+/**
+ * AnalyticsSummary
+ *
+ * Aggregate metrics for one project over a trailing window.
+ *
+ * Windowing differs per section by design:
+ * - cost / throughput: ``mt_runs.ran_at`` >= cutoff
+ * - edit rate:         ``translations.reviewed_at`` >= cutoff
+ * - QA averages:       ``translations.mt_run_at`` >= cutoff
+ * - ``status_counts``: NOT windowed — it's the project's current queue
+ * composition (a live snapshot), so a time filter would be misleading.
+ */
+export const zAnalyticsSummary = z.object({
+    accept_count: z.int(),
+    avg_back_translation_similarity: z.number().nullable(),
+    avg_latency_ms: z.number().nullable(),
+    avg_qa_accuracy: z.number().nullable(),
+    avg_qa_consistency: z.number().nullable(),
+    avg_qa_naturalness: z.number().nullable(),
+    cost_by_model: z.array(zCostByModel),
+    edit_count: z.int(),
+    edit_rate: z.number().nullable(),
+    needs_more_context_count: z.int(),
+    reject_count: z.int(),
+    reviewed_count: z.int(),
+    status_counts: z.record(z.string(), z.int()),
+    total_cost_usd: z.number(),
+    total_input_tokens: z.int(),
+    total_output_tokens: z.int(),
+    total_runs: z.int(),
+    window_days: z.int()
+});
+
+/**
  * ExportCreate
  */
 export const zExportCreate = z.object({
@@ -1242,6 +1288,19 @@ export const zUpdateProjectApiV1ProjectsProjectIdPatchPath = z.object({
  * Successful Response
  */
 export const zUpdateProjectApiV1ProjectsProjectIdPatchResponse = zProjectRead;
+
+export const zGetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetPath = z.object({
+    project_id: z.uuid()
+});
+
+export const zGetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetQuery = z.object({
+    window_days: z.int().gte(1).lte(365).optional().default(30)
+});
+
+/**
+ * Successful Response
+ */
+export const zGetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetResponse = zAnalyticsSummary;
 
 export const zListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetPath = z.object({
     project_id: z.uuid()

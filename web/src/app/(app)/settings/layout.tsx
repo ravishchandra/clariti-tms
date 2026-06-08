@@ -14,6 +14,7 @@ const TABS = [
   { href: "/settings/providers", label: "Providers" },
   { href: "/settings/users", label: "Users" },
   { href: "/settings/api-keys", label: "API keys" },
+  { href: "/settings/analytics", label: "Analytics" },
 ] as const;
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

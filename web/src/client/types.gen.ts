@@ -5,6 +5,95 @@ export type ClientOptions = {
 };
 
 /**
+ * AnalyticsSummary
+ *
+ * Aggregate metrics for one project over a trailing window.
+ *
+ * Windowing differs per section by design:
+ * - cost / throughput: ``mt_runs.ran_at`` >= cutoff
+ * - edit rate:         ``translations.reviewed_at`` >= cutoff
+ * - QA averages:       ``translations.mt_run_at`` >= cutoff
+ * - ``status_counts``: NOT windowed — it's the project's current queue
+ * composition (a live snapshot), so a time filter would be misleading.
+ */
+export type AnalyticsSummary = {
+    /**
+     * Accept Count
+     */
+    accept_count: number;
+    /**
+     * Avg Back Translation Similarity
+     */
+    avg_back_translation_similarity: number | null;
+    /**
+     * Avg Latency Ms
+     */
+    avg_latency_ms: number | null;
+    /**
+     * Avg Qa Accuracy
+     */
+    avg_qa_accuracy: number | null;
+    /**
+     * Avg Qa Consistency
+     */
+    avg_qa_consistency: number | null;
+    /**
+     * Avg Qa Naturalness
+     */
+    avg_qa_naturalness: number | null;
+    /**
+     * Cost By Model
+     */
+    cost_by_model: Array<CostByModel>;
+    /**
+     * Edit Count
+     */
+    edit_count: number;
+    /**
+     * Edit Rate
+     */
+    edit_rate: number | null;
+    /**
+     * Needs More Context Count
+     */
+    needs_more_context_count: number;
+    /**
+     * Reject Count
+     */
+    reject_count: number;
+    /**
+     * Reviewed Count
+     */
+    reviewed_count: number;
+    /**
+     * Status Counts
+     */
+    status_counts: {
+        [key: string]: number;
+    };
+    /**
+     * Total Cost Usd
+     */
+    total_cost_usd: number;
+    /**
+     * Total Input Tokens
+     */
+    total_input_tokens: number;
+    /**
+     * Total Output Tokens
+     */
+    total_output_tokens: number;
+    /**
+     * Total Runs
+     */
+    total_runs: number;
+    /**
+     * Window Days
+     */
+    window_days: number;
+};
+
+/**
  * ApiKeyCreate
  *
  * Payload for `POST /api-keys`.
@@ -534,6 +623,34 @@ export type ComponentContextUpdate = {
      * Screen
      */
     screen?: string | null;
+};
+
+/**
+ * CostByModel
+ *
+ * One row of the cost-by-model breakdown (mirrors the CLAUDE.md cost query).
+ */
+export type CostByModel = {
+    /**
+     * Cost Usd
+     */
+    cost_usd: number;
+    /**
+     * Input Tokens
+     */
+    input_tokens: number;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Output Tokens
+     */
+    output_tokens: number;
+    /**
+     * Runs
+     */
+    runs: number;
 };
 
 /**
@@ -3191,6 +3308,43 @@ export type UpdateProjectApiV1ProjectsProjectIdPatchResponses = {
 };
 
 export type UpdateProjectApiV1ProjectsProjectIdPatchResponse = UpdateProjectApiV1ProjectsProjectIdPatchResponses[keyof UpdateProjectApiV1ProjectsProjectIdPatchResponses];
+
+export type GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: {
+        /**
+         * Window Days
+         *
+         * Trailing window in days for cost, edit-rate, and QA metrics. status_counts is always current-state and ignores this.
+         */
+        window_days?: number;
+    };
+    url: '/api/v1/projects/{project_id}/analytics';
+};
+
+export type GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetError = GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetErrors[keyof GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetErrors];
+
+export type GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AnalyticsSummary;
+};
+
+export type GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetResponse = GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetResponses[keyof GetProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGetResponses];
 
 export type ListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetData = {
     body?: never;

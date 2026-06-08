@@ -123,6 +123,11 @@ def init(
         default="A professional mobile and web application.",
     )
 
+    # Org / project slugs — optional. They route `loc ingest-file` to the right
+    # tenant; leave blank for single-tenant / local-dev (auto-resolved).
+    org_slug = typer.prompt("Organization slug (optional, blank to auto-resolve)", default="").strip()
+    project_slug = typer.prompt("Project slug (optional, blank to auto-resolve)", default="").strip()
+
     config = {
         "repo": repo_name,
         "platform": platform,
@@ -131,6 +136,8 @@ def init(
         "target_locales": target_locales,
         "server": server_url,
         "domain_description": domain,
+        "org": org_slug or None,
+        "project": project_slug or None,
         "llm": {
             "provider": "anthropic",
             "fallback_provider": "openai",
@@ -148,6 +155,13 @@ def init(
         *[f"  - {loc}" for loc in config["target_locales"]],
         f"server: {config['server']}",
         f'domain_description: "{config["domain_description"]}"',
+    ]
+    # org/project only emitted when set, so single-tenant configs stay clean.
+    if config["org"]:
+        lines.append(f"org: {config['org']}")
+    if config["project"]:
+        lines.append(f"project: {config['project']}")
+    lines += [
         "llm:",
         f"  provider: {config['llm']['provider']}",
         f"  fallback_provider: {config['llm']['fallback_provider']}",
@@ -168,17 +182,30 @@ def init(
 def ingest_file(
     path: str = typer.Argument(..., help="Path to source strings file"),
     repo: str = typer.Option(None, "--repo", help="Repository name (overrides tms.yml)"),
+    org: str = typer.Option(None, "--org", help="Organization slug (overrides tms.yml)"),
+    project: str = typer.Option(None, "--project", help="Project slug (overrides tms.yml)"),
     file_format: str = typer.Option(None, "--format", help="File format override"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse only, do not write to DB"),
     server: str = typer.Option(None, "--server", help="TMS server URL override"),
 ) -> None:
-    """Parse a source strings file and upsert keys into the TMS."""
-    asyncio.run(_ingest_file(path, repo, file_format, dry_run, server))
+    """Parse a source strings file and upsert keys into the TMS.
+
+    Direct-to-DB dev convenience. For multi-tenant / production use, prefer the
+    REST endpoint ``POST /api/v1/repositories/{repo_id}/ingest``.
+
+    Target org/project resolution: ``--org``/``--project`` (or ``org:``/
+    ``project:`` in tms.yml) win and must already exist; otherwise, if exactly
+    one org+project exists it is used; if several exist you must disambiguate;
+    on an empty database a ``dev``/``dev-project`` is auto-created for first-run.
+    """
+    asyncio.run(_ingest_file(path, repo, org, project, file_format, dry_run, server))
 
 
 async def _ingest_file(
     path: str,
     repo_name: str | None,
+    org_slug: str | None,
+    project_slug: str | None,
     file_format: str | None,
     dry_run: bool,
     server_override: str | None,
@@ -227,42 +254,116 @@ async def _ingest_file(
             console.print(f"  [dim]… and {key_count - 20} more[/dim]")
         return
 
-    # Check if server is running; if so, use API. Otherwise write directly to DB.
-    # For Phase 1 (before Phase 3 REST API), write directly via SQLAlchemy.
+    # Direct-to-DB dev path. Resolve org/project from flags, then tms.yml,
+    # then smart fallback (see _resolve_org_project).
     tms_config_path = Path(".") / TMS_YML_NAME
-    if not tms_config_path.exists():
+    tms_config: dict = {}
+    if tms_config_path.exists():
+        import yaml
+
+        tms_config = yaml.safe_load(tms_config_path.read_text()) or {}
+    else:
         err.print(
             "[yellow]No tms.yml found — writing directly to local DB.[/yellow]\n"
             "Run [bold]loc init[/bold] to configure repository settings."
         )
 
-    await _ingest_direct(result, repo_name or file_path.stem, key_count)
+    resolved_org = org_slug or tms_config.get("org")
+    resolved_project = project_slug or tms_config.get("project")
+
+    await _ingest_direct(
+        result,
+        repo_name or file_path.stem,
+        key_count,
+        org_slug=resolved_org,
+        project_slug=resolved_project,
+    )
 
 
-async def _ingest_direct(result, repo_name: str, key_count: int) -> None:
-    """Write directly to the DB (Phase 1 path — before REST API exists)."""
+async def _resolve_org_project(db, org_slug: str | None, project_slug: str | None):  # type: ignore[no-untyped-def]
+    """Resolve the (org, project) to ingest into. Smart, multi-tenant-safe.
+
+    Precedence:
+      1. Explicit ``org_slug``/``project_slug`` (flag or tms.yml) — must already
+         exist, else error. Never silently create a named org/project (a typo
+         must not spawn a phantom tenant).
+      2. Neither given + exactly one org and one project exist — use them.
+      3. Neither given + multiple exist — error, ask the caller to disambiguate.
+      4. Neither given + empty DB (genuine first run) — auto-create
+         ``dev``/``dev-project`` so zero-config local dev still works.
+    """
+    from app.models import Organization, Project
+
+    # 1. Explicit selection — must exist.
+    if org_slug or project_slug:
+        org = None
+        if org_slug:
+            org = await db.scalar(select(Organization).where(Organization.slug == org_slug))
+            if org is None:
+                err.print(f"[red]Organization '{org_slug}' not found.[/red] Create it first (dashboard / REST API).")
+                raise typer.Exit(1)
+        proj_q = select(Project)
+        if project_slug:
+            proj_q = proj_q.where(Project.slug == project_slug)
+        if org is not None:
+            proj_q = proj_q.where(Project.organization_id == org.id)
+        project = await db.scalar(proj_q)
+        if project is None:
+            err.print(
+                f"[red]Project '{project_slug or '(any)'}' not found"
+                f"{f' in org {org_slug}' if org_slug else ''}.[/red] Create it first."
+            )
+            raise typer.Exit(1)
+        if org is None:
+            org = await db.scalar(select(Organization).where(Organization.id == project.organization_id))
+        return org, project
+
+    # No explicit selection — count what exists.
+    orgs = (await db.execute(select(Organization))).scalars().all()
+    projects = (await db.execute(select(Project))).scalars().all()
+
+    # 2. Exactly one of each — unambiguous, use it.
+    if len(orgs) == 1 and len(projects) == 1:
+        return orgs[0], projects[0]
+
+    # 3. Multiple — refuse to guess.
+    if orgs or projects:
+        err.print(
+            "[red]Multiple orgs/projects exist — specify the target with[/red] "
+            "[bold]--org <slug> --project <slug>[/bold] (or add org:/project: to tms.yml)."
+        )
+        raise typer.Exit(1)
+
+    # 4. Empty DB — first-run local dev. Auto-create the dev scaffold.
+    org = Organization(name="Dev Organization", slug="dev")
+    db.add(org)
+    await db.flush()
+    project = Project(
+        organization_id=org.id,
+        name="Dev Project",
+        slug="dev-project",
+        target_locales=["fr-FR", "de-DE"],
+    )
+    db.add(project)
+    await db.flush()
+    err.print("[yellow]Empty database — auto-created dev/dev-project for first-run ingest.[/yellow]")
+    return org, project
+
+
+async def _ingest_direct(
+    result,
+    repo_name: str,
+    key_count: int,
+    org_slug: str | None = None,
+    project_slug: str | None = None,
+) -> None:
+    """Write directly to the DB (dev convenience; prefer the REST ingest API)."""
     from app.core.database import AsyncSessionLocal
     from app.ingestion.service import assemble_batches, upsert_keys
-    from app.models import Organization, Project, Repository
+    from app.models import Repository
 
     async with AsyncSessionLocal() as db:
-        # Find or create a dev organization/project/repository
-        org = await db.scalar(select(Organization).where(Organization.slug == "dev"))
-        if org is None:
-            org = Organization(name="Dev Organization", slug="dev")
-            db.add(org)
-            await db.flush()
-
-        project = await db.scalar(select(Project).where(Project.slug == "dev-project"))
-        if project is None:
-            project = Project(
-                organization_id=org.id,
-                name="Dev Project",
-                slug="dev-project",
-                target_locales=["fr-FR", "de-DE"],
-            )
-            db.add(project)
-            await db.flush()
+        org, project = await _resolve_org_project(db, org_slug, project_slug)
 
         repo = await db.scalar(
             select(Repository).where(

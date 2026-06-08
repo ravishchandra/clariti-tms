@@ -16,6 +16,16 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
+// Configure the generated client (baseUrl + X-API-Key) on import. Side-effect
+// only; the SDK fns below read the configured singleton. (§19/§20 Phase 3.)
+import "@/lib/client";
+import {
+  createGlossaryTermApiV1ProjectsProjectIdGlossaryPost,
+  deleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDelete,
+  listGlossaryTermsApiV1ProjectsProjectIdGlossaryGet,
+  updateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatch,
+} from "@/client/sdk.gen";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 const API_KEY_STORAGE_KEY = "clariti.api_key";
 
@@ -26,6 +36,33 @@ export class ApiError extends Error {
     super(`API ${status}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
     this.status = status;
     this.detail = detail;
+  }
+}
+
+/**
+ * Unwrap a generated-SDK call result into its validated `data`, or throw the
+ * same `ApiError` the hand-rolled client throws — so migrated call sites keep
+ * their existing error handling (status checks, 404→null branches, etc).
+ *
+ * The generated SDK returns `{ data, error, response }` (ThrowOnError=false)
+ * and has already Zod-validated `data` against the OpenAPI contract.
+ */
+async function _unwrap<T>(
+  call: Promise<{ data?: T; error?: unknown; response?: Response }>,
+): Promise<T> {
+  const { data, error, response } = await call;
+  if (!response || !response.ok || error !== undefined) {
+    const status = response?.status ?? 0;
+    throw new ApiError(status, error ?? (response ? await safeBody(response) : "network error"));
+  }
+  return data as T;
+}
+
+async function safeBody(response: Response): Promise<unknown> {
+  try {
+    return await response.clone().json();
+  } catch {
+    return response.statusText;
   }
 }
 
@@ -900,10 +937,15 @@ export const api = {
       );
     },
   },
+  // Migrated to the generated, Zod-validating SDK (§19/§20 Phase 3b probe).
+  // Call sites are unchanged: same method names, same return shapes. The
+  // generated fns validate responses against the OpenAPI contract; _unwrap
+  // turns their { data, error } envelope back into "return data / throw
+  // ApiError" so existing page error handling still works.
   glossary: {
-    list: async (projectId: string) => {
-      const data = await apiFetch<{ items: unknown[] }>(`/projects/${projectId}/glossary`);
-      return z.object({ items: z.array(GlossaryTerm) }).parse(data).items;
+    list: async (projectId: string): Promise<GlossaryTerm[]> => {
+      const data = await _unwrap(listGlossaryTermsApiV1ProjectsProjectIdGlossaryGet({ path: { project_id: projectId } }));
+      return data.items;
     },
     create: async (
       projectId: string,
@@ -915,10 +957,8 @@ export const api = {
         case_sensitive?: boolean;
         do_not_translate?: boolean;
       },
-    ) => {
-      return GlossaryTerm.parse(
-        await apiFetch(`/projects/${projectId}/glossary`, { method: "POST", body }),
-      );
+    ): Promise<GlossaryTerm> => {
+      return _unwrap(createGlossaryTermApiV1ProjectsProjectIdGlossaryPost({ path: { project_id: projectId }, body }));
     },
     update: async (
       projectId: string,
@@ -929,18 +969,20 @@ export const api = {
         case_sensitive?: boolean;
         do_not_translate?: boolean;
       },
-    ) => {
-      return GlossaryTerm.parse(
-        await apiFetch(`/projects/${projectId}/glossary/${termId}`, {
-          method: "PATCH",
+    ): Promise<GlossaryTerm> => {
+      return _unwrap(
+        updateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatch({
+          path: { project_id: projectId, term_id: termId },
           body,
         }),
       );
     },
-    remove: async (projectId: string, termId: string) => {
-      await apiFetch<void>(`/projects/${projectId}/glossary/${termId}`, {
-        method: "DELETE",
-      });
+    remove: async (projectId: string, termId: string): Promise<void> => {
+      await _unwrap(
+        deleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDelete({
+          path: { project_id: projectId, term_id: termId },
+        }),
+      );
     },
   },
   localeConfigs: {

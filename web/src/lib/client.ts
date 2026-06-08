@@ -3,7 +3,8 @@
  * Phase 3). The generated SDK in `src/client/` is contract-accurate and
  * Zod-validates every response; this module wires it to our backend and auth:
  *
- *   - baseUrl  — `${API_BASE}/api/v1` (same env var the old api.ts used).
+ *   - baseUrl  — `${API_BASE}` (the generated SDK paths already include the
+ *     `/api/v1` prefix, unlike the hand-rolled api.ts which prepended it).
  *   - X-API-Key — injected per-request from localStorage via a request
  *     interceptor, so a key set after module load (sign-in) is still applied.
  *
@@ -24,7 +25,7 @@ export function ensureClientConfigured(): void {
   if (_configured) return;
   _configured = true;
 
-  client.setConfig({ baseUrl: `${API_BASE}/api/v1` });
+  client.setConfig({ baseUrl: API_BASE });
 
   // Inject the API key per request (not once at config time) so a key stored
   // after sign-in is picked up without reconfiguring.

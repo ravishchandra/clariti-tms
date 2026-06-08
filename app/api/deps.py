@@ -5,7 +5,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,11 +29,20 @@ DB = Annotated[AsyncSession, Depends(get_db)]
 
 _LAST_USED_DEBOUNCE = timedelta(seconds=60)
 
+# Declares X-API-Key as a proper OpenAPI security scheme (not a per-operation
+# Header param). This makes the generated SDK / web client treat it as auth —
+# set once on the client, not required in every call — and is the more correct
+# API description. ``auto_error=False`` so a missing key yields our own 401
+# below (with the existing detail), not FastAPI's default 403.
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 
 async def _get_api_key(
     db: DB,
-    x_api_key: str = Header(..., alias="X-API-Key"),
+    x_api_key: str | None = Depends(_api_key_header),
 ) -> ApiKey:
+    if not x_api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing API key")
     key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
     result = await db.execute(select(ApiKey).where(ApiKey.key_hash == key_hash))
     api_key = result.scalar_one_or_none()

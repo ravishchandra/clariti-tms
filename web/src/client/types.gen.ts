@@ -2188,25 +2188,10 @@ export type WebhookAck = {
 
 export type ListApiKeysApiV1ApiKeysGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/api-keys';
 };
-
-export type ListApiKeysApiV1ApiKeysGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListApiKeysApiV1ApiKeysGetError = ListApiKeysApiV1ApiKeysGetErrors[keyof ListApiKeysApiV1ApiKeysGetErrors];
 
 export type ListApiKeysApiV1ApiKeysGetResponses = {
     /**
@@ -2219,12 +2204,6 @@ export type ListApiKeysApiV1ApiKeysGetResponse = ListApiKeysApiV1ApiKeysGetRespo
 
 export type CreateApiKeyApiV1ApiKeysPostData = {
     body: ApiKeyCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/api-keys';
@@ -2250,12 +2229,6 @@ export type CreateApiKeyApiV1ApiKeysPostResponse = CreateApiKeyApiV1ApiKeysPostR
 
 export type RevokeApiKeyApiV1ApiKeysKeyIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Key Id
@@ -2286,25 +2259,10 @@ export type RevokeApiKeyApiV1ApiKeysKeyIdDeleteResponse = RevokeApiKeyApiV1ApiKe
 
 export type GetAppSettingsApiV1AppSettingsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/app-settings';
 };
-
-export type GetAppSettingsApiV1AppSettingsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetAppSettingsApiV1AppSettingsGetError = GetAppSettingsApiV1AppSettingsGetErrors[keyof GetAppSettingsApiV1AppSettingsGetErrors];
 
 export type GetAppSettingsApiV1AppSettingsGetResponses = {
     /**
@@ -2317,12 +2275,6 @@ export type GetAppSettingsApiV1AppSettingsGetResponse = GetAppSettingsApiV1AppSe
 
 export type UpdateAppSettingsApiV1AppSettingsPatchData = {
     body: AppSettingsUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/app-settings';
@@ -2348,12 +2300,6 @@ export type UpdateAppSettingsApiV1AppSettingsPatchResponse = UpdateAppSettingsAp
 
 export type ListBatchesApiV1BatchesGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query: {
         /**
@@ -2400,12 +2346,6 @@ export type ListBatchesApiV1BatchesGetResponse = ListBatchesApiV1BatchesGetRespo
 
 export type GetBatchApiV1BatchesBatchIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Batch Id
@@ -2436,12 +2376,6 @@ export type GetBatchApiV1BatchesBatchIdGetResponse = GetBatchApiV1BatchesBatchId
 
 export type ApproveBatchApiV1BatchesBatchIdApprovePostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Batch Id
@@ -2472,12 +2406,6 @@ export type ApproveBatchApiV1BatchesBatchIdApprovePostResponse = ApproveBatchApi
 
 export type ListMtRunsApiV1BatchesBatchIdMtRunsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Batch Id
@@ -2513,12 +2441,6 @@ export type ListMtRunsApiV1BatchesBatchIdMtRunsGetResponse = ListMtRunsApiV1Batc
 
 export type RejectBatchApiV1BatchesBatchIdRejectPostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Batch Id
@@ -2549,12 +2471,6 @@ export type RejectBatchApiV1BatchesBatchIdRejectPostResponse = RejectBatchApiV1B
 
 export type TriggerMtApiV1BatchesBatchIdTriggerMtPostData = {
     body: BatchTrigger;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Batch Id
@@ -2585,12 +2501,6 @@ export type TriggerMtApiV1BatchesBatchIdTriggerMtPostResponse = TriggerMtApiV1Ba
 
 export type CreateExportApiV1ExportsPostData = {
     body: ExportCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/exports';
@@ -2616,12 +2526,6 @@ export type CreateExportApiV1ExportsPostResponses = {
 
 export type PostPreviewApiV1ImportsPreviewPostData = {
     body: BodyPostPreviewApiV1ImportsPreviewPost;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/imports/preview';
@@ -2647,12 +2551,6 @@ export type PostPreviewApiV1ImportsPreviewPostResponse = PostPreviewApiV1Imports
 
 export type PostCommitApiV1ImportsJobIdCommitPostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Job Id
@@ -2688,12 +2586,6 @@ export type PostCommitApiV1ImportsJobIdCommitPostResponse = PostCommitApiV1Impor
 
 export type PostRollbackApiV1ImportsJobIdRollbackPostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Job Id
@@ -2724,12 +2616,6 @@ export type PostRollbackApiV1ImportsJobIdRollbackPostResponse = PostRollbackApiV
 
 export type ListKeysApiV1KeysGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query: {
         /**
@@ -2788,12 +2674,6 @@ export type ListKeysApiV1KeysGetResponse = ListKeysApiV1KeysGetResponses[keyof L
 
 export type GetKeyApiV1KeysKeyIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Key Id
@@ -2824,12 +2704,6 @@ export type GetKeyApiV1KeysKeyIdGetResponse = GetKeyApiV1KeysKeyIdGetResponses[k
 
 export type UpdateKeyApiV1KeysKeyIdPatchData = {
     body: KeyUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Key Id
@@ -2860,12 +2734,6 @@ export type UpdateKeyApiV1KeysKeyIdPatchResponse = UpdateKeyApiV1KeysKeyIdPatchR
 
 export type ListScreenshotsApiV1KeysKeyIdScreenshotsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Key Id
@@ -2896,12 +2764,6 @@ export type ListScreenshotsApiV1KeysKeyIdScreenshotsGetResponse = ListScreenshot
 
 export type UploadScreenshotApiV1KeysKeyIdScreenshotsPostData = {
     body: BodyUploadScreenshotApiV1KeysKeyIdScreenshotsPost;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Key Id
@@ -2932,25 +2794,10 @@ export type UploadScreenshotApiV1KeysKeyIdScreenshotsPostResponse = UploadScreen
 
 export type ListOrgsApiV1OrganizationsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/organizations';
 };
-
-export type ListOrgsApiV1OrganizationsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListOrgsApiV1OrganizationsGetError = ListOrgsApiV1OrganizationsGetErrors[keyof ListOrgsApiV1OrganizationsGetErrors];
 
 export type ListOrgsApiV1OrganizationsGetResponses = {
     /**
@@ -2963,12 +2810,6 @@ export type ListOrgsApiV1OrganizationsGetResponse = ListOrgsApiV1OrganizationsGe
 
 export type CreateOrgApiV1OrganizationsPostData = {
     body: OrgCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/organizations';
@@ -2994,12 +2835,6 @@ export type CreateOrgApiV1OrganizationsPostResponse = CreateOrgApiV1Organization
 
 export type DeleteOrgApiV1OrganizationsOrgIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3030,12 +2865,6 @@ export type DeleteOrgApiV1OrganizationsOrgIdDeleteResponse = DeleteOrgApiV1Organ
 
 export type GetOrgApiV1OrganizationsOrgIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3066,12 +2895,6 @@ export type GetOrgApiV1OrganizationsOrgIdGetResponse = GetOrgApiV1OrganizationsO
 
 export type UpdateOrgApiV1OrganizationsOrgIdPatchData = {
     body: OrgUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3102,12 +2925,6 @@ export type UpdateOrgApiV1OrganizationsOrgIdPatchResponse = UpdateOrgApiV1Organi
 
 export type ListProjectsApiV1OrganizationsOrgIdProjectsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3138,12 +2955,6 @@ export type ListProjectsApiV1OrganizationsOrgIdProjectsGetResponse = ListProject
 
 export type CreateProjectApiV1OrganizationsOrgIdProjectsPostData = {
     body: ProjectCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3174,12 +2985,6 @@ export type CreateProjectApiV1OrganizationsOrgIdProjectsPostResponse = CreatePro
 
 export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3210,12 +3015,6 @@ export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponse 
 
 export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3246,12 +3045,6 @@ export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponse = GetP
 
 export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchData = {
     body: ProjectUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3282,12 +3075,6 @@ export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponse =
 
 export type ListUsersApiV1OrganizationsOrgIdUsersGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3318,12 +3105,6 @@ export type ListUsersApiV1OrganizationsOrgIdUsersGetResponse = ListUsersApiV1Org
 
 export type CreateUserApiV1OrganizationsOrgIdUsersPostData = {
     body: UserCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Org Id
@@ -3395,12 +3176,6 @@ export type GetLocaleApiV1OtaProjectSlugLocaleJsonGetResponses = {
 
 export type ListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3431,12 +3206,6 @@ export type ListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetResponse = ListGlo
 
 export type CreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostData = {
     body: GlossaryTermCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3467,12 +3236,6 @@ export type CreateGlossaryTermApiV1ProjectsProjectIdGlossaryPostResponse = Creat
 
 export type DeleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3507,12 +3270,6 @@ export type DeleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDeleteResponse
 
 export type GetGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3547,12 +3304,6 @@ export type GetGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdGetResponse = Get
 
 export type UpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchData = {
     body: GlossaryTermUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3587,12 +3338,6 @@ export type UpdateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatchResponse 
 
 export type ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3627,12 +3372,6 @@ export type ListLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGetResponse = Li
 
 export type CreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostData = {
     body: LocaleConfigCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3670,12 +3409,6 @@ export type CreateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPostResponse = 
 
 export type DeleteLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3710,12 +3443,6 @@ export type DeleteLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdDeleteR
 
 export type GetLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3750,12 +3477,6 @@ export type GetLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdGetRespons
 
 export type UpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchData = {
     body: LocaleConfigUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3790,12 +3511,6 @@ export type UpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchRe
 
 export type ListRepositoriesApiV1ProjectsProjectIdRepositoriesGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3826,12 +3541,6 @@ export type ListRepositoriesApiV1ProjectsProjectIdRepositoriesGetResponse = List
 
 export type CreateRepositoryApiV1ProjectsProjectIdRepositoriesPostData = {
     body: RepositoryCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -3862,12 +3571,6 @@ export type CreateRepositoryApiV1ProjectsProjectIdRepositoriesPostResponse = Cre
 
 export type DeleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -3898,12 +3601,6 @@ export type DeleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDeleteRespon
 
 export type GetRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -3934,12 +3631,6 @@ export type GetRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGetResponse = G
 
 export type UpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchData = {
     body: RepositoryUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -3970,12 +3661,6 @@ export type UpdateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatchRespons
 
 export type TriggerProjectMtApiV1ProjectsProjectIdTriggerMtPostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Project Id
@@ -4019,12 +3704,6 @@ export type TriggerProjectMtApiV1ProjectsProjectIdTriggerMtPostResponse = Trigge
 
 export type TriggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4062,12 +3741,6 @@ export type TriggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPostResp
 
 export type PublishToOtaApiV1PublicationsRepositoriesRepoIdPublishToOtaPostData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4105,12 +3778,6 @@ export type PublishToOtaApiV1PublicationsRepositoriesRepoIdPublishToOtaPostRespo
 
 export type ListComponentContextsApiV1RepositoriesRepoIdComponentContextsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4141,12 +3808,6 @@ export type ListComponentContextsApiV1RepositoriesRepoIdComponentContextsGetResp
 
 export type CreateComponentContextApiV1RepositoriesRepoIdComponentContextsPostData = {
     body: ComponentContextCreate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4177,12 +3838,6 @@ export type CreateComponentContextApiV1RepositoriesRepoIdComponentContextsPostRe
 
 export type DeleteComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4217,12 +3872,6 @@ export type DeleteComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdD
 
 export type GetComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4257,12 +3906,6 @@ export type GetComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdGetR
 
 export type UpdateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatchData = {
     body: ComponentContextUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4297,12 +3940,6 @@ export type UpdateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdP
 
 export type IngestRepositoryApiV1RepositoriesRepoIdIngestPostData = {
     body: IngestRequest;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Repo Id
@@ -4333,12 +3970,6 @@ export type IngestRepositoryApiV1RepositoriesRepoIdIngestPostResponse = IngestRe
 
 export type DeleteScreenshotApiV1ScreenshotsScreenshotIdDeleteData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Screenshot Id
@@ -4369,12 +4000,6 @@ export type DeleteScreenshotApiV1ScreenshotsScreenshotIdDeleteResponse = DeleteS
 
 export type GetScreenshotImageApiV1ScreenshotsScreenshotIdImageGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Screenshot Id
@@ -4403,12 +4028,6 @@ export type GetScreenshotImageApiV1ScreenshotsScreenshotIdImageGetResponses = {
 
 export type ListTranslationsApiV1TranslationsGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path?: never;
     query: {
         /**
@@ -4463,12 +4082,6 @@ export type ListTranslationsApiV1TranslationsGetResponse = ListTranslationsApiV1
 
 export type GetTranslationApiV1TranslationsTranslationIdGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Translation Id
@@ -4499,12 +4112,6 @@ export type GetTranslationApiV1TranslationsTranslationIdGetResponse = GetTransla
 
 export type UpdateTranslationApiV1TranslationsTranslationIdPatchData = {
     body: TranslationUpdate;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Translation Id
@@ -4535,12 +4142,6 @@ export type UpdateTranslationApiV1TranslationsTranslationIdPatchResponse = Updat
 
 export type GetTranslationHistoryApiV1TranslationsTranslationIdHistoryGetData = {
     body?: never;
-    headers: {
-        /**
-         * X-Api-Key
-         */
-        'X-API-Key': string;
-    };
     path: {
         /**
          * Translation Id

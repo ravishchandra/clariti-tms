@@ -311,19 +311,13 @@ class TestProjectsIsolation:
         assert r.status_code == 404
 
     async def test_5_get_other_orgs_project_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
-        # Try with the wrong org_id in the path (org_a) but org_b's project_id.
+        # Project detail is addressed by project_id alone; ScopedProject scopes
+        # to the caller's org, so org_a's key cannot read org_b's project.
         r = await client.get(
-            f"/api/v1/organizations/{fixture.org_a.org_id}/projects/{fixture.org_b.project_id}",
+            f"/api/v1/projects/{fixture.org_b.project_id}",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 404
-
-        # And via the matching org_id path (which the caller can't access either).
-        r2 = await client.get(
-            f"/api/v1/organizations/{fixture.org_b.org_id}/projects/{fixture.org_b.project_id}",
-            headers=_headers(fixture.org_a.api_key_raw),
-        )
-        assert r2.status_code == 404
 
 
 class TestRepositoriesIsolation:
@@ -493,7 +487,7 @@ class TestPositiveControls:
 
     async def test_get_own_project(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.get(
-            f"/api/v1/organizations/{fixture.org_a.org_id}/projects/{fixture.org_a.project_id}",
+            f"/api/v1/projects/{fixture.org_a.project_id}",
             headers=_headers(fixture.org_a.api_key_raw),
         )
         assert r.status_code == 200

@@ -8,6 +8,7 @@ from app.api.v1.endpoints.component_contexts import router as component_contexts
 from app.api.v1.endpoints.glossary import router as glossary_router
 from app.api.v1.endpoints.locale_configs import router as locale_configs_router
 from app.api.v1.endpoints.orgs import router as orgs_router
+from app.api.v1.endpoints.projects import detail_router as projects_detail_router
 from app.api.v1.endpoints.projects import router as projects_router
 from app.api.v1.endpoints.repositories import router as repositories_router
 from app.api.v1.endpoints.users import router as users_router
@@ -21,6 +22,8 @@ router.include_router(users_router, prefix="/organizations", tags=["Users"])
 # Projects, repositories, locale-configs, and glossary are nested under their parents,
 # so they mount at their parent prefix and carry sub-paths within the router.
 router.include_router(projects_router, prefix="/organizations", tags=["Projects"])
+# Project-detail (get/update/delete) by project_id alone — see projects.py.
+router.include_router(projects_detail_router, prefix="/projects", tags=["Projects"])
 router.include_router(repositories_router, prefix="/projects", tags=["Repositories"])
 router.include_router(locale_configs_router, prefix="/projects", tags=["Locale Configs"])
 router.include_router(component_contexts_router, prefix="/repositories", tags=["Component Contexts"])

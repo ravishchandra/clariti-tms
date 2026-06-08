@@ -34,12 +34,12 @@ import {
   createRepositoryApiV1ProjectsProjectIdRepositoriesPost,
   createUserApiV1OrganizationsOrgIdUsersPost,
   deleteGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdDelete,
-  deleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDelete,
+  deleteProjectApiV1ProjectsProjectIdDelete,
   deleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDelete,
   getAppSettingsApiV1AppSettingsGet,
   getBatchApiV1BatchesBatchIdGet,
   getKeyApiV1KeysKeyIdGet,
-  getProjectApiV1OrganizationsOrgIdProjectsProjectIdGet,
+  getProjectApiV1ProjectsProjectIdGet,
   getRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGet,
   getTranslationHistoryApiV1TranslationsTranslationIdHistoryGet,
   listApiKeysApiV1ApiKeysGet,
@@ -64,7 +64,7 @@ import {
   updateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatch,
   updateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatch,
   updateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatch,
-  updateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatch,
+  updateProjectApiV1ProjectsProjectIdPatch,
   updateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatch,
   updateTranslationApiV1TranslationsTranslationIdPatch,
 } from "@/client/sdk.gen";
@@ -601,7 +601,7 @@ export const api = {
       (await _unwrap(listProjectsApiV1OrganizationsOrgIdProjectsGet({ path: { org_id: orgId } }))).items,
     get: async (orgId: string, projectId: string): Promise<Project> =>
       _unwrap(
-        getProjectApiV1OrganizationsOrgIdProjectsProjectIdGet({
+        getProjectApiV1ProjectsProjectIdGet({
           path: { project_id: projectId },
         }),
       ),
@@ -627,14 +627,14 @@ export const api = {
       },
     ): Promise<Project> =>
       _unwrap(
-        updateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatch({
+        updateProjectApiV1ProjectsProjectIdPatch({
           path: { project_id: projectId },
           body,
         }),
       ),
     delete: async (orgId: string, projectId: string): Promise<void> => {
       await _unwrap(
-        deleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDelete({
+        deleteProjectApiV1ProjectsProjectIdDelete({
           path: { project_id: projectId },
         }),
       );

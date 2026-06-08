@@ -3001,96 +3001,6 @@ export type CreateProjectApiV1OrganizationsOrgIdProjectsPostResponses = {
 
 export type CreateProjectApiV1OrganizationsOrgIdProjectsPostResponse = CreateProjectApiV1OrganizationsOrgIdProjectsPostResponses[keyof CreateProjectApiV1OrganizationsOrgIdProjectsPostResponses];
 
-export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{org_id}/projects/{project_id}';
-};
-
-export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteError = DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteErrors[keyof DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteErrors];
-
-export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponse = DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponses[keyof DeleteProjectApiV1OrganizationsOrgIdProjectsProjectIdDeleteResponses];
-
-export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{org_id}/projects/{project_id}';
-};
-
-export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetError = GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetErrors[keyof GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetErrors];
-
-export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ProjectRead;
-};
-
-export type GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponse = GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponses[keyof GetProjectApiV1OrganizationsOrgIdProjectsProjectIdGetResponses];
-
-export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchData = {
-    body: ProjectUpdate;
-    path: {
-        /**
-         * Project Id
-         */
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/organizations/{org_id}/projects/{project_id}';
-};
-
-export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchError = UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchErrors[keyof UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchErrors];
-
-export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: ProjectRead;
-};
-
-export type UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponse = UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponses[keyof UpdateProjectApiV1OrganizationsOrgIdProjectsProjectIdPatchResponses];
-
 export type ListUsersApiV1OrganizationsOrgIdUsersGetData = {
     body?: never;
     path: {
@@ -3191,6 +3101,96 @@ export type GetLocaleApiV1OtaProjectSlugLocaleJsonGetResponses = {
      */
     200: unknown;
 };
+
+export type DeleteProjectApiV1ProjectsProjectIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}';
+};
+
+export type DeleteProjectApiV1ProjectsProjectIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteProjectApiV1ProjectsProjectIdDeleteError = DeleteProjectApiV1ProjectsProjectIdDeleteErrors[keyof DeleteProjectApiV1ProjectsProjectIdDeleteErrors];
+
+export type DeleteProjectApiV1ProjectsProjectIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteProjectApiV1ProjectsProjectIdDeleteResponse = DeleteProjectApiV1ProjectsProjectIdDeleteResponses[keyof DeleteProjectApiV1ProjectsProjectIdDeleteResponses];
+
+export type GetProjectApiV1ProjectsProjectIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}';
+};
+
+export type GetProjectApiV1ProjectsProjectIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectApiV1ProjectsProjectIdGetError = GetProjectApiV1ProjectsProjectIdGetErrors[keyof GetProjectApiV1ProjectsProjectIdGetErrors];
+
+export type GetProjectApiV1ProjectsProjectIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProjectRead;
+};
+
+export type GetProjectApiV1ProjectsProjectIdGetResponse = GetProjectApiV1ProjectsProjectIdGetResponses[keyof GetProjectApiV1ProjectsProjectIdGetResponses];
+
+export type UpdateProjectApiV1ProjectsProjectIdPatchData = {
+    body: ProjectUpdate;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}';
+};
+
+export type UpdateProjectApiV1ProjectsProjectIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateProjectApiV1ProjectsProjectIdPatchError = UpdateProjectApiV1ProjectsProjectIdPatchErrors[keyof UpdateProjectApiV1ProjectsProjectIdPatchErrors];
+
+export type UpdateProjectApiV1ProjectsProjectIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProjectRead;
+};
+
+export type UpdateProjectApiV1ProjectsProjectIdPatchResponse = UpdateProjectApiV1ProjectsProjectIdPatchResponses[keyof UpdateProjectApiV1ProjectsProjectIdPatchResponses];
 
 export type ListGlossaryTermsApiV1ProjectsProjectIdGlossaryGetData = {
     body?: never;

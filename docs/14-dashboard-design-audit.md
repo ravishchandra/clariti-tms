@@ -13,6 +13,7 @@
 > - **`/locales`** is now a redirect to `/settings/locales`.
 > - **Providers** (W6) and the **bootstrap wizard** (W5) shipped.
 > - **M5** (per-provider LLM cost rates, `docs/11`) is implemented + now regression-tested.
+> - **Analytics page** (W6, §9 tab 8): `Settings → Analytics` + `GET /projects/{id}/analytics` — MT cost (by model), reviewer edit rate, and QA quality. Shipped. (No fallback-rate metric — `mt_runs` has no column to derive it from.)
 >
 > **Fixed in this change:** `/settings/contexts` — the `component_contexts`
 > editor (the *primary* MT input per CLAUDE.md) had been left as an orphaned
@@ -21,9 +22,8 @@
 > at the old path.
 >
 > **Genuinely still open:**
-> 1. **Analytics page** — still missing (§9 tab 8, W6, `docs/06:60`): MT cost, edit rate, fallback rate. Cleanest remaining gap; cost data is accurate now that M5 landed.
-> 2. **In-page reviewer depth** (§3, `docs/06`): bulk-approve in the queue, `needs_more_context` note popover, three-way "source changed" diff, screenshot panel in batch review, glossary CSV import, TMX export.
-> 3. The **open product questions** in §11 still block Users/invites + SSO depth.
+> 1. **In-page reviewer depth** (§3, `docs/06`): bulk-approve in the queue, `needs_more_context` note popover, three-way "source changed" diff, screenshot panel in batch review, glossary CSV import, TMX export.
+> 2. The **open product questions** in §11 still block Users/invites + SSO depth.
 
 ## 1. Executive summary
 

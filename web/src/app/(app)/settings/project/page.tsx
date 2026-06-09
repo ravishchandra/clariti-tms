@@ -18,7 +18,7 @@ import { useCurrentProject } from "@/lib/current-project";
  * Settings → Project (docs/14 §9 tab 1, highest-leverage admin page).
  *
  * Closes the add-locale dead-end that previously required SQL. Backend
- * supports PATCH /organizations/{org}/projects/{id} for name + target_locales
+ * supports PATCH /projects/{id} for name + target_locales
  * + style_guide; fan-out of draft translations for new locales is a
  * documented follow-up (see notice below).
  */

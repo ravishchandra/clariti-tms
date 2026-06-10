@@ -23,7 +23,7 @@ from app.api.v1.schemas.app_settings import (
 )
 from app.core.crypto import decrypt, encrypt
 from app.llm.app_config import load_app_settings
-from app.llm.connection_test import test_provider_connection
+from app.llm.connection_check import check_provider_connection
 
 router = APIRouter()
 
@@ -96,7 +96,7 @@ async def test_provider(body: ProviderTestRequest, db: DB, _: CurrentKey) -> Pro
         enc = getattr(row, _PROVIDER_TO_KEY_COLUMN[body.provider], None)
         api_key = decrypt(enc) if enc else None
 
-    ok, error = await test_provider_connection(body.provider, api_key=api_key, ollama_host=ollama_host)
+    ok, error = await check_provider_connection(body.provider, api_key=api_key, ollama_host=ollama_host)
     return ProviderTestResult(ok=ok, error=error)
 
 

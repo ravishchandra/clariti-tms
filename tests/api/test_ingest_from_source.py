@@ -157,11 +157,7 @@ async def fixture() -> Fixture:
     async with AsyncSessionLocal() as db:
         from sqlalchemy import delete as sql_delete
 
-        repo_ids = [
-            r.repository_id
-            for t in (fx.org_a, fx.org_b)
-            for r in (t.github, t.half, t.plain, t.nosrc)
-        ]
+        repo_ids = [r.repository_id for t in (fx.org_a, fx.org_b) for r in (t.github, t.half, t.plain, t.nosrc)]
         batch_id_rows = await db.scalars(
             select(TranslationBatch.id).where(TranslationBatch.repository_id.in_(repo_ids))
         )
@@ -203,9 +199,7 @@ def _mock_github(monkeypatch, *, content: str = _I18NEXT_FILE) -> None:
     )
 
 
-async def test_ingest_from_source_github_full_sync(
-    fixture: Fixture, client: AsyncClient, monkeypatch
-) -> None:
+async def test_ingest_from_source_github_full_sync(fixture: Fixture, client: AsyncClient, monkeypatch) -> None:
     _mock_github(monkeypatch)
 
     # Seed a key NOT present in the fetched source — full sync must deactivate it.

@@ -1,10 +1,14 @@
-"""On-demand provider connection test (Settings → Providers "Test connection").
+"""On-demand provider connection check (Settings → Providers "Test connection").
 
 Validates a provider + credential with the cheapest authenticated call we can
 make, so an admin can confirm a key works before trusting it. Returns
 ``(ok, error)`` — error messages are deliberately short and never echo the raw
 provider response, to avoid leaking account details. Any unexpected failure is
 funnelled into ``(False, message)`` rather than bubbling a 500.
+
+Note: named ``connection_check`` (not ``*_test``) and the public function
+``check_*`` (not ``test_*``) so pytest never mistakes this app module for a
+test file.
 """
 
 from __future__ import annotations
@@ -19,7 +23,7 @@ def _short(exc: Exception) -> str:
     return msg[:200]
 
 
-async def test_provider_connection(
+async def check_provider_connection(
     provider: str,
     *,
     api_key: str | None = None,
@@ -28,21 +32,21 @@ async def test_provider_connection(
     """Return ``(ok, error)``. ``ok=True`` means the credential authenticated."""
     try:
         if provider == "anthropic":
-            return await _test_anthropic(api_key)
+            return await _check_anthropic(api_key)
         if provider == "openai":
-            return await _test_openai_compatible(api_key, base_url=None)
+            return await _check_openai_compatible(api_key, base_url=None)
         if provider == "openrouter":
-            return await _test_openai_compatible(api_key, base_url="https://openrouter.ai/api/v1")
+            return await _check_openai_compatible(api_key, base_url="https://openrouter.ai/api/v1")
         if provider == "ollama":
-            return await _test_ollama(ollama_host)
+            return await _check_ollama(ollama_host)
         if provider == "deepl":
-            return await _test_deepl(api_key)
+            return await _check_deepl(api_key)
         return False, f"Unknown provider {provider!r}."
-    except Exception as exc:  # noqa: BLE001 — any failure is a failed test, not a 500
+    except Exception as exc:  # noqa: BLE001 — any failure is a failed check, not a 500
         return False, _short(exc)
 
 
-async def _test_anthropic(api_key: str | None) -> tuple[bool, str | None]:
+async def _check_anthropic(api_key: str | None) -> tuple[bool, str | None]:
     if not api_key:
         return False, "No Anthropic API key configured."
     import anthropic
@@ -57,7 +61,7 @@ async def _test_anthropic(api_key: str | None) -> tuple[bool, str | None]:
     return True, None
 
 
-async def _test_openai_compatible(api_key: str | None, *, base_url: str | None) -> tuple[bool, str | None]:
+async def _check_openai_compatible(api_key: str | None, *, base_url: str | None) -> tuple[bool, str | None]:
     if not api_key:
         return False, "No API key configured."
     import openai
@@ -76,7 +80,7 @@ async def _test_openai_compatible(api_key: str | None, *, base_url: str | None) 
     return True, None
 
 
-async def _test_ollama(host: str | None) -> tuple[bool, str | None]:
+async def _check_ollama(host: str | None) -> tuple[bool, str | None]:
     base = (host or "http://localhost:11434").rstrip("/")
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         try:
@@ -87,7 +91,7 @@ async def _test_ollama(host: str | None) -> tuple[bool, str | None]:
     return True, None
 
 
-async def _test_deepl(api_key: str | None) -> tuple[bool, str | None]:
+async def _check_deepl(api_key: str | None) -> tuple[bool, str | None]:
     if not api_key:
         return False, "No DeepL API key configured."
     # Free-tier keys end in ":fx" and use the api-free host.

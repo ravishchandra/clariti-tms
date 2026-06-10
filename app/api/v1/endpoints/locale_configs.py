@@ -159,17 +159,18 @@ async def add_project_locale(body: LocaleConfigCreate, db: DB, project: ScopedPr
             await db.flush()
         except IntegrityError:
             await db.rollback()
-            lc = await db.scalar(
+            refetched = await db.scalar(
                 select(LocaleConfig).where(
                     LocaleConfig.project_id == project.id,
                     LocaleConfig.locale == body.locale,
                 )
             )
-            if lc is None:
+            if refetched is None:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Locale config insert failed and re-fetch was empty.",
                 )
+            lc = refetched
     else:
         lc = existing
 

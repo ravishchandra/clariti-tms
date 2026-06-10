@@ -1,8 +1,8 @@
 """Tests for the three endpoints added for the remaining admin-UI audit items:
 
-  * PATCH /organizations/{org_id}/users/{user_id} — soft deactivate + role (#17)
-  * POST  /projects/{project_id}/locales — atomic add-locale (#9)
-  * POST  /app-settings/test — provider connection test (#13)
+* PATCH /organizations/{org_id}/users/{user_id} — soft deactivate + role (#17)
+* POST  /projects/{project_id}/locales — atomic add-locale (#9)
+* POST  /app-settings/test — provider connection test (#13)
 """
 
 from __future__ import annotations
@@ -73,6 +73,13 @@ async def fixture() -> Fixture:
             if org is not None:
                 await db.delete(org)
         await db.commit()
+
+    # Dispose the global engine between module-scoped real-DB suites (see commit
+    # bc503a5) so the next module starts on a clean loop — otherwise a stray
+    # asyncpg connection cancels on a closed loop during teardown.
+    from app.core.database import engine
+
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture(loop_scope="module")
@@ -176,7 +183,7 @@ async def test_provider_test_uses_supplied_key(fixture: Fixture, client: AsyncCl
         seen["api_key"] = api_key
         return True, None
 
-    monkeypatch.setattr("app.api.v1.endpoints.app_settings.test_provider_connection", fake)
+    monkeypatch.setattr("app.api.v1.endpoints.app_settings.check_provider_connection", fake)
     r = await client.post(
         "/api/v1/app-settings/test",
         headers=_h(fixture.key_a),
@@ -209,7 +216,7 @@ async def test_provider_test_falls_back_to_stored_key(fixture: Fixture, client: 
         seen["api_key"] = api_key
         return False, "nope"
 
-    monkeypatch.setattr("app.api.v1.endpoints.app_settings.test_provider_connection", fake)
+    monkeypatch.setattr("app.api.v1.endpoints.app_settings.check_provider_connection", fake)
     r = await client.post(
         "/api/v1/app-settings/test",
         headers=_h(fixture.key_a),

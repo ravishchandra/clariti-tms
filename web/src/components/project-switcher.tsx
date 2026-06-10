@@ -1,5 +1,11 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { PlusIcon } from "lucide-react";
+import { useState } from "react";
+
+import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -9,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { api, useApiKey } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -16,31 +23,60 @@ import { useCurrentProject } from "@/lib/current-project";
  * via `useCurrentProject`. Shows org name as secondary text so multi-org users
  * see scope at a glance.
  *
- * Hydration safety lives in `useCurrentProject` itself — `isLoading` stays
- * true until the client has mounted, so server and client render the same
- * Skeleton on first paint.
+ * Also the primary entry point for creating a project (admin-UI audit #1):
+ * an always-available "+ New project" affordance for warm-start, and a CTA in
+ * place of the old dead "No projects yet" label for cold-start. Hydration
+ * safety lives in `useCurrentProject` (isLoading stays true until mounted).
  */
 export function ProjectSwitcher() {
+  const apiKey = useApiKey();
   const { projects, current, setCurrent, isLoading } = useCurrentProject();
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // Cold-start has no projects, so `projects` carries no org to create into.
+  // Fetch the key's org(s) directly — a normal key is bound to exactly one.
+  const orgsQuery = useQuery({
+    queryKey: ["switcher", "orgs"],
+    queryFn: api.organizations.list,
+    enabled: !!apiKey && !isLoading && projects.length === 0,
+  });
+
+  const createOrgId = current?.org.id ?? orgsQuery.data?.[0]?.id ?? null;
 
   if (isLoading) {
     return <Skeleton className="h-8 mx-3" />;
   }
 
+  const dialog = createOrgId ? (
+    <CreateProjectDialog
+      orgId={createOrgId}
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      onCreated={(p) => setCurrent(p.id)}
+    />
+  ) : null;
+
   if (projects.length === 0) {
     return (
-      <div className="mx-3 rounded-md border border-dashed border-line/80 px-2.5 py-1.5 text-[11.5px] text-text-muted">
-        No projects yet
+      <div className="mx-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start text-[13px]"
+          onClick={() => setCreateOpen(true)}
+          disabled={!createOrgId}
+        >
+          <PlusIcon className="size-3.5" />
+          New project
+        </Button>
+        {dialog}
       </div>
     );
   }
 
   return (
-    <div className="mx-3">
-      <Select
-        value={current?.project.id ?? ""}
-        onValueChange={(id) => setCurrent(id)}
-      >
+    <div className="mx-3 flex flex-col gap-1.5">
+      <Select value={current?.project.id ?? ""} onValueChange={(id) => setCurrent(id)}>
         <SelectTrigger
           size="sm"
           className="w-full justify-between bg-ink-1 hover:bg-ink-2 text-[13px]"
@@ -74,6 +110,17 @@ export function ProjectSwitcher() {
           </SelectGroup>
         </SelectContent>
       </Select>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-start text-[12px] text-text-muted hover:text-foreground"
+        onClick={() => setCreateOpen(true)}
+        disabled={!createOrgId}
+      >
+        <PlusIcon className="size-3.5" />
+        New project
+      </Button>
+      {dialog}
     </div>
   );
 }

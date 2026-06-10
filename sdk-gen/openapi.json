@@ -4273,6 +4273,32 @@
         ]
       }
     },
+    "/api/v1/api-keys/me": {
+      "get": {
+        "operationId": "get_current_api_key_api_v1_api_keys_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Current Api Key",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
     "/api/v1/api-keys/{key_id}": {
       "delete": {
         "operationId": "revoke_api_key_api_v1_api_keys__key_id__delete",

@@ -998,6 +998,11 @@ export const zCreateApiKeyApiV1ApiKeysPostBody = zApiKeyCreate;
  */
 export const zCreateApiKeyApiV1ApiKeysPostResponse = zApiKeyCreated;
 
+/**
+ * Successful Response
+ */
+export const zGetCurrentApiKeyApiV1ApiKeysMeGetResponse = zApiKeyRead;
+
 export const zRevokeApiKeyApiV1ApiKeysKeyIdDeletePath = z.object({
     key_id: z.uuid()
 });

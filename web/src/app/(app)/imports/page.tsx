@@ -95,8 +95,7 @@ function ImportsContent() {
       ) : !projectQuery.data ? (
         <Card>
           <CardContent className="py-6 text-sm text-app-text-muted">
-            No projects are visible to this API key yet. Seed dev data with{" "}
-            <code className="font-mono">python scripts/seed_dev.py</code>.
+            No projects yet. Create one with + New project in the sidebar.
           </CardContent>
         </Card>
       ) : (

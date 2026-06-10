@@ -50,7 +50,7 @@ function LocalesPicker() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !current) {
     return (
-      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one in Settings → Project." />
+      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
     );
   }
   return <LocalesEditor project={current.project} />;
@@ -373,9 +373,16 @@ function LocaleStateAction({
           {error}
         </span>
       ) : justActivated !== null ? (
-        <span className="text-[11px] text-status-approved text-right leading-snug">
-          Seeded {justActivated} draft{justActivated === 1 ? "" : "s"}.
-        </span>
+        justActivated > 0 ? (
+          <span className="text-[11px] text-status-approved text-right leading-snug">
+            Seeded {justActivated} draft{justActivated === 1 ? "" : "s"}.
+          </span>
+        ) : (
+          <span className="text-[11px] text-text-muted text-right leading-snug">
+            No new drafts — add a repository and ingest source strings first
+            (Settings → Repositories).
+          </span>
+        )
       ) : null}
     </div>
   );

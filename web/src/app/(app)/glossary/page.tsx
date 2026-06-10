@@ -78,7 +78,7 @@ function GlossaryPicker() {
     return (
       <EmptyState
         title="No project selected"
-        body="Glossary terms attach to a project. Pick one from the sidebar switcher, or create one in Settings → Project."
+        body="Glossary terms attach to a project. Pick one from the sidebar switcher, or create one with + New project in the sidebar."
       />
     );
   }

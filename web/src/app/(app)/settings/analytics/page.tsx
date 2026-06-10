@@ -47,7 +47,7 @@ function AnalyticsPicker() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !current) {
     return (
-      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one in Settings → Project." />
+      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
     );
   }
   return <AnalyticsView project={current.project} />;

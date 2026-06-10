@@ -48,6 +48,15 @@ async def create_api_key(body: ApiKeyCreate, db: DB, current_key: CurrentKey) ->
     )
 
 
+@router.get("/me", response_model=ApiKeyRead)
+async def get_current_api_key(current_key: CurrentKey) -> ApiKeyRead:
+    # Echoes the calling key so the dashboard can gate admin-only affordances
+    # (e.g. "Create organization") on *this* key's ``is_org_admin`` rather than
+    # inferring it from the org's key list. Literal ``/me`` is matched before any
+    # parametrised route, so it never collides with a key id.
+    return ApiKeyRead.model_validate(current_key)
+
+
 @router.get("", response_model=ListResponse[ApiKeyRead])
 async def list_api_keys(db: DB, current_key: CurrentKey) -> dict:
     result = await db.execute(select(ApiKey).where(ApiKey.organization_id == current_key.organization_id))

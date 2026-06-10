@@ -1,10 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusIcon, TerminalIcon, XIcon } from "lucide-react";
+import { TerminalIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { LocaleChipInput } from "@/components/locale-chip-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,7 +48,7 @@ function ProjectSettingsContent() {
 
   if (!current) {
     return (
-      <EmptyShell title="No project selected. Use the sidebar switcher, or create one below."  />
+      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
     );
   }
 
@@ -151,7 +152,6 @@ function ProjectLocales({
   onChanged: () => void;
 }) {
   const qc = useQueryClient();
-  const [newLocale, setNewLocale] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const updateMutation = useMutation({
@@ -160,7 +160,6 @@ function ProjectLocales({
       qc.invalidateQueries({ queryKey: ["all-projects"] });
       onChanged();
       setError(null);
-      setNewLocale("");
     },
     onError: (err) => setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
   });
@@ -168,9 +167,7 @@ function ProjectLocales({
   // After adding the locale to target_locales, create a default locale_config
   // so the locale shows up in Settings → Locales. Bootstrap stays false —
   // docs/02 R-15a says new locales require a 50-string native-speaker pass.
-  const addLocale = async () => {
-    const candidate = newLocale.trim();
-    if (!candidate) return;
+  const addLocale = async (candidate: string) => {
     if (locales.includes(candidate)) {
       setError(`Locale ${candidate} already on this project.`);
       return;
@@ -191,7 +188,6 @@ function ProjectLocales({
       qc.invalidateQueries({ queryKey: ["all-projects"] });
       qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] });
       onChanged();
-      setNewLocale("");
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err));
@@ -201,6 +197,16 @@ function ProjectLocales({
   const removeLocale = (loc: string) => {
     if (!confirm(`Remove ${loc} from this project? Existing translations stay in the DB but won't appear in the sidebar.`)) return;
     updateMutation.mutate(locales.filter((l) => l !== loc));
+  };
+
+  // LocaleChipInput is controlled and changes one locale at a time; diff the
+  // next array against the current to route to the right side effect — add also
+  // seeds a locale_config, remove confirms first.
+  const handleLocalesChange = (next: string[]) => {
+    const added = next.find((l) => !locales.includes(l));
+    const removed = locales.find((l) => !next.includes(l));
+    if (added) addLocale(added);
+    else if (removed) removeLocale(removed);
   };
 
   return (
@@ -215,58 +221,11 @@ function ProjectLocales({
       </div>
       <Card>
         <CardContent className="p-5 flex flex-col gap-4">
-          {locales.length === 0 ? (
-            <p className="text-sm text-text-muted">
-              No target locales yet — add one below.
-            </p>
-          ) : (
-            <ul className="flex flex-wrap gap-2">
-              {locales.map((loc) => (
-                <li
-                  key={loc}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-line bg-ink-1 pl-2.5 pr-1 py-1 text-[12px]"
-                >
-                  <span className="font-mono">{loc}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeLocale(loc)}
-                    className="p-0.5 rounded hover:bg-ink-3 text-text-muted hover:text-foreground"
-                    aria-label={`Remove ${loc}`}
-                  >
-                    <XIcon className="size-3" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="flex items-end gap-2">
-            <div className="flex-1 flex flex-col gap-2">
-              <Label htmlFor="new-locale">Add locale (BCP-47)</Label>
-              <Input
-                id="new-locale"
-                value={newLocale}
-                placeholder="e.g. de-DE, pt-BR, ja-JP"
-                className="font-mono"
-                onChange={(e) => setNewLocale(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addLocale();
-                  }
-                }}
-              />
-            </div>
-            <Button
-              size="sm"
-              onClick={addLocale}
-              disabled={!newLocale.trim()}
-              className="mb-px"
-            >
-              <PlusIcon className="size-3.5" />
-              Add
-            </Button>
-          </div>
+          <LocaleChipInput
+            value={locales}
+            onChange={handleLocalesChange}
+            disabled={updateMutation.isPending}
+          />
           {error ? (
             <p className="text-[12px] text-status-rejected">{error}</p>
           ) : null}

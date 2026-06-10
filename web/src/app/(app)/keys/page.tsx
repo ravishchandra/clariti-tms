@@ -64,7 +64,7 @@ function KeysIndex() {
     return (
       <EmptyShell
         title="No project found"
-        body="Create a project with `loc init` before browsing keys."
+        body="Create a project with + New project in the sidebar before browsing keys."
       />
     );
   }

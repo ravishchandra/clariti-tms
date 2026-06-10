@@ -442,6 +442,34 @@ class TestApiKeysOrgIdIgnored:
         assert r.json()["organization_id"] == str(fixture.org_a.org_id)
 
 
+class TestApiKeyMe:
+    """GET /api-keys/me echoes the *calling* key (admin-UI #1: lets the web UI
+    gate org-admin affordances on this key, not infer from the org's key list)."""
+
+    async def test_me_returns_calling_key_non_admin(self, client: AsyncClient, fixture: Fixture) -> None:
+        r = await client.get("/api/v1/api-keys/me", headers=_headers(fixture.org_a.api_key_raw))
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["id"] == str(fixture.org_a.api_key_id)
+        assert body["organization_id"] == str(fixture.org_a.org_id)
+        assert body["is_org_admin"] is False
+
+    async def test_me_reports_org_admin_for_admin_key(self, client: AsyncClient, fixture: Fixture) -> None:
+        r = await client.get("/api/v1/api-keys/me", headers=_headers(fixture.admin_key_raw))
+        assert r.status_code == 200, r.text
+        assert r.json()["is_org_admin"] is True
+
+    async def test_me_requires_a_key(self, client: AsyncClient, fixture: Fixture) -> None:
+        r = await client.get("/api/v1/api-keys/me")
+        assert r.status_code == 401
+
+    async def test_me_is_not_shadowed_by_key_id_route(self, client: AsyncClient, fixture: Fixture) -> None:
+        # Literal `/me` must win over any `/{key_id}`-style match — a regression
+        # guard in case a parametrised GET is added later.
+        r = await client.get("/api/v1/api-keys/me", headers=_headers(fixture.org_a.api_key_raw))
+        assert r.status_code == 200
+
+
 class TestPublicationIsolation:
     async def test_15_publish_other_orgs_repo_returns_404(self, client: AsyncClient, fixture: Fixture) -> None:
         r = await client.post(

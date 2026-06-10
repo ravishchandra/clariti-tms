@@ -1,8 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GitBranchIcon, PlusIcon, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { GitBranchIcon, PlusIcon, Trash2, UploadIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   AlertDialog,
@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, ApiError, getApiKey, useApiKey, type Repository } from "@/lib/api";
+import { api, ApiError, formatApiError, getApiKey, useApiKey, type Repository } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
 /**
@@ -166,6 +166,43 @@ function RepoCard({
     },
   });
 
+  // Manual file ingest (mirrors CLI `loc ingest-file`): the admin picks the
+  // current contents of the repo's configured `source_file`; we POST the bytes
+  // and the server parses + upserts keys + (auto_translate) assembles batches.
+  // This is the in-product path to get strings without GitHub OAuth or the CLI.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [ingestError, setIngestError] = useState<string | null>(null);
+  const [ingestResult, setIngestResult] = useState<
+    Awaited<ReturnType<typeof api.repositories.ingest>> | null
+  >(null);
+
+  const ingestMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const content = await file.text();
+      return api.repositories.ingest(repository.id, {
+        format: repository.file_format,
+        path: repository.source_file ?? file.name,
+        content,
+      });
+    },
+    onSuccess: (res) => {
+      setIngestError(null);
+      setIngestResult(res);
+      // New keys/batches change counts surfaced elsewhere; refresh repo list.
+      qc.invalidateQueries({ queryKey: ["settings-repos", projectId] });
+    },
+    onError: (err) => {
+      setIngestResult(null);
+      setIngestError(formatApiError(err));
+    },
+  });
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked
+    if (file) ingestMutation.mutate(file);
+  };
+
   return (
     <Card>
       <CardContent className="p-5 flex flex-col gap-3">
@@ -209,6 +246,26 @@ function RepoCard({
             ) : null}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={onPickFile}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!repository.source_file || ingestMutation.isPending}
+              title={
+                repository.source_file
+                  ? `Upload the current contents of ${repository.source_file}`
+                  : "Set a source file before ingesting"
+              }
+            >
+              <UploadIcon className="size-3.5" />
+              {ingestMutation.isPending ? "Ingesting…" : "Ingest"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -226,6 +283,22 @@ function RepoCard({
             </Button>
           </div>
         </div>
+
+        {ingestError ? (
+          <p className="text-[12px] text-status-rejected">{ingestError}</p>
+        ) : ingestResult ? (
+          <p className="text-[12px] text-status-approved">
+            Ingested {ingestResult.parsed} key
+            {ingestResult.parsed === 1 ? "" : "s"} — {ingestResult.created} new,{" "}
+            {ingestResult.updated} updated, {ingestResult.unchanged} unchanged
+            {ingestResult.batches.length > 0
+              ? `; assembled ${ingestResult.batches.length} batch${
+                  ingestResult.batches.length === 1 ? "" : "es"
+                } and queued MT`
+              : ""}
+            .
+          </p>
+        ) : null}
 
         {expanded ? (
           <RepoEditForm projectId={projectId} repository={repository} />

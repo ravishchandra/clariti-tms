@@ -101,9 +101,7 @@ function ExportsBuilder() {
         <Header />
         <Card className="mt-6">
           <CardContent className="py-6 text-sm text-app-text-muted">
-            No projects are visible to this API key yet. Run{" "}
-            <code className="font-mono">python scripts/seed_dev.py</code> or create one
-            via the CLI.
+            No projects yet. Create one with + New project in the sidebar.
           </CardContent>
         </Card>
       </div>

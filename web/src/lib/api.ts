@@ -30,6 +30,7 @@ import {
   createComponentContextApiV1RepositoriesRepoIdComponentContextsPost,
   createGlossaryTermApiV1ProjectsProjectIdGlossaryPost,
   createLocaleConfigApiV1ProjectsProjectIdLocaleConfigsPost,
+  createOrgApiV1OrganizationsPost,
   createProjectApiV1OrganizationsOrgIdProjectsPost,
   createRepositoryApiV1ProjectsProjectIdRepositoriesPost,
   createUserApiV1OrganizationsOrgIdUsersPost,
@@ -38,11 +39,13 @@ import {
   deleteRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdDelete,
   getAppSettingsApiV1AppSettingsGet,
   getBatchApiV1BatchesBatchIdGet,
+  getCurrentApiKeyApiV1ApiKeysMeGet,
   getKeyApiV1KeysKeyIdGet,
   getProjectAnalyticsApiV1ProjectsProjectIdAnalyticsGet,
   getProjectApiV1ProjectsProjectIdGet,
   getRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGet,
   getTranslationHistoryApiV1TranslationsTranslationIdHistoryGet,
+  ingestRepositoryApiV1RepositoriesRepoIdIngestPost,
   listApiKeysApiV1ApiKeysGet,
   listBatchesApiV1BatchesGet,
   listComponentContextsApiV1RepositoriesRepoIdComponentContextsGet,
@@ -73,6 +76,7 @@ import type {
   AnalyticsSummary,
   BatchStatus,
   CostByModel,
+  IngestResult,
   KeyRead,
   LocaleConfigRead,
   TranslationRead,
@@ -116,6 +120,27 @@ async function safeBody(response: Response): Promise<unknown> {
   } catch {
     return response.statusText;
   }
+}
+
+/**
+ * One-line, user-facing message from any thrown error. Unwraps FastAPI's
+ * `{ detail }` (string or nested), and the validation-error array shape, so
+ * callers never render `[object Object]`. Shared by create dialogs so error
+ * formatting doesn't drift per-page.
+ */
+export function formatApiError(err: unknown): string {
+  if (!(err instanceof ApiError)) return err instanceof Error ? err.message : String(err);
+  const d = err.detail;
+  if (typeof d === "string") return `${err.status}: ${d}`;
+  if (Array.isArray(d)) {
+    const first = d[0] as { msg?: unknown } | undefined;
+    if (first && typeof first.msg === "string") return `${err.status}: ${first.msg}`;
+  }
+  if (d && typeof d === "object" && "detail" in d) {
+    const inner = (d as { detail: unknown }).detail;
+    if (typeof inner === "string") return `${err.status}: ${inner}`;
+  }
+  return `${err.status}: ${err.message}`;
 }
 
 export function getApiKey(): string | null {
@@ -608,6 +633,15 @@ export const api = {
   organizations: {
     list: async (): Promise<Organization[]> =>
       (await _unwrap(listOrgsApiV1OrganizationsGet({}))).items,
+    // Privileged tenant-provisioning — the backend gates this on an org-admin
+    // key (POST /organizations → OrgAdminKey). The UI only surfaces it when
+    // `apiKeys.me().is_org_admin` is true; a non-admin key gets a 403.
+    create: async (body: {
+      name: string;
+      slug: string;
+      admin_email?: string | null;
+      admin_name?: string | null;
+    }): Promise<Organization> => _unwrap(createOrgApiV1OrganizationsPost({ body })),
   },
   projects: {
     list: async (orgId: string): Promise<Project[]> =>
@@ -661,6 +695,9 @@ export const api = {
     revoke: async (keyId: string): Promise<void> => {
       await _unwrap(revokeApiKeyApiV1ApiKeysKeyIdDelete({ path: { key_id: keyId } }));
     },
+    // Echoes the *calling* key — used to gate admin-only affordances on this
+    // key's `is_org_admin` rather than inferring from the org's key list.
+    me: async (): Promise<ApiKey> => _unwrap(getCurrentApiKeyApiV1ApiKeysMeGet({})),
   },
   users: {
     list: async (orgId: string): Promise<User[]> =>
@@ -721,6 +758,25 @@ export const api = {
         }),
       );
     },
+    // Synchronous content-based ingest (mirrors CLI `loc ingest-file`): the
+    // caller reads a source file and POSTs its bytes; the server parses, upserts
+    // keys, and (auto_translate) assembles batches + queues MT. Returns counts.
+    ingest: async (
+      repoId: string,
+      body: {
+        format: string;
+        path: string;
+        content: string;
+        on_conflict?: string;
+        auto_translate?: boolean;
+      },
+    ): Promise<IngestResult> =>
+      _unwrap(
+        ingestRepositoryApiV1RepositoriesRepoIdIngestPost({
+          path: { repo_id: repoId },
+          body,
+        }),
+      ),
   },
   translations: {
     listByBatch: async (projectId: string, batchId: string): Promise<Translation[]> => {

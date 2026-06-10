@@ -2362,6 +2362,22 @@ export type CreateApiKeyApiV1ApiKeysPostResponses = {
 
 export type CreateApiKeyApiV1ApiKeysPostResponse = CreateApiKeyApiV1ApiKeysPostResponses[keyof CreateApiKeyApiV1ApiKeysPostResponses];
 
+export type GetCurrentApiKeyApiV1ApiKeysMeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/api-keys/me';
+};
+
+export type GetCurrentApiKeyApiV1ApiKeysMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ApiKeyRead;
+};
+
+export type GetCurrentApiKeyApiV1ApiKeysMeGetResponse = GetCurrentApiKeyApiV1ApiKeysMeGetResponses[keyof GetCurrentApiKeyApiV1ApiKeysMeGetResponses];
+
 export type RevokeApiKeyApiV1ApiKeysKeyIdDeleteData = {
     body?: never;
     path: {

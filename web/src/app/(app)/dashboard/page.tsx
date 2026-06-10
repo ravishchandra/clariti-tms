@@ -1,19 +1,29 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { CreateOrgDialog } from "@/components/create-org-dialog";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { StatusChip } from "@/components/status-chip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatusChip } from "@/components/status-chip";
-import { api, getApiKey, useApiKey } from "@/lib/api";
+import { api, useApiKey, type Project } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 
 /**
  * Dashboard — the queue surface (docs/06-human-review-workflow.md "Dashboard
  * spec"). Not a stats page; primary purpose is to surface what needs review
  * and provide a one-click "Start reviewing" CTA per locale.
+ *
+ * Also the post-sign-in landing for a fresh admin, so its empty states must
+ * offer real in-product actions, not CLI commands (admin-UI audit #1): a
+ * per-org "Create your first project" CTA, and an honest no-org branch that
+ * only shows "Create organization" to org-admin keys.
  */
 export default function DashboardPage() {
   const apiKey = useApiKey();
@@ -44,14 +54,18 @@ export default function DashboardPage() {
     );
   }
 
-  if (orgsQuery.isError || !orgsQuery.data || orgsQuery.data.length === 0) {
+  if (orgsQuery.isError) {
     return (
       <EmptyState
-        title="No organizations"
-        body="Your key authenticated, but no organizations are visible. Either the key was revoked, or no projects have been created yet. Try `loc init` and `python scripts/seed_dev.py`."
+        title="Couldn't reach the server"
+        body="Your key was sent but the server didn't respond. Check the API is running, then retry — or sign in with a different key."
         action={{ href: "/sign-in", label: "Use a different key" }}
       />
     );
+  }
+
+  if (!orgsQuery.data || orgsQuery.data.length === 0) {
+    return <NoOrgState />;
   }
 
   return (
@@ -75,6 +89,61 @@ export default function DashboardPage() {
   );
 }
 
+/**
+ * No organizations visible. A normal key is bound to exactly one org, so this
+ * is either a fresh-platform org-admin key (can provision a tenant) or a
+ * revoked/misconfigured key. Gate the create affordance on *this* key's
+ * is_org_admin via apiKeys.me — never show a button that is guaranteed to 403.
+ */
+function NoOrgState() {
+  const apiKey = useApiKey();
+  const router = useRouter();
+  const { setCurrent } = useCurrentProject();
+  const [createOpen, setCreateOpen] = useState(false);
+  const meQuery = useQuery({
+    queryKey: ["apikey", "me"],
+    queryFn: api.apiKeys.me,
+    enabled: !!apiKey,
+    retry: false,
+  });
+  const isAdmin = meQuery.data?.is_org_admin === true;
+
+  return (
+    <div className="flex flex-1 items-center justify-center p-12">
+      <div className="flex flex-col items-center gap-4 max-w-md text-center">
+        <h2 className="text-lg font-semibold">
+          {isAdmin ? "Create your first organization" : "No organization"}
+        </h2>
+        <p className="text-sm text-app-text-secondary">
+          {isAdmin
+            ? "This key can provision organizations. Create one, then add your first project to it."
+            : "This key isn't linked to an organization. Ask your operator to add you, or sign in with a different key."}
+        </p>
+        {isAdmin ? (
+          <>
+            <Button onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="size-3.5" />
+              New organization
+            </Button>
+            <CreateOrgDialog
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              onProjectCreated={(p) => {
+                setCurrent(p.id);
+                router.push("/settings/repositories");
+              }}
+            />
+          </>
+        ) : (
+          <Link href="/sign-in" className={buttonVariants({ variant: "outline" })}>
+            Use a different key
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KeyboardInline({ children }: { children: React.ReactNode }) {
   return (
     <kbd className="inline-flex items-center px-1 py-px rounded bg-ink-2 text-[10.5px] font-mono text-text-soft border border-line">
@@ -84,10 +153,22 @@ function KeyboardInline({ children }: { children: React.ReactNode }) {
 }
 
 function OrgProjects({ orgId, orgName }: { orgId: string; orgName: string }) {
+  const router = useRouter();
+  const qc = useQueryClient();
+  const { setCurrent } = useCurrentProject();
+  const [createOpen, setCreateOpen] = useState(false);
   const projectsQuery = useQuery({
     queryKey: ["dashboard", "projects", orgId],
     queryFn: () => api.projects.list(orgId),
   });
+
+  // New project → make it current and hand off to Repositories (where the
+  // Ingest button lives) so cold-start reaches strings without the CLI.
+  const onCreated = (p: Project) => {
+    setCurrent(p.id);
+    qc.invalidateQueries({ queryKey: ["dashboard"] });
+    router.push("/settings/repositories");
+  };
 
   if (projectsQuery.isLoading) {
     return <Skeleton className="h-24" />;
@@ -101,8 +182,14 @@ function OrgProjects({ orgId, orgName }: { orgId: string; orgName: string }) {
       <div className="mono-eyebrow">{orgName}</div>
       {projectsQuery.data.length === 0 ? (
         <Card>
-          <CardContent className="text-sm text-app-text-muted py-6">
-            No projects yet in <span className="font-mono">{orgName}</span>.
+          <CardContent className="py-6 flex flex-col items-start gap-3">
+            <p className="text-sm text-app-text-muted">
+              No projects yet in <span className="font-mono">{orgName}</span>.
+            </p>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="size-3.5" />
+              Create your first project
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -117,6 +204,12 @@ function OrgProjects({ orgId, orgName }: { orgId: string; orgName: string }) {
           ))}
         </div>
       )}
+      <CreateProjectDialog
+        orgId={orgId}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={onCreated}
+      />
     </section>
   );
 }

@@ -65,7 +65,7 @@ function ContextsPicker() {
     return (
       <EmptyState
         title="No project selected"
-        body="Component contexts belong to repositories under a project. Pick one from the sidebar switcher, or create one in Settings → Project."
+        body="Component contexts belong to repositories under a project. Pick one from the sidebar switcher, or create one with + New project in the sidebar."
       />
     );
   }
@@ -100,7 +100,7 @@ function ContextsForProject({
     return (
       <EmptyState
         title="No repositories in this project"
-        body="Connect a repository (`loc repo add`) before authoring component contexts."
+        body="Connect a repository in Settings → Repositories before authoring component contexts."
       />
     );
   }

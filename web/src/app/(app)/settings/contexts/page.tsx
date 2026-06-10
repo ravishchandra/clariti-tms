@@ -2,10 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -491,36 +491,6 @@ function CreateContextDialog({
 /* ---------------------------------------------------------------------------
  * Empty state + skeleton
  * ------------------------------------------------------------------------ */
-
-function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action?:
-    | { href: string; label: string }
-    | { onClick: () => void; label: string };
-}) {
-  return (
-    <div className="flex flex-1 items-center justify-center p-12">
-      <div className="flex flex-col items-center gap-4 max-w-md text-center">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-app-text-secondary">{body}</p>
-        {action ? (
-          "href" in action ? (
-            <Link href={action.href} className={buttonVariants()}>
-              {action.label}
-            </Link>
-          ) : (
-            <Button onClick={action.onClick}>{action.label}</Button>
-          )
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 function PageSkeleton({ compact = false }: { compact?: boolean }) {
   return (

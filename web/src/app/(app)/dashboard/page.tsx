@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { CreateOrgDialog } from "@/components/create-org-dialog";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { StatusChip } from "@/components/status-chip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -289,30 +290,6 @@ function LocaleQueueRow({ projectId, locale }: { projectId: string; locale: stri
         Start reviewing
         <ArrowRight className="size-3.5 ml-1" />
       </Link>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action?: { href: string; label: string };
-}) {
-  return (
-    <div className="flex flex-1 items-center justify-center p-12">
-      <div className="flex flex-col items-center gap-4 max-w-md text-center">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-app-text-secondary">{body}</p>
-        {action ? (
-          <Link href={action.href} className={buttonVariants()}>
-            {action.label}
-          </Link>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -38,7 +39,7 @@ const WINDOW_OPTIONS = [
 
 export default function AnalyticsPage() {
   const apiKey = useApiKey();
-  if (!apiKey) return <EmptyShell title="Sign in to view analytics." />;
+  if (!apiKey) return <EmptyState variant="inline" title="Sign in to view analytics." />;
   return <AnalyticsPicker />;
 }
 
@@ -47,7 +48,7 @@ function AnalyticsPicker() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !current) {
     return (
-      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
+      <EmptyState variant="inline" title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
     );
   }
   return <AnalyticsView project={current.project} />;
@@ -283,14 +284,6 @@ function Bar({
       <span className="w-28 shrink-0 text-right font-mono tabular-nums text-text-muted">
         {right}
       </span>
-    </div>
-  );
-}
-
-function EmptyShell({ title }: { title: string }) {
-  return (
-    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-      {title}
     </div>
   );
 }

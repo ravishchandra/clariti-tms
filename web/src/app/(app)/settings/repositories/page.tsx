@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/empty-state";
 import { api, ApiError, formatApiError, getApiKey, useApiKey, type Repository } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
@@ -71,7 +72,7 @@ type FileFormat = (typeof FILE_FORMATS)[number];
 export default function RepositoriesPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
-    return <Empty title="Sign in to manage repositories." />;
+    return <EmptyState variant="inline" title="Sign in to manage repositories." />;
   }
   return <RepositoriesContent />;
 }
@@ -88,7 +89,7 @@ function RepositoriesContent() {
     );
   }
   if (!current) {
-    return <Empty title="No project selected. Pick one from the sidebar." />;
+    return <EmptyState variant="inline" title="No project selected. Pick one from the sidebar." />;
   }
 
   return <RepoList projectId={current.project.id} />;
@@ -694,8 +695,4 @@ function Field({
       {hint ? <p className="text-[11px] text-text-muted">{hint}</p> : null}
     </div>
   );
-}
-
-function Empty({ title }: { title: string }) {
-  return <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">{title}</div>;
 }

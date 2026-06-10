@@ -3,6 +3,7 @@
 import { ArrowDownToLine, ArrowUpFromLine, FileSpreadsheet, FileText } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApiKey } from "@/lib/api";
 
@@ -20,11 +21,7 @@ import { useApiKey } from "@/lib/api";
 export default function DataPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
-    return (
-      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-        Sign in to use import / export.
-      </div>
-    );
+    return <EmptyState variant="inline" title="Sign in to use import / export." />;
   }
   return (
     <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-4xl flex flex-col gap-6">

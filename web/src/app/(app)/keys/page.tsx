@@ -5,7 +5,6 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RiskClassChip } from "@/components/risk-class-chip";
+import { EmptyState } from "@/components/empty-state";
 import { api, getApiKey, useApiKey, type Key } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 import { cn } from "@/lib/utils";
@@ -62,7 +62,7 @@ function KeysIndex() {
   }
   if (!project) {
     return (
-      <EmptyShell
+      <EmptyState
         title="No project found"
         body="Create a project with + New project in the sidebar before browsing keys."
       />
@@ -266,30 +266,6 @@ function KeysSkeleton({ inline = false }: { inline?: boolean }) {
       <Skeleton className="h-10" />
       <Skeleton className="h-10" />
       <Skeleton className="h-10" />
-    </div>
-  );
-}
-
-function EmptyShell({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action?: { href: string; label: string };
-}) {
-  return (
-    <div className="flex flex-1 items-center justify-center p-12">
-      <div className="flex flex-col items-center gap-4 max-w-md text-center">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-app-text-secondary">{body}</p>
-        {action ? (
-          <Link href={action.href} className={buttonVariants()}>
-            {action.label}
-          </Link>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { TerminalIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { LocaleChipInput } from "@/components/locale-chip-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +28,7 @@ export default function ProjectSettingsPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
     return (
-      <EmptyShell title="Sign in to manage project settings." />
+      <EmptyState variant="inline" title="Sign in to manage project settings." />
     );
   }
   return <ProjectSettingsContent />;
@@ -48,7 +49,7 @@ function ProjectSettingsContent() {
 
   if (!current) {
     return (
-      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
+      <EmptyState variant="inline" title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
     );
   }
 
@@ -324,13 +325,5 @@ function ProjectStyleGuide({
         </CardContent>
       </Card>
     </section>
-  );
-}
-
-function EmptyShell({ title }: { title: string }) {
-  return (
-    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-      {title}
-    </div>
   );
 }

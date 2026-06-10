@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FlagIcon } from "lucide-react";
 import Link from "next/link";
 
+import { EmptyState } from "@/components/empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,11 +31,7 @@ import { useCurrentProject } from "@/lib/current-project";
 export default function FlaggedPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
-    return (
-      <div className="p-6 max-w-3xl text-sm text-text-soft">
-        Sign in to see the flagged inbox.
-      </div>
-    );
+    return <EmptyState variant="inline" title="Sign in to see the flagged inbox." />;
   }
   return <FlaggedContent />;
 }
@@ -52,9 +49,7 @@ function FlaggedContent() {
   }
   if (!current) {
     return (
-      <div className="p-6 max-w-3xl text-sm text-text-soft">
-        No project selected — pick one from the sidebar.
-      </div>
+      <EmptyState variant="inline" title="No project selected — pick one from the sidebar." />
     );
   }
 

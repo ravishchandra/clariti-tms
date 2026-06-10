@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/empty-state";
 import { api, ApiError, USER_ROLES, useApiKey, type UserRole } from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
 
@@ -47,11 +48,7 @@ import { useCurrentProject } from "@/lib/current-project";
 export default function UsersPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
-    return (
-      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-        Sign in to manage users.
-      </div>
-    );
+    return <EmptyState variant="inline" title="Sign in to manage users." />;
   }
   return <UsersContent />;
 }
@@ -79,9 +76,10 @@ function UsersContent() {
 
   if (!orgId) {
     return (
-      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-        No organization selected. Pick a project from the sidebar switcher first.
-      </div>
+      <EmptyState
+        variant="inline"
+        title="No organization selected. Pick a project from the sidebar switcher first."
+      />
     );
   }
 

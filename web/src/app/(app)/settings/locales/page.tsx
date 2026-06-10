@@ -5,6 +5,7 @@ import { ArrowRight, Check, PlayIcon, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BootstrapDialog } from "@/app/(app)/settings/locales/bootstrap-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ import { useCurrentProject } from "@/lib/current-project";
 export default function LocalesPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
-    return <EmptyShell title="Sign in to manage locales." />;
+    return <EmptyState variant="inline" title="Sign in to manage locales." />;
   }
   return <LocalesPicker />;
 }
@@ -50,7 +51,7 @@ function LocalesPicker() {
   if (isLoading) return <PageSkeleton />;
   if (isError || !current) {
     return (
-      <EmptyShell title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
+      <EmptyState variant="inline" title="No project selected. Pick one from the sidebar switcher, or create one with + New project in the sidebar." />
     );
   }
   return <LocalesEditor project={current.project} />;
@@ -532,14 +533,6 @@ function AddLocaleRow({
 /* ---------------------------------------------------------------------------
  * Empty state + skeleton
  * ------------------------------------------------------------------------ */
-
-function EmptyShell({ title }: { title: string }) {
-  return (
-    <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-      {title}
-    </div>
-  );
-}
 
 function EmptyInline({ body }: { body: string }) {
   return (

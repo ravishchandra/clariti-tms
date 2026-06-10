@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/empty-state";
 import { api, ApiError, getApiKey, useApiKey, type ApiKey as ApiKeyRow } from "@/lib/api";
 
 /**
@@ -48,11 +49,7 @@ import { api, ApiError, getApiKey, useApiKey, type ApiKey as ApiKeyRow } from "@
 export default function ApiKeysPage() {
   const apiKey = useApiKey();
   if (!apiKey) {
-    return (
-      <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl text-sm text-text-soft">
-        Sign in to manage API keys.
-      </div>
-    );
+    return <EmptyState variant="inline" title="Sign in to manage API keys." />;
   }
   return <ApiKeysContent />;
 }

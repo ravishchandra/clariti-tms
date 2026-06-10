@@ -198,6 +198,8 @@ function GlossaryTable({ project }: { project: Project }) {
 
       {termsQuery.isLoading ? (
         <PageSkeleton compact />
+      ) : termsQuery.isError ? (
+        <QueryError onRetry={() => termsQuery.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           title={
@@ -616,6 +618,22 @@ function EmptyState({
             <Button onClick={action.onClick}>{action.label}</Button>
           )
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function QueryError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-1 items-center justify-center p-12">
+      <div className="flex flex-col items-center gap-4 max-w-md text-center">
+        <h2 className="text-lg font-semibold">Couldn’t load glossary terms</h2>
+        <p className="text-sm text-app-text-secondary">
+          Check your connection and retry.
+        </p>
+        <Button variant="outline" onClick={onRetry}>
+          Retry
+        </Button>
       </div>
     </div>
   );

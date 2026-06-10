@@ -68,6 +68,22 @@ function ApiKeysContent() {
     queryFn: api.apiKeys.list,
   });
 
+  // The calling key's org — API keys are scoped to it, not the sidebar
+  // switcher. Resolve the display name by matching me().organization_id
+  // against the org list.
+  const meQuery = useQuery({
+    queryKey: ["api-keys", "me"],
+    queryFn: api.apiKeys.me,
+  });
+  const orgsQuery = useQuery({
+    queryKey: ["organizations", "list"],
+    queryFn: api.organizations.list,
+  });
+  const actingOrg =
+    meQuery.data && orgsQuery.data
+      ? orgsQuery.data.find((o) => o.id === meQuery.data.organization_id) ?? null
+      : null;
+
   const revokeMutation = useMutation({
     mutationFn: (keyId: string) => api.apiKeys.revoke(keyId),
     onSuccess: () => {
@@ -93,6 +109,11 @@ function ApiKeysContent() {
             are tenant-scoped to your org and never admin. Revocation is
             immediate.
           </p>
+          {actingOrg ? (
+            <p className="font-mono text-[11.5px] text-text-muted">
+              Acting on org: {actingOrg.name}
+            </p>
+          ) : null}
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <PlusIcon className="size-3.5" />

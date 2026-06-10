@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiError, api, getApiKey, useApiKey, type AppSettings, type AppSettingsUpdate } from "@/lib/api";
+import { api, formatApiError, getApiKey, useApiKey, type AppSettings, type AppSettingsUpdate } from "@/lib/api";
 
 /**
  * Settings → Providers — single form, single Save.
@@ -135,8 +135,7 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
       onSaved();
     },
     onError: (err) => {
-      const message = err instanceof ApiError ? String(err.detail) : (err as Error).message;
-      setSaved({ kind: "error", message });
+      setSaved({ kind: "error", message: formatApiError(err) });
     },
   });
 

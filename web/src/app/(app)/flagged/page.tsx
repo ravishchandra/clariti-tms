@@ -97,6 +97,23 @@ function FlaggedList({ projectId }: { projectId: string }) {
               <Skeleton className="h-8" />
               <Skeleton className="h-8" />
             </div>
+          ) : flaggedQuery.isError ? (
+            <div className="p-10 text-center">
+              <FlagIcon className="size-6 text-text-muted mx-auto mb-3" />
+              <div className="text-sm font-medium text-foreground">
+                Couldn’t load flagged translations.
+              </div>
+              <div className="mt-1 text-[12px] text-text-muted">
+                Check your connection and retry.
+              </div>
+              <button
+                type="button"
+                onClick={() => flaggedQuery.refetch()}
+                className={buttonVariants({ variant: "outline", size: "sm" }) + " mt-4"}
+              >
+                Retry
+              </button>
+            </div>
           ) : items.length === 0 ? (
             <div className="p-10 text-center">
               <FlagIcon className="size-6 text-text-muted mx-auto mb-3" />

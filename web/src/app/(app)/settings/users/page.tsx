@@ -99,6 +99,11 @@ function UsersContent() {
             and reviews are stamped with one. An org needs at least one active
             user before importing.
           </p>
+          {current?.org ? (
+            <p className="font-mono text-[11.5px] text-text-muted">
+              Acting on org: {current.org.name}
+            </p>
+          ) : null}
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <PlusIcon className="size-3.5" />

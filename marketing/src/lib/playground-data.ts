@@ -74,7 +74,7 @@ export const sampleSources: { label: string; strings: SourceString[] }[] = [
 ];
 
 export const availableProviders: { id: string; label: string; note: string }[] = [
-  { id: "claude-sonnet-4", label: "claude-sonnet-4", note: "default · best for product UI" },
+  { id: "claude-opus-4-8", label: "claude-opus-4-8", note: "default · best for product UI" },
   { id: "gpt-4-turbo", label: "gpt-4-turbo", note: "fallback · strong on idiom" },
   { id: "openrouter/any", label: "openrouter/any", note: "one key, any model (Claude/GPT/Llama/…)" },
   { id: "deepl/api", label: "deepl/api", note: "plain-text locales (fr, de, es)" },

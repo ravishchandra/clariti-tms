@@ -41,7 +41,7 @@ const dimensions = [
 ];
 
 const systems = [
-  { id: "clariti", label: "ClaritiTMS (Claude)", note: "claude-sonnet-4 + back-translation QA + glossary + TM" },
+  { id: "clariti", label: "ClaritiTMS (Claude)", note: "claude-opus-4-8 + back-translation QA + glossary + TM" },
   { id: "lokalise-ai", label: "Lokalise AI", note: "vendor default, glossary uploaded" },
   { id: "phrase-nextmt", label: "Phrase NextMT", note: "vendor default" },
   { id: "crowdin-ai", label: "Crowdin AI", note: "vendor default" },

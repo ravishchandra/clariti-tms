@@ -9,7 +9,7 @@ export const dynamic = "force-static";
 
 const payload = {
   schema_version: "1",
-  generated_at: "2026-05-19",
+  generated_at: "2026-06-10",
   product: {
     name: site.name,
     tagline: site.tagline,
@@ -46,7 +46,7 @@ const payload = {
     llm_providers: {
       bring_your_own: true,
       shipped: [
-        { id: "anthropic", model: "claude-sonnet-4", default: true },
+        { id: "anthropic", model: "claude-opus-4-8", default: true },
         { id: "openai", model: "gpt-4-turbo" },
         { id: "deepl", model: "deepl/api" },
         { id: "ollama", model: "local models" },
@@ -83,7 +83,7 @@ const payload = {
       cli: { binary: "loc", commands: ["demo", "translate", "ingest-file", "import-xliff", "export-xliff", "api-key", "import", "export-tm", "import-tm", "add"] },
       web_review_ui: { keyboard_first: true, framework: "Next.js 16 + React 19" },
       screenshot_sdk: { package: "@clariti-tms/screenshot-sdk", language: "TypeScript" },
-      mcp_server: { shipped: false, planned: "2026 Q3" },
+      mcp_server: { shipped: true, version: "1" },
     },
     pricing_model: {
       self_host: { price_usd_per_month: 0, perpetual: true, license: "AGPL-3.0" },

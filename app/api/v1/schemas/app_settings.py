@@ -56,4 +56,25 @@ class AppSettingsUpdate(BaseModel):
     ollama_host: str | None = None
 
 
-__all__ = ["AppSettingsRead", "AppSettingsUpdate", "_ALLOWED_PROVIDERS"]
+class ProviderTestRequest(BaseModel):
+    """Body for POST /app-settings/test. ``api_key`` is optional — when omitted,
+    the server tests the stored (decrypted) key for that provider so an admin can
+    verify an already-saved credential. ``ollama_host`` is only used for ollama."""
+
+    provider: str
+    api_key: str | None = None
+    ollama_host: str | None = None
+
+
+class ProviderTestResult(BaseModel):
+    ok: bool
+    error: str | None = None
+
+
+__all__ = [
+    "AppSettingsRead",
+    "AppSettingsUpdate",
+    "ProviderTestRequest",
+    "ProviderTestResult",
+    "_ALLOWED_PROVIDERS",
+]

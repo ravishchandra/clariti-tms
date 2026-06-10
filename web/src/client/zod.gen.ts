@@ -688,6 +688,27 @@ export const zProjectUpdate = z.object({
 });
 
 /**
+ * ProviderTestRequest
+ *
+ * Body for POST /app-settings/test. ``api_key`` is optional — when omitted,
+ * the server tests the stored (decrypted) key for that provider so an admin can
+ * verify an already-saved credential. ``ollama_host`` is only used for ollama.
+ */
+export const zProviderTestRequest = z.object({
+    api_key: z.string().nullish(),
+    ollama_host: z.string().nullish(),
+    provider: z.string()
+});
+
+/**
+ * ProviderTestResult
+ */
+export const zProviderTestResult = z.object({
+    error: z.string().nullish(),
+    ok: z.boolean()
+});
+
+/**
  * PublishResult
  *
  * POST /publications/repositories/{id}/publish.
@@ -962,6 +983,20 @@ export const zListResponseUserRead = z.object({
 });
 
 /**
+ * UserUpdate
+ *
+ * Partial update — soft-deactivate (``is_active``) and/or change ``role``.
+ *
+ * Omitted fields are no-ops (``exclude_unset`` on the server). We never expose
+ * a hard delete: users are attribution records (import_jobs.uploaded_by,
+ * translation history), so deactivation is a soft flag, not a row removal.
+ */
+export const zUserUpdate = z.object({
+    is_active: z.boolean().nullish(),
+    role: z.string().nullish()
+});
+
+/**
  * ValidationError
  */
 export const zValidationError = z.object({
@@ -1024,6 +1059,13 @@ export const zUpdateAppSettingsApiV1AppSettingsPatchBody = zAppSettingsUpdate;
  * Successful Response
  */
 export const zUpdateAppSettingsApiV1AppSettingsPatchResponse = zAppSettingsRead;
+
+export const zTestProviderApiV1AppSettingsTestPostBody = zProviderTestRequest;
+
+/**
+ * Successful Response
+ */
+export const zTestProviderApiV1AppSettingsTestPostResponse = zProviderTestResult;
 
 export const zListBatchesApiV1BatchesGetQuery = z.object({
     project_id: z.uuid(),
@@ -1257,6 +1299,18 @@ export const zCreateUserApiV1OrganizationsOrgIdUsersPostPath = z.object({
  */
 export const zCreateUserApiV1OrganizationsOrgIdUsersPostResponse = zUserRead;
 
+export const zUpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchBody = zUserUpdate;
+
+export const zUpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchPath = z.object({
+    user_id: z.uuid(),
+    org_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zUpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchResponse = zUserRead;
+
 export const zGetLocaleApiV1OtaProjectSlugLocaleJsonGetPath = z.object({
     project_slug: z.string(),
     locale: z.string()
@@ -1415,6 +1469,17 @@ export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatch
  * Successful Response
  */
 export const zUpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchResponse = zLocaleConfigRead;
+
+export const zAddProjectLocaleApiV1ProjectsProjectIdLocalesPostBody = zLocaleConfigCreate;
+
+export const zAddProjectLocaleApiV1ProjectsProjectIdLocalesPostPath = z.object({
+    project_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zAddProjectLocaleApiV1ProjectsProjectIdLocalesPostResponse = zLocaleConfigRead;
 
 export const zListRepositoriesApiV1ProjectsProjectIdRepositoriesGetPath = z.object({
     project_id: z.uuid()

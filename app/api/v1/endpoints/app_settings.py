@@ -14,11 +14,27 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import DB, CurrentKey
-from app.api.v1.schemas.app_settings import _ALLOWED_PROVIDERS, AppSettingsRead, AppSettingsUpdate
-from app.core.crypto import encrypt
+from app.api.v1.schemas.app_settings import (
+    _ALLOWED_PROVIDERS,
+    AppSettingsRead,
+    AppSettingsUpdate,
+    ProviderTestRequest,
+    ProviderTestResult,
+)
+from app.core.crypto import decrypt, encrypt
 from app.llm.app_config import load_app_settings
+from app.llm.connection_test import test_provider_connection
 
 router = APIRouter()
+
+
+# Provider -> encrypted-key column, for testing a stored credential.
+_PROVIDER_TO_KEY_COLUMN: dict[str, str] = {
+    "anthropic": "anthropic_api_key_encrypted",
+    "openai": "openai_api_key_encrypted",
+    "openrouter": "openrouter_api_key_encrypted",
+    "deepl": "deepl_api_key_encrypted",
+}
 
 
 # Map of write-only key field on the input schema -> AppSettings column name.
@@ -51,6 +67,37 @@ def _to_read(row) -> AppSettingsRead:  # type: ignore[no-untyped-def]
 async def get_app_settings(db: DB, _: CurrentKey) -> AppSettingsRead:
     row = await load_app_settings(db)
     return _to_read(row)
+
+
+@router.post("/app-settings/test", response_model=ProviderTestResult)
+async def test_provider(body: ProviderTestRequest, db: DB, _: CurrentKey) -> ProviderTestResult:
+    """Validate a provider credential with a cheap authenticated call.
+
+    Tests the supplied ``api_key`` if given, otherwise the stored (decrypted)
+    key for that provider — so an admin can verify a key they're about to enter
+    OR one already saved. Always returns 200 with ``{ok, error}``; a failed
+    test is data, not an HTTP error.
+    """
+    if body.provider not in _ALLOWED_PROVIDERS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"provider must be one of {_ALLOWED_PROVIDERS}",
+        )
+
+    api_key = body.api_key
+    ollama_host = body.ollama_host
+
+    # Fall back to the stored credential when the caller didn't supply one.
+    if body.provider == "ollama":
+        if not ollama_host:
+            ollama_host = (await load_app_settings(db)).ollama_host
+    elif not api_key:
+        row = await load_app_settings(db)
+        enc = getattr(row, _PROVIDER_TO_KEY_COLUMN[body.provider], None)
+        api_key = decrypt(enc) if enc else None
+
+    ok, error = await test_provider_connection(body.provider, api_key=api_key, ollama_host=ollama_host)
+    return ProviderTestResult(ok=ok, error=error)
 
 
 @router.patch("/app-settings", response_model=AppSettingsRead)

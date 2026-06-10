@@ -1776,6 +1776,42 @@ export type ProjectUpdate = {
 };
 
 /**
+ * ProviderTestRequest
+ *
+ * Body for POST /app-settings/test. ``api_key`` is optional — when omitted,
+ * the server tests the stored (decrypted) key for that provider so an admin can
+ * verify an already-saved credential. ``ollama_host`` is only used for ollama.
+ */
+export type ProviderTestRequest = {
+    /**
+     * Api Key
+     */
+    api_key?: string | null;
+    /**
+     * Ollama Host
+     */
+    ollama_host?: string | null;
+    /**
+     * Provider
+     */
+    provider: string;
+};
+
+/**
+ * ProviderTestResult
+ */
+export type ProviderTestResult = {
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Ok
+     */
+    ok: boolean;
+};
+
+/**
  * PublishResult
  *
  * POST /publications/repositories/{id}/publish.
@@ -2284,6 +2320,26 @@ export type UserRead = {
 };
 
 /**
+ * UserUpdate
+ *
+ * Partial update — soft-deactivate (``is_active``) and/or change ``role``.
+ *
+ * Omitted fields are no-ops (``exclude_unset`` on the server). We never expose
+ * a hard delete: users are attribution records (import_jobs.uploaded_by,
+ * translation history), so deactivation is a soft flag, not a row removal.
+ */
+export type UserUpdate = {
+    /**
+     * Is Active
+     */
+    is_active?: boolean | null;
+    /**
+     * Role
+     */
+    role?: string | null;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -2452,6 +2508,31 @@ export type UpdateAppSettingsApiV1AppSettingsPatchResponses = {
 };
 
 export type UpdateAppSettingsApiV1AppSettingsPatchResponse = UpdateAppSettingsApiV1AppSettingsPatchResponses[keyof UpdateAppSettingsApiV1AppSettingsPatchResponses];
+
+export type TestProviderApiV1AppSettingsTestPostData = {
+    body: ProviderTestRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/app-settings/test';
+};
+
+export type TestProviderApiV1AppSettingsTestPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TestProviderApiV1AppSettingsTestPostError = TestProviderApiV1AppSettingsTestPostErrors[keyof TestProviderApiV1AppSettingsTestPostErrors];
+
+export type TestProviderApiV1AppSettingsTestPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProviderTestResult;
+};
+
+export type TestProviderApiV1AppSettingsTestPostResponse = TestProviderApiV1AppSettingsTestPostResponses[keyof TestProviderApiV1AppSettingsTestPostResponses];
 
 export type ListBatchesApiV1BatchesGetData = {
     body?: never;
@@ -3198,6 +3279,40 @@ export type CreateUserApiV1OrganizationsOrgIdUsersPostResponses = {
 
 export type CreateUserApiV1OrganizationsOrgIdUsersPostResponse = CreateUserApiV1OrganizationsOrgIdUsersPostResponses[keyof CreateUserApiV1OrganizationsOrgIdUsersPostResponses];
 
+export type UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchData = {
+    body: UserUpdate;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+        /**
+         * Org Id
+         */
+        org_id: string;
+    };
+    query?: never;
+    url: '/api/v1/organizations/{org_id}/users/{user_id}';
+};
+
+export type UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchError = UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchErrors[keyof UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchErrors];
+
+export type UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserRead;
+};
+
+export type UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchResponse = UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchResponses[keyof UpdateUserApiV1OrganizationsOrgIdUsersUserIdPatchResponses];
+
 export type GetLocaleApiV1OtaProjectSlugLocaleJsonGetData = {
     body?: never;
     path: {
@@ -3696,6 +3811,36 @@ export type UpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchRe
 };
 
 export type UpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchResponse = UpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchResponses[keyof UpdateLocaleConfigApiV1ProjectsProjectIdLocaleConfigsConfigIdPatchResponses];
+
+export type AddProjectLocaleApiV1ProjectsProjectIdLocalesPostData = {
+    body: LocaleConfigCreate;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/locales';
+};
+
+export type AddProjectLocaleApiV1ProjectsProjectIdLocalesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AddProjectLocaleApiV1ProjectsProjectIdLocalesPostError = AddProjectLocaleApiV1ProjectsProjectIdLocalesPostErrors[keyof AddProjectLocaleApiV1ProjectsProjectIdLocalesPostErrors];
+
+export type AddProjectLocaleApiV1ProjectsProjectIdLocalesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: LocaleConfigRead;
+};
+
+export type AddProjectLocaleApiV1ProjectsProjectIdLocalesPostResponse = AddProjectLocaleApiV1ProjectsProjectIdLocalesPostResponses[keyof AddProjectLocaleApiV1ProjectsProjectIdLocalesPostResponses];
 
 export type ListRepositoriesApiV1ProjectsProjectIdRepositoriesGetData = {
     body?: never;

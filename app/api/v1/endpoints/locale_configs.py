@@ -120,6 +120,67 @@ async def create_locale_config(
     )
 
 
+@router.post(
+    "/{project_id}/locales",
+    response_model=LocaleConfigRead,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_project_locale(body: LocaleConfigCreate, db: DB, project: ScopedProject) -> LocaleConfigRead:
+    """Atomically register a target locale on a project.
+
+    Appends the locale to ``project.target_locales`` AND upserts its
+    ``locale_config`` (register-only — not activated, not bootstrapped) in a
+    single transaction. Replaces the UI's old non-atomic two-call dance
+    (PATCH target_locales + create locale-config) where a partial failure left
+    the two out of sync. Idempotent: re-adding an existing locale is a no-op.
+    Settings → Locales is the single owner of locale-add (admin-UI audit #9).
+    """
+    # Upsert the locale_config first (race-safe), then append to target_locales,
+    # then commit both together — so the config insert's IntegrityError rollback
+    # can't lose the target_locales change.
+    existing = await db.scalar(
+        select(LocaleConfig).where(
+            LocaleConfig.project_id == project.id,
+            LocaleConfig.locale == body.locale,
+        )
+    )
+    if existing is None:
+        lc = LocaleConfig(
+            project_id=project.id,
+            locale=body.locale,
+            formality=body.formality,
+            register=body.register_value,
+            notes=body.notes,
+            is_bootstrapped=body.is_bootstrapped,
+        )
+        db.add(lc)
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            lc = await db.scalar(
+                select(LocaleConfig).where(
+                    LocaleConfig.project_id == project.id,
+                    LocaleConfig.locale == body.locale,
+                )
+            )
+            if lc is None:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Locale config insert failed and re-fetch was empty.",
+                )
+    else:
+        lc = existing
+
+    if body.locale not in (project.target_locales or []):
+        project.target_locales = [*(project.target_locales or []), body.locale]
+
+    await db.commit()
+    await db.refresh(lc)
+    return LocaleConfigRead.model_validate(lc)
+
+
 @router.get(
     "/{project_id}/locale-configs",
     response_model=ListResponse[LocaleConfigRead],

@@ -43,6 +43,25 @@ class UserCreate(BaseModel):
         return v
 
 
+class UserUpdate(BaseModel):
+    """Partial update — soft-deactivate (``is_active``) and/or change ``role``.
+
+    Omitted fields are no-ops (``exclude_unset`` on the server). We never expose
+    a hard delete: users are attribution records (import_jobs.uploaded_by,
+    translation history), so deactivation is a soft flag, not a row removal.
+    """
+
+    is_active: bool | None = None
+    role: str | None = None
+
+    @field_validator("role")
+    @classmethod
+    def _role_must_be_known(cls, v: str | None) -> str | None:
+        if v is not None and v not in _ALLOWED_ROLES:
+            raise ValueError(f"role must be one of {sorted(_ALLOWED_ROLES)}")
+        return v
+
+
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

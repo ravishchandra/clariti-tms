@@ -26,6 +26,7 @@ import { z } from "zod";
 // only; the SDK fns below read the configured singleton. (§19/§20 Phase 3.)
 import "@/lib/client";
 import {
+  addProjectLocaleApiV1ProjectsProjectIdLocalesPost,
   createApiKeyApiV1ApiKeysPost,
   createComponentContextApiV1RepositoriesRepoIdComponentContextsPost,
   createGlossaryTermApiV1ProjectsProjectIdGlossaryPost,
@@ -65,6 +66,7 @@ import {
   revokeApiKeyApiV1ApiKeysKeyIdDelete,
   triggerProjectMtApiV1ProjectsProjectIdTriggerMtPost,
   triggerPublicationApiV1PublicationsRepositoriesRepoIdPublishPost,
+  testProviderApiV1AppSettingsTestPost,
   updateAppSettingsApiV1AppSettingsPatch,
   updateComponentContextApiV1RepositoriesRepoIdComponentContextsCtxIdPatch,
   updateGlossaryTermApiV1ProjectsProjectIdGlossaryTermIdPatch,
@@ -72,6 +74,7 @@ import {
   updateProjectApiV1ProjectsProjectIdPatch,
   updateRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdPatch,
   updateTranslationApiV1TranslationsTranslationIdPatch,
+  updateUserApiV1OrganizationsOrgIdUsersUserIdPatch,
 } from "@/client/sdk.gen";
 import type {
   AnalyticsSummary,
@@ -708,6 +711,19 @@ export const api = {
       body: { email: string; name: string; role?: UserRole; assigned_locales?: string[] },
     ): Promise<User> =>
       _unwrap(createUserApiV1OrganizationsOrgIdUsersPost({ path: { org_id: orgId }, body })),
+    // Soft-deactivate (is_active) or change role. No hard delete — users are
+    // attribution records (audit #17).
+    update: async (
+      orgId: string,
+      userId: string,
+      body: { is_active?: boolean; role?: UserRole },
+    ): Promise<User> =>
+      _unwrap(
+        updateUserApiV1OrganizationsOrgIdUsersUserIdPatch({
+          path: { org_id: orgId, user_id: userId },
+          body,
+        }),
+      ),
   },
   repositories: {
     list: async (projectId: string): Promise<Repository[]> =>
@@ -1078,6 +1094,22 @@ export const api = {
     list: async (projectId: string) =>
       (await _unwrap(listLocaleConfigsApiV1ProjectsProjectIdLocaleConfigsGet({ path: { project_id: projectId } }))).items,
     /**
+     * Atomically register a target locale: appends to project.target_locales
+     * AND upserts its locale_config (register-only) in one transaction — the
+     * single owner of locale-add (audit #9), replacing the old non-atomic
+     * PATCH-target_locales + create-config pair.
+     */
+    addLocale: async (
+      projectId: string,
+      body: { locale: string; formality?: string; register?: string | null; notes?: string | null },
+    ): Promise<LocaleConfig> =>
+      _unwrap(
+        addProjectLocaleApiV1ProjectsProjectIdLocalesPost({
+          path: { project_id: projectId },
+          body,
+        }),
+      ),
+    /**
      * Upsert a locale config. With `fan_out=true`, also seeds draft
      * Translation rows for every active key (idempotent) and flips
      * `is_activated`. See docs/15 plan v2 for the state machine.
@@ -1149,6 +1181,14 @@ export const api = {
     get: async () => _unwrap(getAppSettingsApiV1AppSettingsGet({})),
     update: async (body: AppSettingsUpdate) =>
       _unwrap(updateAppSettingsApiV1AppSettingsPatch({ body })),
+    // Validate a provider credential before trusting it (audit #13). Omit
+    // api_key to test the stored one. Always resolves {ok, error?}.
+    test: async (body: {
+      provider: string;
+      api_key?: string | null;
+      ollama_host?: string | null;
+    }): Promise<{ ok: boolean; error?: string | null }> =>
+      _unwrap(testProviderApiV1AppSettingsTestPost({ body })),
   },
   componentContexts: {
     list: async (repoId: string) =>

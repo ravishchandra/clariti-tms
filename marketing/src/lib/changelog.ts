@@ -13,6 +13,18 @@ export type ChangelogEntry = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-06-10",
+    tag: "feature",
+    title: "In-product admin — the whole job, no CLI",
+    body: "The dashboard now runs the full operator loop without dropping to the terminal: create an organization and project from the UI, connect a repository and ingest source strings in one click (from a connected GitHub repo or a file upload), test a provider key before trusting it, manage target locales and users (assign translator/reviewer locales, soft-deactivate), and work the review queue. A fresh non-developer admin can go from pasting an API key to reviewing translations entirely in-product. Closes the admin-UI audit's create / ingest / configure gaps.",
+  },
+  {
+    date: "2026-05-22",
+    tag: "feature",
+    title: "MCP server — agent-native access",
+    body: "First-party Model Context Protocol server (`loc mcp serve`) exposes ClaritiTMS to AI coding agents over stdio — Claude Code, Cursor, and Cline can ingest source strings, trigger machine translation, and read the review queue as native tools instead of hand-wiring the REST API. Ships in app/mcp/ with its own Dockerfile.",
+  },
+  {
     date: "2026-05-19",
     tag: "feature",
     title: "Editorial design refresh — Geist, indigo, pure white",

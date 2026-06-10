@@ -7,7 +7,7 @@ Parked work for the marketing site. Two kinds of items live here:
 
 When an item ships, delete the line — `git blame` is the audit trail.
 
-Last updated: 2026-05-19.
+Last updated: 2026-06-10.
 
 ---
 
@@ -41,6 +41,7 @@ Source: dummy-claims audit produced 2026-05-19 against the marketing site as of 
 - [ ] **`loc publish` reference in the Crowdin migration step** ("instead of Crowdin's CLI, use `loc translate` and `loc publish`") — `loc publish` is **not** registered as a CLI command in `cli/main.py`. Publication is REST-only via `POST /api/v1/repositories/{id}/publish`. Either implement `loc publish` or change the migration step copy.
 - [ ] **`loc agent install` reference in `/agents` page** — command is in IDEAS.md as a planned feature, not shipped. Page labels the MCP server as "preview"; verify the `loc agent install` mock terminal block reads honestly enough or add a "planned" pill.
 - [ ] **OpenRouter provider** is shipped (`app/llm/providers/openrouter.py`) but isn't listed on the home page or in the playground provider picker. Add it.
+- [ ] **XLIFF 2.0 claimed but only 1.2 ships.** `api/features.json` lists `XLIFF 2.0` under exchange formats, but `app/export_import/xliff_import.py` rejects 2.0/2.1 at parse time and `XLIFF_VERSION` is `"1.2"`. Claim kept intentionally as forward-looking — **ship XLIFF 2.0 round-trip to back it** (deferred per docs/09-build-phases.md). Drop the claim only if 2.0 is cut from the roadmap.
 
 ### D. Numerical / competitive claims to re-verify before launch
 

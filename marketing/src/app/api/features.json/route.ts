@@ -66,7 +66,8 @@ const payload = {
     file_formats: {
       ios: [".strings", ".xcstrings", ".stringsdict"],
       android: ["strings.xml + layout XML grouping"],
-      web: ["i18next JSON", "ICU MessageFormat"],
+      web: ["i18next JSON", "ICU MessageFormat", "Flat JSON"],
+      flutter: [".arb"],
       exchange: ["XLIFF 1.2", "XLIFF 2.0", "XLSX"],
     },
     integrations: {

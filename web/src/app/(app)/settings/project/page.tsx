@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
-import { LocaleChipInput } from "@/components/locale-chip-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,7 +34,6 @@ export default function ProjectSettingsPage() {
 }
 
 function ProjectSettingsContent() {
-  const qc = useQueryClient();
   const { current, isLoading } = useCurrentProject();
 
   if (isLoading) {
@@ -58,7 +56,7 @@ function ProjectSettingsContent() {
   return (
     <div className="px-6 py-10 sm:px-8 sm:py-12 max-w-3xl flex flex-col gap-8">
       <ProjectMeta orgId={org.id} projectId={project.id} name={project.name} slug={project.slug} />
-      <ProjectLocales orgId={org.id} projectId={project.id} locales={project.target_locales} onChanged={() => qc.invalidateQueries({ queryKey: ["all-projects"] })} />
+      <ProjectLocales locales={project.target_locales} />
       <ProjectStyleGuide orgId={org.id} projectId={project.id} initial={project.style_guide ?? ""} />
     </div>
   );
@@ -141,75 +139,12 @@ function ProjectMeta({
   );
 }
 
-function ProjectLocales({
-  orgId,
-  projectId,
-  locales,
-  onChanged,
-}: {
-  orgId: string;
-  projectId: string;
-  locales: string[];
-  onChanged: () => void;
-}) {
-  const qc = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
-
-  const updateMutation = useMutation({
-    mutationFn: (next: string[]) => api.projects.update(orgId, projectId, { target_locales: next }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["all-projects"] });
-      onChanged();
-      setError(null);
-    },
-    onError: (err) => setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)),
-  });
-
-  // After adding the locale to target_locales, create a default locale_config
-  // so the locale shows up in Settings → Locales. Bootstrap stays false —
-  // docs/02 R-15a says new locales require a 50-string native-speaker pass.
-  const addLocale = async (candidate: string) => {
-    if (locales.includes(candidate)) {
-      setError(`Locale ${candidate} already on this project.`);
-      return;
-    }
-    try {
-      await api.projects.update(orgId, projectId, {
-        target_locales: [...locales, candidate],
-      });
-      // Register-only: no fan_out here. The locale row appears in
-      // /settings/locales in state 1 ("registered") with an [Activate →]
-      // button — the admin chooses when to kick off the pipeline (docs/15
-      // plan v2).
-      await api.localeConfigs.create(projectId, {
-        locale: candidate,
-        formality: "formal",
-        is_bootstrapped: false,
-      });
-      qc.invalidateQueries({ queryKey: ["all-projects"] });
-      qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] });
-      onChanged();
-      setError(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err));
-    }
-  };
-
-  const removeLocale = (loc: string) => {
-    if (!confirm(`Remove ${loc} from this project? Existing translations stay in the DB but won't appear in the sidebar.`)) return;
-    updateMutation.mutate(locales.filter((l) => l !== loc));
-  };
-
-  // LocaleChipInput is controlled and changes one locale at a time; diff the
-  // next array against the current to route to the right side effect — add also
-  // seeds a locale_config, remove confirms first.
-  const handleLocalesChange = (next: string[]) => {
-    const added = next.find((l) => !locales.includes(l));
-    const removed = locales.find((l) => !next.includes(l));
-    if (added) addLocale(added);
-    else if (removed) removeLocale(removed);
-  };
-
+// Read-only view of the project's target locales. Settings → Locales is the
+// single owner of locale-add/remove (audit #9) — this section used to be a
+// second, non-atomic write path (PATCH target_locales + create locale_config).
+// We now just display the locales and link out to manage them, so the two pages
+// can't drift.
+function ProjectLocales({ locales }: { locales: string[] }) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
@@ -222,14 +157,27 @@ function ProjectLocales({
       </div>
       <Card>
         <CardContent className="p-5 flex flex-col gap-4">
-          <LocaleChipInput
-            value={locales}
-            onChange={handleLocalesChange}
-            disabled={updateMutation.isPending}
-          />
-          {error ? (
-            <p className="text-[12px] text-status-rejected">{error}</p>
-          ) : null}
+          {locales.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {locales.map((loc) => (
+                <span
+                  key={loc}
+                  className="inline-flex items-center rounded-md border border-line bg-ink-1/60 px-2 py-0.5 font-mono text-[12px] text-foreground"
+                >
+                  {loc}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[12px] text-text-muted">
+              No target locales yet.
+            </p>
+          )}
+          <p className="text-[12px] text-text-soft">
+            <Link href="/settings/locales" className="text-flame-soft hover:underline">
+              Manage locales in Settings → Locales
+            </Link>
+          </p>
 
           <FanoutNotice />
         </CardContent>

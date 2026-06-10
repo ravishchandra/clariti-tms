@@ -33,8 +33,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
-import { api, ApiError, USER_ROLES, useApiKey, type UserRole } from "@/lib/api";
+import {
+  api,
+  formatApiError,
+  USER_ROLES,
+  useApiKey,
+  type User,
+  type UserRole,
+} from "@/lib/api";
 import { useCurrentProject } from "@/lib/current-project";
+
+/** Human-readable label for a role slug; falls back to the raw slug. */
+function roleLabel(role: string): string {
+  switch (role) {
+    case "developer":
+      return "Developer";
+    case "org_admin":
+      return "Org admin";
+    case "translator":
+      return "Translator";
+    case "reviewer":
+      return "Reviewer";
+    case "admin":
+      return "Admin";
+    default:
+      return role;
+  }
+}
+
+/** Roles that carry per-locale assignments (audit #5). */
+function isLocaleScopedRole(role: string): boolean {
+  return role === "translator" || role === "reviewer";
+}
 
 /**
  * Settings → Users (developer-packet §18). Users are attribution records:
@@ -42,8 +72,10 @@ import { useCurrentProject } from "@/lib/current-project";
  * create them — only the CLI / REST endpoint shipped in PR1. This closes that
  * gap so an org admin can provision a user without leaving the dashboard.
  *
- * Org-scoped via the current project's org (POST/GET
- * /organizations/{orgId}/users). Create only — edit/deactivate are deferred.
+ * Org-scoped via the current project's org (POST/GET/PATCH
+ * /organizations/{orgId}/users). Supports create, per-locale assignment for
+ * translator/reviewer roles (audit #5), and soft deactivate/reactivate
+ * (audit #17). Users are attribution records, so there's no hard delete.
  */
 export default function UsersPage() {
   const apiKey = useApiKey();
@@ -128,10 +160,12 @@ function UsersContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40%]">Email</TableHead>
+                  <TableHead className="w-[34%]">Email</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Assigned locales</TableHead>
                   <TableHead className="text-right">Status</TableHead>
+                  <TableHead className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,17 +178,23 @@ function UsersContent() {
                       </div>
                     </TableCell>
                     <TableCell className="text-text-soft">{u.name}</TableCell>
-                    <TableCell className="font-mono text-[11.5px] text-text-soft">
+                    <TableCell className="text-[11.5px] text-text-soft">
                       {u.role === "org_admin" ? (
                         <span className="inline-flex items-center gap-1 text-flame-soft">
-                          <ShieldIcon className="size-3" /> org-admin
+                          <ShieldIcon className="size-3" /> {roleLabel(u.role)}
                         </span>
                       ) : (
-                        u.role
+                        roleLabel(u.role)
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <AssignedLocalesCell user={u} />
                     </TableCell>
                     <TableCell className="text-right">
                       <StatusPill active={u.is_active} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <UserRowActions orgId={orgId} user={u} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -201,27 +241,45 @@ function CreateUserDialog({
   onCreated: () => void;
 }) {
   const qc = useQueryClient();
+  const { current } = useCurrentProject();
+  const projectLocales = current?.project.target_locales ?? [];
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<UserRole>("developer");
+  const [assignedLocales, setAssignedLocales] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Locales only apply to translator/reviewer; for any other role we send [].
+  const scoped = isLocaleScopedRole(role);
+
   const mutation = useMutation({
-    mutationFn: () => api.users.create(orgId, { email: email.trim(), name: name.trim(), role }),
+    mutationFn: () =>
+      api.users.create(orgId, {
+        email: email.trim(),
+        name: name.trim(),
+        role,
+        assigned_locales: scoped ? assignedLocales : [],
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", "list", orgId] });
       onCreated();
       handleClose(false);
     },
-    onError: (err) =>
-      setError(err instanceof ApiError ? formatUserError(err) : String(err)),
+    onError: (err) => setError(formatApiError(err)),
   });
+
+  function toggleLocale(locale: string) {
+    setAssignedLocales((prev) =>
+      prev.includes(locale) ? prev.filter((l) => l !== locale) : [...prev, locale],
+    );
+  }
 
   function handleClose(v: boolean) {
     if (!v) {
       setEmail("");
       setName("");
       setRole("developer");
+      setAssignedLocales([]);
       setError(null);
     }
     onOpenChange(v);
@@ -267,12 +325,47 @@ function CreateUserDialog({
               <SelectContent>
                 {USER_ROLES.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {r}
+                    {roleLabel(r)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {scoped ? (
+            <div className="flex flex-col gap-2">
+              <Label>Assigned locales</Label>
+              {projectLocales.length === 0 ? (
+                <p className="text-[12px] text-text-muted">
+                  This project has no target locales yet. Add one in Settings →
+                  Locales first.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {projectLocales.map((locale) => {
+                    const checked = assignedLocales.includes(locale);
+                    return (
+                      <label
+                        key={locale}
+                        className="flex items-center gap-2 text-[13px] text-text-soft cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="accent-flame"
+                          checked={checked}
+                          onChange={() => toggleLocale(locale)}
+                        />
+                        <span className="font-mono text-[11.5px]">{locale}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-[11.5px] text-text-muted">
+                Which locales this {roleLabel(role).toLowerCase()} works on. Leave
+                empty for access to all.
+              </p>
+            </div>
+          ) : null}
           {error ? <p className="text-[12px] text-status-rejected">{error}</p> : null}
         </div>
 
@@ -292,13 +385,65 @@ function CreateUserDialog({
   );
 }
 
-/** Turn an ApiError into a one-line message; unwrap FastAPI's {detail}. */
-function formatUserError(err: ApiError): string {
-  const d = err.detail;
-  if (typeof d === "string") return `${err.status}: ${d}`;
-  if (d && typeof d === "object" && "detail" in d) {
-    const inner = (d as { detail: unknown }).detail;
-    if (typeof inner === "string") return `${err.status}: ${inner}`;
+/**
+ * Assigned-locales cell (audit #5). Only translator/reviewer rows carry
+ * locale scope; everyone else shows a dash. Renders the locales as small mono
+ * chips, with a dash when a scoped user has none (= access to all).
+ */
+function AssignedLocalesCell({ user }: { user: User }) {
+  if (!isLocaleScopedRole(user.role) || user.assigned_locales.length === 0) {
+    return <span className="text-text-muted">—</span>;
   }
-  return `${err.status}: ${err.message}`;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {user.assigned_locales.map((locale) => (
+        <span
+          key={locale}
+          className="inline-flex items-center rounded border border-line bg-ink-1 px-1.5 py-0.5 font-mono text-[10.5px] text-text-soft"
+        >
+          {locale}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Per-row deactivate/reactivate toggle (audit #17). Soft-only — users are
+ * attribution records, so there's no hard delete. Confirms before
+ * deactivating; reactivation is unguarded. Invalidates the users list on
+ * success; inline error on failure.
+ */
+function UserRowActions({ orgId, user }: { orgId: string; user: User }) {
+  const qc = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () => api.users.update(orgId, user.id, { is_active: !user.is_active }),
+    onSuccess: () => {
+      setError(null);
+      qc.invalidateQueries({ queryKey: ["users", "list", orgId] });
+    },
+    onError: (err) => setError(formatApiError(err)),
+  });
+
+  function onClick() {
+    if (user.is_active && !window.confirm(`Deactivate ${user.email}?`)) return;
+    mutation.mutate();
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button variant="ghost" size="xs" onClick={onClick} disabled={mutation.isPending}>
+        {mutation.isPending
+          ? user.is_active
+            ? "Deactivating…"
+            : "Reactivating…"
+          : user.is_active
+            ? "Deactivate"
+            : "Reactivate"}
+      </Button>
+      {error ? <p className="text-[12px] text-status-rejected">{error}</p> : null}
+    </div>
+  );
 }

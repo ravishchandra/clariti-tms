@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -36,8 +36,19 @@ export default function LocaleQueuePage() {
   const locale = params.locale;
   // Fall back to the sidebar-selected project when no ?project= override is
   // passed (the sidebar locale rows link to /review/{locale} without one).
-  const { current, isLoading: projectLoading } = useCurrentProject();
+  const { current, setCurrent, isLoading: projectLoading } = useCurrentProject();
   const projectId = queryProjectId ?? current?.project.id ?? null;
+
+  // Reconciliation (admin-UI audit #3): when this page is opened with an
+  // explicit ?project= (e.g. the dashboard "Start reviewing" CTA, or a shared
+  // link), sync the sidebar switcher to what's actually being reviewed so the
+  // switcher, the URL, and the settings pages all agree. Guarded so it only
+  // fires when the param names a *different* project — no setState loop.
+  useEffect(() => {
+    if (queryProjectId && queryProjectId !== current?.project.id) {
+      setCurrent(queryProjectId);
+    }
+  }, [queryProjectId, current?.project.id, setCurrent]);
 
   if (!getApiKey()) {
     return <Unauthenticated />;

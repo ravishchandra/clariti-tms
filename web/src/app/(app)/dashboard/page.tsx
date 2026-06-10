@@ -201,6 +201,7 @@ function OrgProjects({ orgId, orgName }: { orgId: string; orgName: string }) {
               projectId={p.id}
               projectName={p.name}
               locales={p.target_locales}
+              onSelect={setCurrent}
             />
           ))}
         </div>
@@ -219,10 +220,12 @@ function ProjectCard({
   projectId,
   projectName,
   locales,
+  onSelect,
 }: {
   projectId: string;
   projectName: string;
   locales: string[];
+  onSelect: (id: string) => void;
 }) {
   return (
     <Card>
@@ -237,7 +240,12 @@ function ProjectCard({
           <div className="text-sm text-app-text-muted">No target locales configured.</div>
         ) : (
           locales.map((locale) => (
-            <LocaleQueueRow key={locale} projectId={projectId} locale={locale} />
+            <LocaleQueueRow
+              key={locale}
+              projectId={projectId}
+              locale={locale}
+              onSelect={onSelect}
+            />
           ))
         )}
       </CardContent>
@@ -245,7 +253,15 @@ function ProjectCard({
   );
 }
 
-function LocaleQueueRow({ projectId, locale }: { projectId: string; locale: string }) {
+function LocaleQueueRow({
+  projectId,
+  locale,
+  onSelect,
+}: {
+  projectId: string;
+  locale: string;
+  onSelect: (id: string) => void;
+}) {
   const batchesQuery = useQuery({
     queryKey: ["dashboard", "batches", projectId, locale],
     queryFn: () => api.batches.listByProject(projectId, { locale }),
@@ -282,6 +298,7 @@ function LocaleQueueRow({ projectId, locale }: { projectId: string; locale: stri
       </div>
       <Link
         href={`/review/${locale}?project=${projectId}`}
+        onClick={() => onSelect(projectId)}
         className={buttonVariants({
           size: "sm",
           variant: counts && counts.needs_review > 0 ? "default" : "secondary",

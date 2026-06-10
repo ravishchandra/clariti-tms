@@ -1,12 +1,13 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   CheckIcon,
   ClipboardIcon,
   DownloadIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -19,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -92,6 +93,12 @@ export function BootstrapDialog({
   const [step, setStep] = useState<StepNum>(initialStep);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
+  // The wizard is "resuming" if it's already underway past step 1 (the admin
+  // exported a sample and persisted bootstrap_state). A resuming wizard has
+  // already cleared the prereqs once, so skip the gate — re-gating mid-flow
+  // would strand an admin who's just come back to import a reply.
+  const isResuming = step > 1 || initialStep > 1;
+
   // If the locale_config is refetched while the dialog is open (e.g. another
   // tab advanced it), pull the new step in. But ignore upstream changes
   // while the dialog is closed so reopening reads the latest server state.
@@ -155,7 +162,17 @@ export function BootstrapDialog({
             <StepRail step={step} />
           </DialogHeader>
 
-          {step === 1 ? (
+          {!isResuming && open ? (
+            <PrereqGate projectId={projectId}>
+              {step === 1 ? (
+                <StepExport
+                  projectId={projectId}
+                  config={config}
+                  onAdvance={() => setStep(2)}
+                />
+              ) : null}
+            </PrereqGate>
+          ) : step === 1 ? (
             <StepExport
               projectId={projectId}
               config={config}
@@ -205,6 +222,169 @@ export function BootstrapDialog({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * Prereq gate (audit #4)
+ *
+ * Bootstrap's first real step (Export) silently assumed two prereqs that, when
+ * absent, only surfaced as a bare "No batches for this locale" error deep in
+ * Step 1's poll loop:
+ *
+ *   1. Ingested source strings — without keys there are no batches to MT, so
+ *      the sample export is empty. Fixed in Settings → Repositories (ingest).
+ *   2. Authored component contexts — risk classification (which strings make
+ *      the 50-string sample) needs per-component context. Authored on the
+ *      Contexts page, scoped per-repository.
+ *
+ * We pre-check both on dialog open (gated via `enabled`) BEFORE the wizard's
+ * first step renders, and render blocking guidance naming the missing prereq
+ * instead of letting the admin walk into the dead end. Resuming wizards skip
+ * this gate (handled by the caller) — they've cleared it already.
+ * ------------------------------------------------------------------------ */
+
+function PrereqGate({
+  projectId,
+  children,
+}: {
+  projectId: string;
+  children: React.ReactNode;
+}) {
+  // Prereq 1 — at least one ingested source string (key) exists. We only need
+  // the count, so request a single row and read the paginated `total`.
+  const keysQuery = useQuery({
+    queryKey: ["bootstrap-prereq", "keys", projectId],
+    queryFn: () => api.keys.listByProject(projectId, { pageSize: 1 }),
+  });
+
+  // Prereq 2 — at least one authored component context. Contexts are scoped
+  // per-repository, so fan out over the project's repos and stop at the first
+  // hit. No repos at all ⇒ no contexts ⇒ same gate (and no source either).
+  const contextsQuery = useQuery({
+    queryKey: ["bootstrap-prereq", "contexts", projectId],
+    queryFn: async () => {
+      const repos = await api.repositories.list(projectId);
+      for (const repo of repos) {
+        const contexts = await api.componentContexts.list(repo.id);
+        if (contexts.length > 0) return true;
+      }
+      return false;
+    },
+  });
+
+  if (keysQuery.isLoading || contextsQuery.isLoading) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex items-center justify-center py-10 text-[12.5px] text-text-muted"
+      >
+        Checking bootstrap prerequisites…
+      </div>
+    );
+  }
+
+  // Treat a failed prereq check as "not satisfied" so we never wave the admin
+  // into the dead-end export. The guidance below is the right next action
+  // either way.
+  const keysTotal = keysQuery.data?.total ?? keysQuery.data?.items.length ?? 0;
+  const hasSource = keysTotal > 0;
+  const hasContexts = contextsQuery.data === true;
+
+  if (!hasSource || !hasContexts) {
+    const missing: string[] = [];
+    if (!hasSource) missing.push("ingested source strings");
+    if (!hasContexts) missing.push("authored component contexts");
+
+    return (
+      <div className="flex flex-col gap-4">
+        <StepHeading
+          eyebrow="BEFORE YOU START"
+          title="Finish two prerequisites first."
+          body={
+            <>
+              Bootstrapping translates a 50-string sample for your reviewer, but
+              this project is missing {missing.join(" and ")}. Resolve the
+              item{missing.length > 1 ? "s" : ""} below, then reopen the wizard.
+            </>
+          }
+        />
+
+        <div className="flex flex-col gap-2.5">
+          <PrereqRow
+            ok={hasSource}
+            label="Ingested source strings"
+            body="Bootstrap needs keys to translate. Connect a repository and ingest its source file."
+            href="/settings/repositories"
+            cta="Go to Repositories"
+          />
+          <PrereqRow
+            ok={hasContexts}
+            label="Authored component contexts"
+            body="Risk classification picks the 50 sample strings from your component contexts. Author at least one."
+            href="/settings/contexts"
+            cta="Go to Contexts"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * One prereq line in the gate — a status pip, the requirement, and a link to
+ * the page that resolves it. Satisfied rows stay visible (muted, checked) so
+ * the admin sees the full checklist, not just the blocker.
+ */
+function PrereqRow({
+  ok,
+  label,
+  body,
+  href,
+  cta,
+}: {
+  ok: boolean;
+  label: string;
+  body: string;
+  href: string;
+  cta: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-md border p-3 flex items-start gap-3",
+        ok ? "border-line bg-ink-2" : "border-flame/40 bg-flame/5",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]",
+          ok
+            ? "bg-status-approved/20 text-status-approved"
+            : "bg-flame/20 text-flame-soft",
+        )}
+        aria-hidden
+      >
+        {ok ? <CheckIcon className="size-3" /> : "!"}
+      </span>
+      <div className="flex flex-col gap-1.5 min-w-0">
+        <p className="text-[13px] font-[450] text-foreground">{label}</p>
+        <p className="text-[12.5px] leading-[1.5] text-text-soft text-pretty">
+          {body}
+        </p>
+        {ok ? null : (
+          <Link
+            href={href}
+            className={cn(buttonVariants({ variant: "outline" }), "mt-1 w-fit")}
+          >
+            {cta}
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }
 

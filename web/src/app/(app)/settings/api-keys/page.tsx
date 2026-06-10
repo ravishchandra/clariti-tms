@@ -292,9 +292,18 @@ function CreateKeyDialog({
     onOpenChange(v);
   };
 
+  // While the raw key is shown it can only be revealed once. Esc and
+  // outside-click both route a close (v === false) through onOpenChange, so
+  // swallow those here and require the explicit "Done" button — which calls
+  // handleClose(false) directly — to dismiss. Otherwise the secret is lost.
+  const onDialogOpenChange = (v: boolean) => {
+    if (!v && createdRaw) return;
+    handleClose(v);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onDialogOpenChange}>
+      <DialogContent showCloseButton={!createdRaw}>
         <DialogHeader>
           <DialogTitle>{createdRaw ? "Key created" : "Mint API key"}</DialogTitle>
           <DialogDescription>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ArrowUpFromLine, FileSpreadsheet, FileText } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/empty-state";
@@ -48,20 +48,6 @@ export default function DataPage() {
           icon={<ArrowUpFromLine className="size-4 text-flame-soft" />}
           title="Import from Excel"
           body="Upload an edited workbook. Dry-run shows every change before commit; 24-hour rollback window."
-        />
-        <ActionCard
-          href="#"
-          icon={<FileSpreadsheet className="size-4 text-text-muted" />}
-          title="TMX export"
-          body="Translation memory exchange format. CLI only for now (`loc export-tm`); UI follow-up."
-          disabled
-        />
-        <ActionCard
-          href="#"
-          icon={<FileText className="size-4 text-text-muted" />}
-          title="Recent jobs"
-          body="List of recent imports/exports with rollback links. Follow-up — backend list endpoint pending."
-          disabled
         />
       </div>
     </div>

@@ -46,7 +46,7 @@ const PROJECT_LINKS = [
 ] as const;
 
 const PROJECT_FOOTER_LINKS = [
-  { href: "/keys", label: "Keys", icon: Database },
+  { href: "/keys", label: "Strings", icon: Database },
   { href: "/flagged", label: "Flagged", icon: FlagIcon },
 ] as const;
 

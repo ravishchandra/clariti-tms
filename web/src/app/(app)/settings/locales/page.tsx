@@ -418,9 +418,14 @@ function AddLocaleRow({
     }
   }, [missingLocales, locale]);
 
+  // Single owner of locale-add (audit #9). The atomic facade appends to
+  // project.target_locales AND upserts the register-only locale_config in one
+  // transaction, replacing the old non-atomic PATCH-then-create pair that also
+  // lived in Settings → Project. Bootstrap stays false: the row lands in state 1
+  // ("registered") with an [Activate →] button (docs/15 plan v2).
   const mutation = useMutation({
     mutationFn: () =>
-      api.localeConfigs.create(projectId, {
+      api.localeConfigs.addLocale(projectId, {
         locale,
         formality,
         register: register || null,
@@ -428,6 +433,7 @@ function AddLocaleRow({
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["locales", "configs", projectId] });
+      qc.invalidateQueries({ queryKey: ["all-projects"] });
       setOpen(false);
       setRegister("");
       setNotes("");

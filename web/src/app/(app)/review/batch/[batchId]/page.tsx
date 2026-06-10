@@ -15,6 +15,7 @@ import { KeyboardChip } from "@/components/app-shell";
 import { QaScores } from "@/components/qa-scores";
 import { StatusChip } from "@/components/status-chip";
 import { api, getApiKey, type Key, type Translation } from "@/lib/api";
+import { useCurrentProject } from "@/lib/current-project";
 import { useKeyBindings } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 import { useHelpDialog } from "@/app/(app)/_help/help-dialog";
@@ -85,6 +86,19 @@ export default function BatchReviewPage() {
   const params = useParams<{ batchId: string }>();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
+
+  // Reconciliation (admin-UI audit #3): this page reads ?project= as its
+  // source of truth (threaded into breadcrumb links + the translations query).
+  // When that param names a different project than the sidebar switcher's
+  // current, sync the switcher to it so the switcher, the URL, and the
+  // settings pages all agree on which project is being acted on. Guarded so it
+  // only fires on a real mismatch — no setState loop.
+  const { current, setCurrent } = useCurrentProject();
+  useEffect(() => {
+    if (projectId && projectId !== current?.project.id) {
+      setCurrent(projectId);
+    }
+  }, [projectId, current?.project.id, setCurrent]);
 
   if (!getApiKey()) {
     return (

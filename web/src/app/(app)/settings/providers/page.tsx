@@ -85,6 +85,14 @@ type SavedState =
   | { kind: "saved"; at: Date }
   | { kind: "error"; message: string };
 
+// Per-provider "Test connection" result (audit #13). Each key field drives
+// its own slot, so testing Anthropic never clobbers the OpenAI result.
+type TestState =
+  | { kind: "idle" }
+  | { kind: "testing" }
+  | { kind: "ok" }
+  | { kind: "error"; message: string };
+
 function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved: () => void }) {
   // The form mirrors the server's two concerns: non-key fields
   // (round-tripped verbatim) and key fields (write-only, with a "set" /
@@ -106,6 +114,32 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [saved, setSaved] = useState<SavedState>({ kind: "idle" });
+
+  // Test-connection result per provider slug. Keyed off PROVIDERS so each
+  // field shows only its own outcome.
+  const [testStates, setTestStates] = useState<Record<string, TestState>>({});
+
+  // Validate a single provider against the value currently typed (or the
+  // stored key when the field is blank). The endpoint resolves {ok, error?}
+  // for auth failures, so formatApiError only handles unexpected throws
+  // (network, etc.).
+  async function runTest(
+    provider: string,
+    body: { provider: string; api_key?: string | null; ollama_host?: string | null },
+  ) {
+    setTestStates((s) => ({ ...s, [provider]: { kind: "testing" } }));
+    try {
+      const res = await api.appSettings.test(body);
+      setTestStates((s) => ({
+        ...s,
+        [provider]: res.ok
+          ? { kind: "ok" }
+          : { kind: "error", message: res.error || "Connection failed." },
+      }));
+    } catch (err) {
+      setTestStates((s) => ({ ...s, [provider]: { kind: "error", message: formatApiError(err) } }));
+    }
+  }
 
   useEffect(() => {
     setPrimaryProvider(initial.primary_provider);
@@ -217,6 +251,13 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
               setAnthropicKey(v);
               setTouched((t) => ({ ...t, anthropic: true }));
             }}
+            test={testStates.anthropic}
+            onTest={() =>
+              runTest("anthropic", {
+                provider: "anthropic",
+                api_key: anthropicKey.trim() === "" ? undefined : anthropicKey,
+              })
+            }
           />
           <KeyInput
             label="OpenAI"
@@ -226,6 +267,13 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
               setOpenaiKey(v);
               setTouched((t) => ({ ...t, openai: true }));
             }}
+            test={testStates.openai}
+            onTest={() =>
+              runTest("openai", {
+                provider: "openai",
+                api_key: openaiKey.trim() === "" ? undefined : openaiKey,
+              })
+            }
           />
           <KeyInput
             label="OpenRouter"
@@ -235,6 +283,13 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
               setOpenrouterKey(v);
               setTouched((t) => ({ ...t, openrouter: true }));
             }}
+            test={testStates.openrouter}
+            onTest={() =>
+              runTest("openrouter", {
+                provider: "openrouter",
+                api_key: openrouterKey.trim() === "" ? undefined : openrouterKey,
+              })
+            }
           />
           <KeyInput
             label="DeepL"
@@ -244,6 +299,13 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
               setDeeplKey(v);
               setTouched((t) => ({ ...t, deepl: true }));
             }}
+            test={testStates.deepl}
+            onTest={() =>
+              runTest("deepl", {
+                provider: "deepl",
+                api_key: deeplKey.trim() === "" ? undefined : deeplKey,
+              })
+            }
           />
         </div>
       </Section>
@@ -321,12 +383,24 @@ function ProvidersFormBody({ initial, onSaved }: { initial: AppSettings; onSaved
         title="Ollama host"
         description="Optional. Where your local Ollama daemon listens. Defaults to http://localhost:11434."
       >
-        <Input
-          value={ollamaHost}
-          onChange={(e) => setOllamaHost(e.target.value)}
-          placeholder="http://localhost:11434"
-          className="font-mono text-[12.5px]"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            value={ollamaHost}
+            onChange={(e) => setOllamaHost(e.target.value)}
+            placeholder="http://localhost:11434"
+            className="font-mono text-[12.5px] flex-1"
+          />
+          <TestButton
+            state={testStates.ollama}
+            onClick={() =>
+              runTest("ollama", {
+                provider: "ollama",
+                ollama_host: ollamaHost.trim() === "" ? undefined : ollamaHost,
+              })
+            }
+          />
+        </div>
+        <TestResult state={testStates.ollama} />
       </Section>
 
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-line/70">
@@ -518,11 +592,15 @@ function KeyInput({
   hasKey,
   value,
   onChange,
+  test,
+  onTest,
 }: {
   label: string;
   hasKey: boolean;
   value: string;
   onChange: (v: string) => void;
+  test?: TestState;
+  onTest?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -532,16 +610,54 @@ function KeyInput({
         </Label>
         <StatusPill set={hasKey} />
       </div>
-      <Input
-        type="password"
-        autoComplete="new-password"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={hasKey ? "••••••••  (replace or leave blank)" : ""}
-        className="font-mono text-[12.5px]"
-      />
+      <div className="flex items-center gap-2">
+        <Input
+          type="password"
+          autoComplete="new-password"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={hasKey ? "••••••••  (replace or leave blank)" : ""}
+          className="font-mono text-[12.5px] flex-1"
+        />
+        {onTest ? <TestButton state={test} onClick={onTest} /> : null}
+      </div>
+      <TestResult state={test} />
     </div>
   );
+}
+
+/* ---------------------------------------------------------------------------
+ * Test connection (audit #13) — a quiet button beside each key/host field
+ * plus an inline result line. The button stays out of the way; only the
+ * outcome line uses color (mint for OK, status-rejected for failure).
+ * ------------------------------------------------------------------------ */
+function TestButton({ state, onClick }: { state?: TestState; onClick: () => void }) {
+  const testing = state?.kind === "testing";
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      disabled={testing}
+      className="shrink-0"
+    >
+      {testing ? "Testing…" : "Test"}
+    </Button>
+  );
+}
+
+function TestResult({ state }: { state?: TestState }) {
+  if (!state || state.kind === "idle" || state.kind === "testing") return null;
+  if (state.kind === "ok") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[12px] text-mint">
+        <CheckIcon className="size-3" />
+        Connection OK
+      </span>
+    );
+  }
+  return <span className="text-[12px] text-status-rejected">{state.message}</span>;
 }
 
 function StatusPill({ set }: { set: boolean }) {

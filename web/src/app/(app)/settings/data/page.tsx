@@ -41,13 +41,13 @@ export default function DataPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ActionCard
-          href="/exports"
+          href="/settings/data/export"
           icon={<ArrowDownToLine className="size-4 text-flame-soft" />}
           title="Export to Excel"
           body="Pick locales + status filter, build an .xlsx with locked schema headers. One row per (key, locale)."
         />
         <ActionCard
-          href="/imports"
+          href="/settings/data/import"
           icon={<ArrowUpFromLine className="size-4 text-flame-soft" />}
           title="Import from Excel"
           body="Upload an edited workbook. Dry-run shows every change before commit; 24-hour rollback window."

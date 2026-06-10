@@ -127,14 +127,14 @@ function LocaleQueueContent({ locale, projectId }: { locale: string; projectId: 
             }
           />
           <Link
-            href={`/exports?locale=${encodeURIComponent(locale)}`}
+            href={`/settings/data/export?locale=${encodeURIComponent(locale)}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             <ArrowDownToLine className="size-3.5" />
             Export
           </Link>
           <Link
-            href="/imports"
+            href="/settings/data/import"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             <ArrowUpFromLine className="size-3.5" />

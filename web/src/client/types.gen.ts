@@ -1012,6 +1012,10 @@ export type IngestResult = {
      */
     created: number;
     /**
+     * Deactivated
+     */
+    deactivated?: number;
+    /**
      * Format
      */
     format: string;
@@ -4151,6 +4155,36 @@ export type IngestRepositoryApiV1RepositoriesRepoIdIngestPostResponses = {
 };
 
 export type IngestRepositoryApiV1RepositoriesRepoIdIngestPostResponse = IngestRepositoryApiV1RepositoriesRepoIdIngestPostResponses[keyof IngestRepositoryApiV1RepositoriesRepoIdIngestPostResponses];
+
+export type IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostData = {
+    body?: never;
+    path: {
+        /**
+         * Repo Id
+         */
+        repo_id: string;
+    };
+    query?: never;
+    url: '/api/v1/repositories/{repo_id}/ingest-from-source';
+};
+
+export type IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostError = IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostErrors[keyof IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostErrors];
+
+export type IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IngestResult;
+};
+
+export type IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostResponse = IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostResponses[keyof IngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostResponses];
 
 export type DeleteScreenshotApiV1ScreenshotsScreenshotIdDeleteData = {
     body?: never;

@@ -21,5 +21,9 @@ class IngestResult(BaseModel):
     created: int
     updated: int
     unchanged: int
+    # Keys deactivated because they were absent from the source. Only non-zero
+    # on a full sync (connection pull); the partial agent/file-upload path
+    # never deactivates, so it stays 0. Defaulted for backward compatibility.
+    deactivated: int = 0
     keys: list[dict[str, Any]]
     batches: list[dict[str, Any]]

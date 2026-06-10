@@ -1645,6 +1645,11 @@
             "title": "Created",
             "type": "integer"
           },
+          "deactivated": {
+            "default": 0,
+            "title": "Deactivated",
+            "type": "integer"
+          },
           "format": {
             "title": "Format",
             "type": "string"
@@ -7398,6 +7403,55 @@
           }
         ],
         "summary": "Ingest Repository",
+        "tags": [
+          "Ingest"
+        ]
+      }
+    },
+    "/api/v1/repositories/{repo_id}/ingest-from-source": {
+      "post": {
+        "description": "Pull the repository's source file from its connected source and ingest it.\n\nThe one-click, connection-aware counterpart to ``POST .../ingest``: instead\nof the caller supplying file bytes, the server fetches ``source_file`` from\nthe connection using the stored credentials. This is a FULL SYNC\n(``partial=False``) \u2014 it pulls the entire file, so keys no longer present in\nsource are deactivated (matching the webhook), reported as ``deactivated``.\n\nHandles GitHub-connected repos whose ``github_installation_id`` is set (the\nsupported interim path until the OAuth install flow lands). The file upload\n(``/ingest``) remains the fallback for plain repos; Contentful is a planned\nfollow-up.",
+        "operationId": "ingest_repository_from_source_api_v1_repositories__repo_id__ingest_from_source_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Repo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Ingest Repository From Source",
         "tags": [
           "Ingest"
         ]

@@ -29,6 +29,10 @@ async def _classify[T](context: str, op: Callable[[], Awaitable[T]]) -> T:
 
 class GitHubClient:
     _BASE = "https://api.github.com"
+    # Bound every request so a slow/stuck GitHub API can't hang a synchronous
+    # caller (e.g. the ingest-from-source endpoint) indefinitely. Mirrors the
+    # Contentful client's explicit timeout.
+    _TIMEOUT = httpx.Timeout(30.0)
 
     def __init__(self, token: str) -> None:
         self._headers = {
@@ -41,7 +45,7 @@ class GitHubClient:
         url = f"{self._BASE}/repos/{repo}/contents/{path}"
 
         async def _do() -> str:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
                 resp = await client.get(url, headers=self._headers, params={"ref": ref})
                 resp.raise_for_status()
                 data = resp.json()
@@ -53,7 +57,7 @@ class GitHubClient:
         url = f"{self._BASE}/repos/{repo}/git/ref/heads/{branch}"
 
         async def _do() -> str:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
                 resp = await client.get(url, headers=self._headers)
                 resp.raise_for_status()
                 return resp.json()["object"]["sha"]
@@ -64,7 +68,7 @@ class GitHubClient:
         url = f"{self._BASE}/repos/{repo}/git/refs"
 
         async def _do() -> None:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
                 resp = await client.post(
                     url,
                     headers=self._headers,
@@ -88,7 +92,7 @@ class GitHubClient:
 
         async def _do() -> None:
             # Fetch current SHA if file exists (required for updates).
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
                 check = await client.get(url, headers=self._headers, params={"ref": branch})
                 if check.status_code == 200:
                     body["sha"] = check.json()["sha"]
@@ -108,7 +112,7 @@ class GitHubClient:
         url = f"{self._BASE}/repos/{repo}/pulls"
 
         async def _do() -> str:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
                 resp = await client.post(
                     url,
                     headers=self._headers,

@@ -427,6 +427,7 @@ export const zIngestRequest = z.object({
 export const zIngestResult = z.object({
     batches: z.array(z.record(z.string(), z.unknown())),
     created: z.int(),
+    deactivated: z.int().optional().default(0),
     format: z.string(),
     keys: z.array(z.record(z.string(), z.unknown())),
     parsed: z.int(),
@@ -1566,6 +1567,15 @@ export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostPath = z.object({
  * Successful Response
  */
 export const zIngestRepositoryApiV1RepositoriesRepoIdIngestPostResponse = zIngestResult;
+
+export const zIngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostPath = z.object({
+    repo_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zIngestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePostResponse = zIngestResult;
 
 export const zDeleteScreenshotApiV1ScreenshotsScreenshotIdDeletePath = z.object({
     screenshot_id: z.uuid()

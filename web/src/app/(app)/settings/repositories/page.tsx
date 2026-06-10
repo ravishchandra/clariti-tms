@@ -203,6 +203,26 @@ function RepoCard({
     if (file) ingestMutation.mutate(file);
   };
 
+  // Connection-aware ingest: one click pulls source_file from the repo's GitHub
+  // connection and full-syncs it (no manual file handling). Shares the same
+  // result/error display as the file upload.
+  const connectionIngestMutation = useMutation({
+    mutationFn: () => api.repositories.ingestFromSource(repository.id),
+    onSuccess: (res) => {
+      setIngestError(null);
+      setIngestResult(res);
+      qc.invalidateQueries({ queryKey: ["settings-repos", projectId] });
+    },
+    onError: (err) => {
+      setIngestResult(null);
+      setIngestError(formatApiError(err));
+    },
+  });
+
+  const hasGithub = !!repository.github_repo;
+  const githubInstalled = repository.github_installation_id != null;
+  const anyIngesting = ingestMutation.isPending || connectionIngestMutation.isPending;
+
   return (
     <Card>
       <CardContent className="p-5 flex flex-col gap-3">
@@ -252,11 +272,29 @@ function RepoCard({
               className="hidden"
               onChange={onPickFile}
             />
+            {hasGithub ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => connectionIngestMutation.mutate()}
+                disabled={!githubInstalled || !repository.source_file || anyIngesting}
+                title={
+                  !githubInstalled
+                    ? "Install the GitHub App and paste the install id to enable one-click ingest"
+                    : !repository.source_file
+                      ? "Set a source file before ingesting"
+                      : `Pull ${repository.source_file} from GitHub and full-sync`
+                }
+              >
+                <GitBranchIcon className="size-3.5" />
+                {connectionIngestMutation.isPending ? "Ingesting…" : "Ingest from GitHub"}
+              </Button>
+            ) : null}
             <Button
-              variant="outline"
+              variant={hasGithub ? "ghost" : "outline"}
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={!repository.source_file || ingestMutation.isPending}
+              disabled={!repository.source_file || anyIngesting}
               title={
                 repository.source_file
                   ? `Upload the current contents of ${repository.source_file}`
@@ -264,7 +302,7 @@ function RepoCard({
               }
             >
               <UploadIcon className="size-3.5" />
-              {ingestMutation.isPending ? "Ingesting…" : "Ingest"}
+              {ingestMutation.isPending ? "Uploading…" : hasGithub ? "Upload file" : "Ingest"}
             </Button>
             <Button
               variant="outline"
@@ -291,6 +329,9 @@ function RepoCard({
             Ingested {ingestResult.parsed} key
             {ingestResult.parsed === 1 ? "" : "s"} — {ingestResult.created} new,{" "}
             {ingestResult.updated} updated, {ingestResult.unchanged} unchanged
+            {(ingestResult.deactivated ?? 0) > 0
+              ? `, ${ingestResult.deactivated} deactivated`
+              : ""}
             {ingestResult.batches.length > 0
               ? `; assembled ${ingestResult.batches.length} batch${
                   ingestResult.batches.length === 1 ? "" : "es"

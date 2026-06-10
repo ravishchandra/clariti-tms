@@ -46,6 +46,7 @@ import {
   getRepositoryApiV1ProjectsProjectIdRepositoriesRepoIdGet,
   getTranslationHistoryApiV1TranslationsTranslationIdHistoryGet,
   ingestRepositoryApiV1RepositoriesRepoIdIngestPost,
+  ingestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePost,
   listApiKeysApiV1ApiKeysGet,
   listBatchesApiV1BatchesGet,
   listComponentContextsApiV1RepositoriesRepoIdComponentContextsGet,
@@ -775,6 +776,15 @@ export const api = {
         ingestRepositoryApiV1RepositoriesRepoIdIngestPost({
           path: { repo_id: repoId },
           body,
+        }),
+      ),
+    // Connection-aware full sync: the server pulls source_file from the repo's
+    // GitHub connection and ingests it. No body — the connection + path live on
+    // the repo row. Returns the same IngestResult (incl. `deactivated`).
+    ingestFromSource: async (repoId: string): Promise<IngestResult> =>
+      _unwrap(
+        ingestRepositoryFromSourceApiV1RepositoriesRepoIdIngestFromSourcePost({
+          path: { repo_id: repoId },
         }),
       ),
   },
